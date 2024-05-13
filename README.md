@@ -25,11 +25,11 @@ EvidenceAngel should allow a single evidence package to contain:
 EvidenceAngel should allow users to:
 
 - [x] Create a new package
-- [ ] Create a new test case
+- [x] Create a new test case
 - [ ] Add evidence to a test case
 - [ ] Edit evidence in a test case
 - [ ] Delete evidence from a test case
-- [ ] Annotate evidence
+- [ ] (GUI only) Annotate evidence
     - [ ] Highlighting parts of images and files
     - [ ] Writing comments
 

@@ -1,17 +1,30 @@
 use thiserror::Error;
+use uuid::Uuid;
 
+/// An error raised by EvidenceAngel.
 #[derive(Debug, Error)]
 pub enum Error {
+    /// An I/O error from the system.
     #[error("I/O Error: {0}")]
     Io(#[from] std::io::Error),
+    /// A package error, i.e. raised by the `zip` package.
     #[error("Package error: {0}")]
     Zip(#[from] zip::result::ZipError),
+    /// The package is corrupt. See the contained string for more details.
     #[error("The evidence package is corrupt ({0}).")]
     CorruptEvidencePackage(String),
+    /// The package manifest isn't valid JSON.
     #[error("The package manifest is corrupt: {0}")]
     InvalidManifest(serde_json::Error),
+    /// The package couldn't be created due to a JSON error.
     #[error("Failed to create package: {0}")]
     FailedToCreatePackage(serde_json::Error),
+    /// The test case couldn't be saved due to a JSON error.
+    #[error("Failed to save test case: {0}")]
+    FailedToSaveTestCase(serde_json::Error),
+    /// The test case couldn't be read due to a JSON error.
+    #[error("Failed to read test case {1}: {0}")]
+    InvalidTestCase(serde_json::Error, Uuid),
 }
 
 /// A result from EvidenceAngel.

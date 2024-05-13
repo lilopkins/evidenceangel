@@ -6,6 +6,10 @@
 //! from both manual and automated testing.
 
 mod package;
+pub use package::{
+    Author, Evidence, EvidenceData, EvidenceKind, EvidencePackage, MediaFile, Metadata, TestCase,
+    TestCaseMetadata,
+};
 mod result;
-pub use package::*;
-pub use result::Result;
+pub use result::{Error, Result};
+mod zip_read_writer;

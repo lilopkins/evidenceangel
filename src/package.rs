@@ -1,28 +1,43 @@
 use std::{
+    collections::HashMap,
     fmt,
-    fs::File,
-    io::{BufReader, BufWriter, Write},
+    io::{BufReader, Read, Write},
     path::PathBuf,
 };
 
-use getset::Getters;
+use chrono::{DateTime, Local};
+use getset::{Getters, MutGetters};
 use serde::{Deserialize, Serialize};
-use zip::{write::SimpleFileOptions, ZipArchive, ZipWriter};
+use uuid::Uuid;
+use zip::{result::ZipError, write::SimpleFileOptions};
 
-use crate::{result::Error, Result};
+use crate::{result::Error, zip_read_writer::ZipReaderWriter, Result};
+
+mod manifest;
+pub use manifest::*;
+
+mod media;
+pub use media::MediaFile;
+
+mod test_cases;
+pub use test_cases::{Evidence, EvidenceData, EvidenceKind, TestCase, TestCaseMetadata};
 
 /// An Evidence Package.
-#[derive(Serialize, Deserialize, Getters)]
+#[derive(Serialize, Deserialize, Getters, MutGetters)]
 pub struct EvidencePackage {
     /// The internal ZIP file. This will never be `None`, as long as it has been correctly parsed.
     #[serde(skip)]
-    zip: Option<ZipArchive<BufReader<File>>>,
+    zip: ZipReaderWriter,
+    #[serde(skip)]
+    media_data: HashMap<String, MediaFile>,
+    #[serde(skip)]
+    test_case_data: HashMap<Uuid, TestCase>,
 
     /// The metadata for the package.
-    #[getset(get = "pub")]
+    #[getset(get = "pub", get_mut = "pub")]
     metadata: Metadata,
-    media: Vec<MediaFile>,
-    test_cases: Vec<TestCase>,
+    media: Vec<MediaFileManifestEntry>,
+    test_cases: Vec<TestCaseManifestEntry>,
 }
 
 impl fmt::Debug for EvidencePackage {
@@ -38,41 +53,79 @@ impl fmt::Debug for EvidencePackage {
 impl EvidencePackage {
     /// Create a new evidence package.
     pub fn new(path: PathBuf, title: String, authors: Vec<Author>) -> Result<Self> {
+        // Create manifest data.
+        let mut manifest = Self {
+            zip: ZipReaderWriter::new(path),
+            media_data: HashMap::new(),
+            test_case_data: HashMap::new(),
+
+            media: vec![],
+            test_cases: vec![],
+            metadata: Metadata { title, authors },
+        };
+        let manifest_clone = manifest.clone_serde();
+
         // Create ZIP file
-        let buf_writer = BufWriter::new(File::create_new(&path)?);
-        let mut zip = ZipWriter::new(buf_writer);
+        let zip = manifest.zip.as_writer()?;
         let options = SimpleFileOptions::default();
 
         // Create empty structure.
         zip.add_directory("media", options)?;
         zip.add_directory("testcases", options)?;
 
-        // Create manifest data.
-        let manifest = Self {
-            zip: None,
-            media: vec![],
-            test_cases: vec![],
-            metadata: Metadata {
-                title,
-                authors: authors.into(),
-            },
-        };
         let manifest_data =
-            serde_json::to_string(&manifest).map_err(Error::FailedToCreatePackage)?;
+            serde_json::to_string(&manifest_clone).map_err(Error::FailedToCreatePackage)?;
 
         // Write ZIP file.
         zip.start_file("manifest.json", options)?;
-        zip.write(manifest_data.as_bytes())?;
+        zip.write_all(manifest_data.as_bytes())?;
         zip.finish()?;
+        manifest.zip.conclude_write()?;
 
-        Self::open(path)
+        Ok(manifest)
+    }
+
+    /// Save the package to disk.
+    pub fn save(&mut self) -> Result<()> {
+        let clone = self.clone_serde();
+        let zip = self.zip.as_writer()?;
+        let manifest_data = serde_json::to_string(&clone).map_err(Error::FailedToCreatePackage)?;
+        let options = SimpleFileOptions::default();
+
+        // Write ZIP file.
+        zip.start_file("manifest.json", options)?;
+        zip.write_all(manifest_data.as_bytes())?;
+
+        // Create empty structure.
+        zip.add_directory("media", options)?;
+        zip.add_directory("testcases", options)?;
+
+        // Write any files as needed
+        for test_case in &self.test_cases {
+            let id = test_case.name();
+            if let Some(data) = self.test_case_data.get(id) {
+                let data = serde_json::to_string(data)
+                    .map_err(crate::result::Error::FailedToSaveTestCase)?;
+                zip.start_file(format!("testcases/{id}.json"), options)?;
+                zip.write_all(data.as_bytes())?;
+            }
+        }
+
+        // TODO Determine which media is needed in this package
+        // TODO Scrub unused media manifest entries
+        // TODO Scrub media map of unreferenced entries
+        // TODO Save media to package, either sourcing it from memory if present, or from the previous package.
+
+        zip.finish()?;
+        self.zip.conclude_write()?;
+        Ok(())
     }
 
     /// Open an evidence package, returning either the parsed evidence package for manipulation, or an error.
     pub fn open(path: PathBuf) -> Result<Self> {
         // Open ZIP file
-        let buf_reader = BufReader::new(File::open(path)?);
-        let mut zip = ZipArchive::new(buf_reader)?;
+        let mut zip_rw = ZipReaderWriter::new(path);
+        let zip = zip_rw.as_reader()?;
 
         // Read manifest
         let manifest_entry = zip
@@ -83,66 +136,189 @@ impl EvidencePackage {
         // Parse manifest
         let mut evidence_package: EvidencePackage =
             serde_json::from_reader(buf_manifest).map_err(Error::InvalidManifest)?;
-        evidence_package.zip = Some(zip);
 
+        // Read test cases
+        for test_case in &evidence_package.test_cases {
+            let id = test_case.name();
+            let data = zip
+                .by_name(&format!("testcases/{id}.json"))
+                .map_err(|_| Error::CorruptEvidencePackage(format!("missing test case {id}")))?;
+            let test_case: TestCase = serde_json::from_reader(BufReader::new(data))
+                .map_err(|e| Error::InvalidTestCase(e, *id))?;
+            evidence_package.test_case_data.insert(*id, test_case);
+        }
+
+        evidence_package.zip = zip_rw;
         Ok(evidence_package)
     }
-}
 
-/// Evidence package metadata.
-#[derive(Debug, Getters, Serialize, Deserialize)]
-pub struct Metadata {
-    /// The package title.
-    #[getset(get = "pub")]
-    title: String,
-
-    /// The package authors.
-    #[getset(get = "pub")]
-    authors: Vec<Author>,
-}
-
-/// An author of an evidence package.
-#[derive(Debug, Getters, Serialize, Deserialize)]
-pub struct Author {
-    /// The author's name.
-    #[getset(get = "pub", get_mut = "pub", set = "pub")]
-    name: String,
-    /// The author's email address.
-    #[getset(get = "pub", get_mut = "pub", set = "pub")]
-    email: Option<String>,
-}
-
-impl Author {
-    /// Create a new author from a name.
-    pub fn new<S: Into<String>>(name: S) -> Self {
+    /// Clone fields that will be serialized by serde
+    fn clone_serde(&self) -> Self {
         Self {
-            name: name.into(),
-            email: None,
+            zip: ZipReaderWriter::new(PathBuf::new()),
+            media_data: HashMap::new(),
+            test_case_data: HashMap::new(),
+
+            metadata: self.metadata.clone(),
+            media: self.media.clone(),
+            test_cases: self.test_cases.clone(),
         }
     }
 
-    /// Create a new author from a name and email address.
-    pub fn new_with_email<S: Into<String>>(name: S, email_address: S) -> Self {
-        Self {
-            name: name.into(),
-            email: Some(email_address.into()),
+    /// Create a new test case.
+    pub fn create_test_case<S>(&mut self, title: S) -> Result<&mut TestCase>
+    where
+        S: Into<String>,
+    {
+        self.create_test_case_at(title, Local::now())
+    }
+
+    /// Create a new test case at a specified time.
+    pub fn create_test_case_at<S>(&mut self, title: S, at: DateTime<Local>) -> Result<&mut TestCase>
+    where
+        S: Into<String>,
+    {
+        let new_id = uuid::Uuid::new_v4();
+
+        // Create new manifest entry
+        self.test_cases.push(TestCaseManifestEntry::new(new_id));
+
+        // Create test case
+        self.test_case_data
+            .insert(new_id, TestCase::new(new_id, title.into(), at));
+
+        Ok(self.test_case_data.get_mut(&new_id).unwrap())
+    }
+
+    /// Delete a test case.
+    /// Returns true if a case was deleted.
+    pub fn delete_test_case<U>(&mut self, id: U) -> Result<bool>
+    where
+        U: Into<Uuid>,
+    {
+        let mut index = usize::MAX;
+        let id = id.into();
+
+        // Search for matching case
+        for (idx, case) in self.test_cases.iter().enumerate() {
+            if *case.name() == id {
+                index = idx;
+                break;
+            }
+        }
+
+        // Check a case was found
+        if index == usize::MAX {
+            return Ok(false);
+        }
+
+        // Remove case and data object
+        let case = self.test_cases.remove(index);
+        self.test_case_data.remove(case.name());
+        Ok(true)
+    }
+
+    /// Get a test case
+    pub fn test_case<U>(&mut self, id: U) -> Result<Option<&TestCase>>
+    where
+        U: Into<Uuid>,
+    {
+        let mut case = None;
+        let id = id.into();
+
+        // Search for matching case
+        for c in self.test_cases.iter() {
+            if *c.name() == id {
+                case = Some(c);
+                break;
+            }
+        }
+
+        // Return case
+        Ok(case.and_then(|tcme| self.test_case_data.get(tcme.name())))
+    }
+
+    /// Mutably get a test case
+    pub fn test_case_mut<U>(&mut self, id: U) -> Result<Option<&mut TestCase>>
+    where
+        U: Into<Uuid>,
+    {
+        let mut case = None;
+        let id = id.into();
+
+        // Search for matching case
+        for c in self.test_cases.iter() {
+            if *c.name() == id {
+                case = Some(c);
+                break;
+            }
+        }
+
+        // Return case
+        Ok(case.and_then(|tcme| self.test_case_data.get_mut(tcme.name())))
+    }
+
+    /// Add media to this package.
+    ///
+    /// Media is automatically removed if it is not referenced when [`EvidencePackage::save`] is called.
+    /// As such, you can delete media simply by removing references to it.
+    ///
+    /// Media will remain in memory until [`EvidencePackage::save`] is called, at which point it will be
+    /// written to disk. It will remain cached in memory until the [`EvidencePackage`] is dropped.
+    pub fn add_media(&mut self, media_file: MediaFile) -> Result<&MediaFile> {
+        let hash = media_file.hash();
+
+        // Create manifest entry
+        let manifest_entry = MediaFileManifestEntry::from(&media_file);
+        self.media.push(manifest_entry);
+
+        // Insert data and return reference
+        self.media_data.insert(hash.clone(), media_file);
+        Ok(self.media_data.get(&hash).unwrap())
+    }
+
+    /// Get media from this package by a sha256 hash.
+    ///
+    /// The in-memory cache will be searched first, then the file will be read again to pull the media.
+    ///
+    /// Returns [`None`] if the media couldn't be found with that hash.
+    pub fn get_media<S>(&mut self, hash: S) -> Result<Option<&MediaFile>>
+    where
+        S: Into<String>,
+    {
+        let hash = hash.into();
+
+        // Check in-memory cache
+        if self.media_data.contains_key(&hash) {
+            log::debug!("{hash} found in cache.");
+            return Ok(self.media_data.get(&hash));
+        }
+
+        // Read from ZIP file
+        let zip = self.zip.as_reader()?;
+        let res = zip.by_name(&format!("media/{}", hash.clone()));
+        match res {
+            Ok(file) => {
+                let size = file.size() as usize;
+                let mut buf = Vec::with_capacity(size);
+                log::debug!("Cache miss: {hash} (size: {size})");
+
+                // Read from ZIP data
+                let mut data = BufReader::new(file);
+                data.read_to_end(&mut buf)?;
+
+                // Add to in-memory cache
+                let media: MediaFile = buf.into();
+                self.media_data.insert(hash.clone(), media);
+
+                // Return cached version
+                Ok(Some(self.media_data.get(&hash).unwrap()))
+            }
+            Err(ZipError::FileNotFound) => {
+                log::warn!("{hash} not found in package!");
+                Ok(None)
+            }
+            Err(e) => Err(e.into()),
         }
     }
-}
-
-#[derive(Debug, Getters, Serialize, Deserialize)]
-struct MediaFile {
-    /// The SHA256 checksum of the media file.
-    #[getset(get = "pub")]
-    sha256_checksum: String,
-    /// The MIME type of the media file.
-    #[getset(get = "pub")]
-    mime_type: String,
-}
-
-#[derive(Debug, Getters, Serialize, Deserialize)]
-struct TestCase {
-    /// A string to reference the test case internally. Usually a UUID.
-    #[getset(get = "pub")]
-    name: String,
 }
