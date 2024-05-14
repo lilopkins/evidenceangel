@@ -26,15 +26,15 @@ EvidenceAngel should allow users to:
 
 - [x] Create a new package
 - [x] Create a new test case
-- [ ] Add evidence to a test case
-- [ ] Edit evidence in a test case
-- [ ] Delete evidence from a test case
+- [x] Add evidence to a test case
+- [ ] (GUI only) Edit evidence in a test case
+- [x] Delete evidence from a test case
 - [ ] (GUI only) Annotate evidence
     - [ ] Highlighting parts of images and files
     - [ ] Writing comments
 
 EvidenceAngel should allow data to be exported into a variety of interchange formats:
 
-- PDF of entire package
-- PDF of single test case
-- Excel file of entire package (with sheets per test case)
+- [ ] PDF of entire package
+- [ ] PDF of single test case
+- [ ] Excel file of entire package (with sheets per test case)

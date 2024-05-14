@@ -25,6 +25,9 @@ pub enum Error {
     /// The test case couldn't be read due to a JSON error.
     #[error("Failed to read test case {1}: {0}")]
     InvalidTestCase(serde_json::Error, Uuid),
+    /// Some media is missing from the package.
+    #[error("Media is missing from the package with hash {0}")]
+    MediaMissing(String),
 }
 
 /// A result from EvidenceAngel.

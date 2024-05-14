@@ -8,11 +8,11 @@ use serde::{
 use uuid::Uuid;
 
 /// A test case stored within an [`EvidencePackage`](super::EvidencePackage).
-#[derive(Clone, Serialize, Deserialize, Getters, MutGetters)]
+#[derive(Clone, Debug, Serialize, Deserialize, Getters, MutGetters, Setters)]
 pub struct TestCase {
     /// The internal ID of this test case.
     #[serde(skip)]
-    #[getset(get = "pub")]
+    #[getset(get = "pub", set = "pub(super)")]
     id: Uuid,
 
     /// The metadata of this test case.
@@ -38,7 +38,7 @@ impl TestCase {
 }
 
 /// The metadata of a [`TestCase`].
-#[derive(Clone, Serialize, Deserialize, Getters, Setters)]
+#[derive(Clone, Debug, Serialize, Deserialize, Getters, Setters)]
 #[getset(get = "pub", set = "pub")]
 pub struct TestCaseMetadata {
     /// The title of the associated [`TestCase`].
@@ -48,7 +48,7 @@ pub struct TestCaseMetadata {
 }
 
 /// Evidence in a [`TestCase`].
-#[derive(Clone, Serialize, Deserialize, Getters, MutGetters, Setters)]
+#[derive(Clone, Debug, Serialize, Deserialize, Getters, MutGetters, Setters)]
 #[getset(get = "pub")]
 pub struct Evidence {
     /// The kind of this evidence.
@@ -75,7 +75,7 @@ impl Evidence {
 }
 
 /// Kinds of [`Evidence`].
-#[derive(Copy, Clone, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, Serialize, Deserialize)]
 pub enum EvidenceKind {
     /// A text entry.
     Text,
@@ -88,7 +88,7 @@ pub enum EvidenceKind {
 }
 
 /// Data in a piece of [`Evidence`].
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum EvidenceData {
     /// Text based data.
     Text {

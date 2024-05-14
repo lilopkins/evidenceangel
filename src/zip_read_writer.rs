@@ -60,7 +60,13 @@ impl ZipReaderWriter {
         Ok(self.reader.as_mut().unwrap())
     }
 
-    pub fn as_writer(&mut self) -> crate::Result<&mut ZipWriter<BufWriter<fs::File>>> {
+    #[allow(clippy::type_complexity)]
+    pub fn as_writer(
+        &mut self,
+    ) -> crate::Result<(
+        Option<&mut ZipArchive<BufReader<fs::File>>>,
+        &mut ZipWriter<BufWriter<fs::File>>,
+    )> {
         if self.writer.is_none() {
             log::debug!("Opening writer");
             // Open writer
@@ -78,7 +84,7 @@ impl ZipReaderWriter {
                     .expect("zipreadwriter must not be called upon until file is set."),
             )?)));
         }
-        Ok(self.writer.as_mut().unwrap())
+        Ok((self.reader.as_mut(), self.writer.as_mut().unwrap()))
     }
 
     pub fn conclude_write(&mut self) -> crate::Result<()> {

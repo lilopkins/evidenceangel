@@ -1,7 +1,7 @@
 use std::{
     collections::HashMap,
     fmt,
-    io::{BufReader, Read, Write},
+    io::{self, BufReader, Read, Write},
     path::PathBuf,
 };
 
@@ -66,7 +66,7 @@ impl EvidencePackage {
         let manifest_clone = manifest.clone_serde();
 
         // Create ZIP file
-        let zip = manifest.zip.as_writer()?;
+        let (_, zip) = manifest.zip.as_writer()?;
         let options = SimpleFileOptions::default();
 
         // Create empty structure.
@@ -87,23 +87,27 @@ impl EvidencePackage {
 
     /// Save the package to disk.
     pub fn save(&mut self) -> Result<()> {
-        let clone = self.clone_serde();
-        let zip = self.zip.as_writer()?;
-        let manifest_data = serde_json::to_string(&clone).map_err(Error::FailedToCreatePackage)?;
+        let mut clone = self.clone_serde();
+        let (mut maybe_old_archive, zip) = self.zip.as_writer()?;
         let options = SimpleFileOptions::default();
-
-        // Write ZIP file.
-        zip.start_file("manifest.json", options)?;
-        zip.write_all(manifest_data.as_bytes())?;
 
         // Create empty structure.
         zip.add_directory("media", options)?;
         zip.add_directory("testcases", options)?;
 
+        let mut media_used = vec![];
+
         // Write any files as needed
         for test_case in &self.test_cases {
             let id = test_case.name();
             if let Some(data) = self.test_case_data.get(id) {
+                // Whilst we are here, let's figure out what media we use.
+                for evidence in data.evidence() {
+                    if let EvidenceData::Media { hash } = evidence.value() {
+                        media_used.push(hash);
+                    }
+                }
+
                 let data = serde_json::to_string(data)
                     .map_err(crate::result::Error::FailedToSaveTestCase)?;
                 zip.start_file(format!("testcases/{id}.json"), options)?;
@@ -111,10 +115,50 @@ impl EvidencePackage {
             }
         }
 
-        // TODO Determine which media is needed in this package
-        // TODO Scrub unused media manifest entries
-        // TODO Scrub media map of unreferenced entries
-        // TODO Save media to package, either sourcing it from memory if present, or from the previous package.
+        // Scrub unused media manifest entries
+        self.media
+            .retain(|entry| media_used.contains(&entry.sha256_checksum()));
+        clone
+            .media
+            .retain(|entry| media_used.contains(&entry.sha256_checksum()));
+
+        // Scrub media map of unreferenced entries
+        self.media_data
+            .retain(|hash, _val| media_used.contains(&hash));
+        clone
+            .media_data
+            .retain(|hash, _val| media_used.contains(&hash));
+
+        // Save media to package, either sourcing it from memory if present, or from the previous package.
+        for entry in &self.media {
+            let hash = entry.sha256_checksum();
+            zip.start_file(format!("media/{hash}"), options)?;
+            if self.media_data.contains_key(hash) {
+                // If in memory, write from there
+                zip.write_all(self.media_data.get(hash).unwrap().data())?;
+            } else {
+                // Otherwise pull from previous package.
+                // Consider moving this to not load entire file on move.
+                if maybe_old_archive.is_some() {
+                    let old_archive = maybe_old_archive.as_mut().unwrap();
+                    let res = old_archive.by_name(&format!("media/{hash}"));
+                    match res {
+                        Err(ZipError::FileNotFound) => {
+                            return Err(Error::MediaMissing(hash.clone()))
+                        }
+                        Err(e) => return Err(e.into()),
+                        Ok(mut file) => {
+                            io::copy(&mut file, zip)?;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Write manifest. This has to be done last to ensure media is scrubbed as needed.
+        let manifest_data = serde_json::to_string(&clone).map_err(Error::FailedToCreatePackage)?;
+        zip.start_file("manifest.json", options)?;
+        zip.write_all(manifest_data.as_bytes())?;
 
         zip.finish()?;
         self.zip.conclude_write()?;
@@ -143,8 +187,9 @@ impl EvidencePackage {
             let data = zip
                 .by_name(&format!("testcases/{id}.json"))
                 .map_err(|_| Error::CorruptEvidencePackage(format!("missing test case {id}")))?;
-            let test_case: TestCase = serde_json::from_reader(BufReader::new(data))
+            let mut test_case: TestCase = serde_json::from_reader(BufReader::new(data))
                 .map_err(|e| Error::InvalidTestCase(e, *id))?;
+            test_case.set_id(*id);
             evidence_package.test_case_data.insert(*id, test_case);
         }
 

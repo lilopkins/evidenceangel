@@ -14,7 +14,7 @@ impl MediaFile {
         sha256::digest(&self.data)
     }
 
-    /// Determine the MIME type of this data
+    /// Determine the MIME type of this data.
     pub fn mime_type(&self) -> Option<infer::Type> {
         infer::get(&self.data)
     }
