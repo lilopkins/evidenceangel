@@ -35,6 +35,5 @@ EvidenceAngel should allow users to:
 
 EvidenceAngel should allow data to be exported into a variety of interchange formats:
 
-- [ ] PDF of entire package
-- [ ] PDF of single test case
-- [ ] Excel file of entire package (with sheets per test case)
+- [x] HTML document
+- [x] Excel file (with sheets per test case)

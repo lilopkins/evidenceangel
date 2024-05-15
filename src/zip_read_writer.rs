@@ -19,6 +19,15 @@ pub(crate) struct ZipReaderWriter {
     writer: Option<ZipWriter<BufWriter<fs::File>>>,
 }
 
+impl Clone for ZipReaderWriter {
+    fn clone(&self) -> Self {
+        Self {
+            file: self.file.clone(),
+            ..Default::default()
+        }
+    }
+}
+
 impl fmt::Debug for ZipReaderWriter {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mode = if self.reader.is_some() {

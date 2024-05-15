@@ -1,5 +1,8 @@
 use std::{
-    collections::HashMap,
+    collections::{
+        hash_map::{Values, ValuesMut},
+        HashMap,
+    },
     fmt,
     io::{self, BufReader, Read, Write},
     path::PathBuf,
@@ -38,6 +41,20 @@ pub struct EvidencePackage {
     metadata: Metadata,
     media: Vec<MediaFileManifestEntry>,
     test_cases: Vec<TestCaseManifestEntry>,
+}
+
+impl Clone for EvidencePackage {
+    fn clone(&self) -> Self {
+        Self {
+            zip: self.zip.clone(),
+            media_data: HashMap::new(),
+            test_case_data: self.test_case_data.clone(),
+
+            metadata: self.metadata.clone(),
+            media: self.media.clone(),
+            test_cases: self.test_cases.clone(),
+        }
+    }
 }
 
 impl fmt::Debug for EvidencePackage {
@@ -210,6 +227,16 @@ impl EvidencePackage {
         }
     }
 
+    /// Obtain an iterator over test cases
+    pub fn test_case_iter(&self) -> Result<Values<Uuid, TestCase>> {
+        Ok(self.test_case_data.values())
+    }
+
+    /// Obtain an iterator over test cases
+    pub fn test_case_iter_mut(&mut self) -> Result<ValuesMut<Uuid, TestCase>> {
+        Ok(self.test_case_data.values_mut())
+    }
+
     /// Create a new test case.
     pub fn create_test_case<S>(&mut self, title: S) -> Result<&mut TestCase>
     where
@@ -264,7 +291,7 @@ impl EvidencePackage {
     }
 
     /// Get a test case
-    pub fn test_case<U>(&mut self, id: U) -> Result<Option<&TestCase>>
+    pub fn test_case<U>(&self, id: U) -> Result<Option<&TestCase>>
     where
         U: Into<Uuid>,
     {

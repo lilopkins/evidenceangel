@@ -1,7 +1,14 @@
-use std::{fs, path::PathBuf};
+use std::{
+    fs,
+    io::{self, Read},
+    path::PathBuf,
+};
 
 use clap::{Parser, Subcommand};
-use evidenceangel::{Author, Evidence, EvidenceData, EvidenceKind, EvidencePackage, MediaFile};
+use evidenceangel::{
+    exporters::{excel::ExcelExporter, html::HtmlExporter, Exporter},
+    Author, Evidence, EvidenceData, EvidenceKind, EvidencePackage, MediaFile,
+};
 use uuid::Uuid;
 
 #[derive(Parser)]
@@ -65,14 +72,35 @@ enum Command {
         #[arg(index = 2)]
         evidence_id: usize,
     },
+    /// Export to another format.
+    ExportPackage {
+        /// The format to export to. Permitted values are "html" and "excel".
+        #[arg(index = 1)]
+        format: String,
+        /// The target file to write.
+        #[arg(index = 2)]
+        target: PathBuf,
+    },
+    /// Export a test case to another format.
+    ExportTestCase {
+        /// The ID of the test case to export.
+        #[arg(index = 1)]
+        case_id: Uuid,
+        /// The format to export to. Permitted values are "html" and "excel".
+        #[arg(index = 2)]
+        format: String,
+        /// The target file to write.
+        #[arg(index = 3)]
+        target: PathBuf,
+    },
 }
 
 #[derive(Subcommand, Clone)]
 enum EvidenceValue {
     /// Text-based evidence
     Text {
-        /// The text to add
-        #[arg(index = 1)]
+        /// The text to add, or `-` to read from stdin.
+        #[arg(index = 1, default_value = "-")]
         value: String,
     },
     /// Image-based evidence
@@ -80,6 +108,24 @@ enum EvidenceValue {
         /// The image to add as evidence
         #[arg(index = 1)]
         image: PathBuf,
+        /// An optional caption
+        #[arg(index = 2)]
+        caption: Option<String>,
+    },
+    /// An HTTP request/response
+    Http {
+        /// The text to add, or `-` to read from stdin.
+        #[arg(index = 1, default_value = "-")]
+        value: String,
+        /// An optional caption
+        #[arg(index = 2)]
+        caption: Option<String>,
+    },
+    /// A file
+    File {
+        /// The file to add as evidence.
+        #[arg(index = 1)]
+        path: PathBuf,
         /// An optional caption
         #[arg(index = 2)]
         caption: Option<String>,
@@ -124,7 +170,7 @@ fn exec() -> Result<(), Box<dyn std::error::Error>> {
             }
         }
         Command::ViewTestCase { case_id } => {
-            let mut package = EvidencePackage::open(args.file)?;
+            let package = EvidencePackage::open(args.file)?;
             if let Some(case) = package.test_case(case_id)? {
                 println!("{case:#?}");
             }
@@ -144,7 +190,12 @@ fn exec() -> Result<(), Box<dyn std::error::Error>> {
         } => {
             let mut package = EvidencePackage::open(args.file)?;
             match evidence_value {
-                EvidenceValue::Text { value } => {
+                EvidenceValue::Text { mut value } => {
+                    let mut buf = vec![];
+                    if value == "-" {
+                        io::stdin().read_to_end(&mut buf)?;
+                        value = String::from_utf8_lossy(&buf).into_owned();
+                    }
                     if let Some(case) = package.test_case_mut(case_id)? {
                         case.evidence_mut().push(Evidence::new(
                             EvidenceKind::Text,
@@ -158,8 +209,8 @@ fn exec() -> Result<(), Box<dyn std::error::Error>> {
                     let media: MediaFile = fs::read(image)?.into();
                     let hash = media.hash();
                     if let Some(mime) = media.mime_type() {
-                        if !mime.mime_type().starts_with("image/") {
-                            eprintln!("The provided file was not an image!");
+                        if !["image/png", "image/jpeg"].contains(&mime.mime_type()) {
+                            eprintln!("The provided file was not a valid PNG or JPEG!");
                             return Ok(());
                         }
                     } else {
@@ -170,6 +221,35 @@ fn exec() -> Result<(), Box<dyn std::error::Error>> {
                     if let Some(case) = package.test_case_mut(case_id)? {
                         let mut evidence =
                             Evidence::new(EvidenceKind::Image, EvidenceData::Media { hash });
+                        evidence.set_caption(caption);
+                        case.evidence_mut().push(evidence);
+                    } else {
+                        eprintln!("No test case exists with that ID!");
+                    }
+                }
+                EvidenceValue::Http { value, caption } => {
+                    let mut buf = vec![];
+                    if value == "-" {
+                        io::stdin().read_to_end(&mut buf)?;
+                    } else {
+                        buf = value.into_bytes();
+                    }
+                    if let Some(case) = package.test_case_mut(case_id)? {
+                        let mut evidence =
+                            Evidence::new(EvidenceKind::Http, EvidenceData::Base64 { data: buf });
+                        evidence.set_caption(caption);
+                        case.evidence_mut().push(evidence);
+                    } else {
+                        eprintln!("No test case exists with that ID!");
+                    }
+                }
+                EvidenceValue::File { path, caption } => {
+                    let media: MediaFile = fs::read(path)?.into();
+                    let hash = media.hash();
+                    package.add_media(media)?;
+                    if let Some(case) = package.test_case_mut(case_id)? {
+                        let mut evidence =
+                            Evidence::new(EvidenceKind::File, EvidenceData::Media { hash });
                         evidence.set_caption(caption);
                         case.evidence_mut().push(evidence);
                     } else {
@@ -198,6 +278,34 @@ fn exec() -> Result<(), Box<dyn std::error::Error>> {
                 }
             } else {
                 eprintln!("No test case exists with that ID!");
+            }
+        }
+        Command::ExportPackage { format, target } => {
+            let mut package = EvidencePackage::open(args.file)?;
+            match format.as_str() {
+                "html" => {
+                    HtmlExporter.export_package(&mut package, target)?;
+                }
+                "excel" => {
+                    ExcelExporter.export_package(&mut package, target)?;
+                }
+                _ => eprintln!("Invalid format specified."),
+            }
+        }
+        Command::ExportTestCase {
+            case_id,
+            format,
+            target,
+        } => {
+            let mut package = EvidencePackage::open(args.file)?;
+            match format.as_str() {
+                "html" => {
+                    HtmlExporter.export_case(&mut package, case_id, target)?;
+                }
+                "excel" => {
+                    ExcelExporter.export_case(&mut package, case_id, target)?;
+                }
+                _ => eprintln!("Invalid format specified."),
             }
         }
     }

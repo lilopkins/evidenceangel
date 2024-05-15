@@ -12,4 +12,6 @@ pub use package::{
 };
 mod result;
 pub use result::{Error, Result};
+/// Exporters allow packages and test cases to be exported to different file formats.
+pub mod exporters;
 mod zip_read_writer;

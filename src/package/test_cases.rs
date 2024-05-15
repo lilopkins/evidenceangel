@@ -108,6 +108,20 @@ pub enum EvidenceData {
     },
 }
 
+impl EvidenceData {
+    /// Get the data from this object. This will fetch the media file if needed.
+    pub fn get_data(&self, package: &mut crate::EvidencePackage) -> crate::Result<Vec<u8>> {
+        match self {
+            Self::Text { content } => Ok(content.clone().into_bytes()),
+            Self::Base64 { data } => Ok(data.clone()),
+            Self::Media { hash } => package
+                .get_media(hash)?
+                .map(|mf| mf.data().clone())
+                .ok_or(crate::Error::MediaMissing(hash.clone())),
+        }
+    }
+}
+
 struct EvidenceDataVisitor;
 
 impl<'de> Visitor<'de> for EvidenceDataVisitor {
