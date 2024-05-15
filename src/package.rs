@@ -147,6 +147,7 @@ impl EvidencePackage {
             .retain(|hash, _val| media_used.contains(&hash));
 
         // Save media to package, either sourcing it from memory if present, or from the previous package.
+        log::debug!("Media entries: {:?}", self.media);
         for entry in &self.media {
             let hash = entry.sha256_checksum();
             zip.start_file(format!("media/{hash}"), options)?;
@@ -157,13 +158,17 @@ impl EvidencePackage {
                 // Otherwise pull from previous package.
                 // Consider moving this to not load entire file on move.
                 if maybe_old_archive.is_some() {
+                    log::debug!("Migrating media with hash {hash} from old file");
                     let old_archive = maybe_old_archive.as_mut().unwrap();
                     let res = old_archive.by_name(&format!("media/{hash}"));
                     match res {
                         Err(ZipError::FileNotFound) => {
                             return Err(Error::MediaMissing(hash.clone()))
                         }
-                        Err(e) => return Err(e.into()),
+                        Err(e) => {
+                            log::error!("Error migrating from old package: {e}");
+                            return Err(e.into());
+                        }
                         Ok(mut file) => {
                             io::copy(&mut file, zip)?;
                         }
@@ -227,12 +232,14 @@ impl EvidencePackage {
         }
     }
 
-    /// Obtain an iterator over test cases
+    /// Obtain an iterator over test cases.
+    /// Note that this is unsorted.
     pub fn test_case_iter(&self) -> Result<Values<Uuid, TestCase>> {
         Ok(self.test_case_data.values())
     }
 
     /// Obtain an iterator over test cases
+    /// Note that this is unsorted.
     pub fn test_case_iter_mut(&mut self) -> Result<ValuesMut<Uuid, TestCase>> {
         Ok(self.test_case_data.values_mut())
     }
@@ -340,13 +347,20 @@ impl EvidencePackage {
     pub fn add_media(&mut self, media_file: MediaFile) -> Result<&MediaFile> {
         let hash = media_file.hash();
 
-        // Create manifest entry
-        let manifest_entry = MediaFileManifestEntry::from(&media_file);
-        self.media.push(manifest_entry);
+        if !self
+            .media
+            .iter()
+            .any(|entry| entry.sha256_checksum() == &hash)
+        {
+            // Create manifest entry
+            let manifest_entry = MediaFileManifestEntry::from(&media_file);
+            self.media.push(manifest_entry);
 
-        // Insert data and return reference
-        self.media_data.insert(hash.clone(), media_file);
-        Ok(self.media_data.get(&hash).unwrap())
+            // Insert data and return reference
+            self.media_data.insert(hash.clone(), media_file);
+        }
+
+        Ok(self.get_media(&hash)?.unwrap())
     }
 
     /// Get media from this package by a sha256 hash.

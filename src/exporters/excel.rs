@@ -25,7 +25,13 @@ impl Exporter for ExcelExporter {
     ) -> crate::Result<()> {
         let mut workbook = Workbook::new();
 
-        for test_case in package.test_case_iter()? {
+        let mut test_cases: Vec<&TestCase> = package.test_case_iter()?.collect();
+        test_cases.sort_by(|a, b| {
+            a.metadata()
+                .execution_datetime()
+                .cmp(b.metadata().execution_datetime())
+        });
+        for test_case in test_cases {
             let worksheet = workbook.add_worksheet();
             create_test_case_sheet(worksheet, package.clone(), test_case)
                 .map_err(crate::Error::OtherExportError)?;

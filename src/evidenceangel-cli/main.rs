@@ -4,7 +4,7 @@ use std::{
     path::PathBuf,
 };
 
-use clap::{Parser, Subcommand};
+use clap::{CommandFactory, Parser, Subcommand};
 use evidenceangel::{
     exporters::{excel::ExcelExporter, html::HtmlExporter, Exporter},
     Author, Evidence, EvidenceData, EvidenceKind, EvidencePackage, MediaFile,
@@ -24,6 +24,13 @@ struct Args {
 
 #[derive(Subcommand, Clone)]
 enum Command {
+    /// Print shell completions. This will not read the file specified, so it can be
+    /// an invalid name.
+    ShellCompletions {
+        /// The shell to generate for.
+        #[arg(index = 1)]
+        shell: clap_complete::Shell,
+    },
     /// Create a new package.
     Create {
         /// The title of the new package.
@@ -137,6 +144,11 @@ fn exec() -> Result<(), Box<dyn std::error::Error>> {
     pretty_env_logger::init();
 
     match args.command {
+        Command::ShellCompletions { shell } => {
+            let mut cmd = Args::command();
+            let name = cmd.get_name().to_string();
+            clap_complete::generate(shell, &mut cmd, name, &mut io::stdout());
+        }
         Command::Create { title, authors } => {
             let mut manipulated_authors = vec![];
             for author in authors {

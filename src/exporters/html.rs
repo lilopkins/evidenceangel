@@ -48,13 +48,19 @@ impl Exporter for HtmlExporter {
 
         body.add_child(HtmlElement::new("p").child(HtmlElement::new("em").content(&authors)));
 
-        for test_case in package.test_case_iter()? {
+        let mut test_cases: Vec<&TestCase> = package.test_case_iter()?.collect();
+        test_cases.sort_by(|a, b| {
+            a.metadata()
+                .execution_datetime()
+                .cmp(b.metadata().execution_datetime())
+        });
+        for test_case in test_cases {
             let elem = create_test_case_div(package.clone(), test_case)
                 .map_err(crate::Error::OtherExportError)?;
             body.add_child(elem);
         }
 
-        let document = HtmlDocument::new().head(
+        let document = HtmlDocument::new().default_doctype().head(
             HtmlHeadElement::default()
                 .charset("utf-8")
                 .title(package.metadata().title())
@@ -82,7 +88,7 @@ impl Exporter for HtmlExporter {
             create_test_case_div(package.clone(), case).map_err(crate::Error::OtherExportError)?;
         body.add_child(elem);
 
-        let document = HtmlDocument::new().head(
+        let document = HtmlDocument::new().default_doctype().head(
             HtmlHeadElement::default()
                 .charset("utf-8")
                 .title(package.metadata().title())
@@ -166,7 +172,7 @@ fn get_style() -> CssDocument {
                     CssFontGenericFamily::SansSerif,
                 )),
             )
-            .declaration(CssProperty::MaxWidth, 800)
+            .declaration(CssProperty::MaxWidth, px!(800))
             .declaration(
                 CssProperty::Margin,
                 CssValue::Num2(css_num!(8., 0, CssUnit::Px), css_num!(0., 0, CssUnit::Auto)),
