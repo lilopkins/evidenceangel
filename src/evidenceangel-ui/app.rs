@@ -1,7 +1,7 @@
-use std::path::PathBuf;
+use std::{collections::HashMap, path::PathBuf};
 
-use adw::prelude::*;
 use evidenceangel::{Author, EvidencePackage};
+use adw::prelude::*;
 use gtk::prelude::*;
 use relm4::{
     actions::{AccelsPlus, RelmAction, RelmActionGroup},
@@ -14,7 +14,7 @@ use relm4::{
 use uuid::Uuid;
 
 use crate::{
-    author_factory::{AuthorFactoryModel, AuthorFactoryOutput}, dialogs::new_author::{NewAuthorDialogModel, NewAuthorInput, NewAuthorOutput}, filter, lang, nav_factory::{NavFactoryInit, NavFactoryInput, NavFactoryModel, NavFactoryOutput}
+    author_factory::{AuthorFactoryModel, AuthorFactoryOutput}, dialogs::{error::{ErrorDialogInit, ErrorDialogInput, ErrorDialogModel}, new_author::{NewAuthorDialogModel, NewAuthorInput, NewAuthorOutput}}, filter, lang, nav_factory::{NavFactoryInit, NavFactoryInput, NavFactoryModel, NavFactoryOutput}
 };
 
 relm4::new_action_group!(MenuActionGroup, "menu");
@@ -30,10 +30,11 @@ pub struct AppModel {
     open_path: Option<PathBuf>,
     open_case: OpenCase,
 
+    latest_new_author_dlg: Option<Controller<NewAuthorDialogModel>>,
+    latest_error_dlg: Option<Controller<ErrorDialogModel>>,
+
     test_case_nav_factory: FactoryVecDeque<NavFactoryModel>,
     authors_factory: FactoryVecDeque<AuthorFactoryModel>,
-
-    latest_new_author_dlg: Option<Controller<NewAuthorDialogModel>>,
 }
 
 impl AppModel {
@@ -304,6 +305,7 @@ impl Component for AppModel {
             open_path: None,
             open_case: OpenCase::Nothing,
 
+            latest_error_dlg: None,
             latest_new_author_dlg: None,
 
             test_case_nav_factory: FactoryVecDeque::builder().launch_default().forward(
@@ -415,8 +417,19 @@ impl Component for AppModel {
             }
             AppInput::_NewFile => {
                 // Set default name, author, execution date and path.
-                if let Err(_e) = self.open_new() {
-                    // TODO Show error dialog.
+                if let Err(e) = self.open_new() {
+                    let error_dlg = ErrorDialogModel::builder()
+                        .launch(ErrorDialogInit {
+                            title: Box::new(lang::lookup("error-failed-new-title")),
+                            body: Box::new(lang::lookup_with_args("error-failed-new-body", {
+                                let mut map = HashMap::new();
+                                map.insert("error", e.to_string().into());
+                                map
+                            })),
+                        })
+                        .forward(sender.input_sender(), |msg| match msg {});
+                    error_dlg.emit(ErrorDialogInput::Present(root.clone()));
+                    self.latest_error_dlg = Some(error_dlg);
                 }
             }
             AppInput::OpenFile => {
@@ -443,14 +456,37 @@ impl Component for AppModel {
                 );
             }
             AppInput::_OpenFile(path) => {
-                if let Err(_e) = self.open(path) {
-                    // TODO Show error dialog.
+                if let Err(e) = self.open(path) {
+                    let error_dlg = ErrorDialogModel::builder()
+                        .launch(ErrorDialogInit {
+                            title: Box::new(lang::lookup("error-failed-open-title")),
+                            body: Box::new(lang::lookup_with_args("error-failed-open-body", {
+                                let mut map = HashMap::new();
+                                map.insert("error", e.to_string().into());
+                                map
+                            })),
+                        })
+                        .forward(sender.input_sender(), |msg| match msg {});
+                    error_dlg.emit(ErrorDialogInput::Present(root.clone()));
+                    self.latest_error_dlg = Some(error_dlg);
                 }
             }
             AppInput::SaveFile => {
                 if let Some(package) = self.open_package.as_mut() {
-                    if let Err(_e) = package.save() {
-                        // TODO Show error dialog
+                    if let Err(e) = package.save() {
+                        // Show error dialog
+                        let error_dlg = ErrorDialogModel::builder()
+                            .launch(ErrorDialogInit {
+                                title: Box::new(lang::lookup("error-failed-save-title")),
+                                body: Box::new(lang::lookup_with_args("error-failed-save-body", {
+                                    let mut map = HashMap::new();
+                                    map.insert("error", e.to_string().into());
+                                    map
+                                })),
+                            })
+                            .forward(sender.input_sender(), |msg| match msg {});
+                        error_dlg.emit(ErrorDialogInput::Present(root.clone()));
+                        self.latest_error_dlg = Some(error_dlg);
                     }
                 }
             }
@@ -530,7 +566,7 @@ impl Component for AppModel {
                 if let Some(pkg) = self.open_package.as_mut() {
                     let case = pkg
                         .create_test_case(lang::lookup("default-case-title"))
-                        .unwrap(); // TODO review unwrap
+                        .unwrap(); // doesn't fail
                     case_id = case.id().clone();
                 }
 
@@ -550,7 +586,7 @@ impl Component for AppModel {
                 assert_ne!(index, usize::MAX);
 
                 // Add case to navigation
-                self.update_nav_menu().unwrap(); // TODO review unwrap
+                self.update_nav_menu().unwrap(); // doesn't fail
 
                 // Switch to case
                 // First unselect all cases
@@ -569,8 +605,21 @@ impl Component for AppModel {
             }
             AppInput::DeleteCase(id) => {
                 if let Some(pkg) = self.open_package.as_mut() {
-                    pkg.delete_test_case(id);
-                    self.update_nav_menu().unwrap(); // TODO review unwrap
+                    if let Err(e) = pkg.delete_test_case(id) {
+                        let error_dlg = ErrorDialogModel::builder()
+                            .launch(ErrorDialogInit {
+                                title: Box::new(lang::lookup("error-failed-delete-case-title")),
+                                body: Box::new(lang::lookup_with_args("error-failed-delete-case-body", {
+                                    let mut map = HashMap::new();
+                                    map.insert("error", e.to_string().into());
+                                    map
+                                })),
+                            })
+                            .forward(sender.input_sender(), |msg| match msg {});
+                        error_dlg.emit(ErrorDialogInput::Present(root.clone()));
+                        self.latest_error_dlg = Some(error_dlg);
+                    }
+                    self.update_nav_menu().unwrap(); // doesn't fail
                     sender.input(AppInput::NavigateTo(OpenCase::Metadata));
                 }
             }
