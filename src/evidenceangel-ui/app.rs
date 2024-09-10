@@ -14,8 +14,7 @@ use relm4::{
 use uuid::Uuid;
 
 use crate::{
-    filter, lang,
-    nav_factory::{NavFactoryInit, NavFactoryInput, NavFactoryModel, NavFactoryOutput},
+    author_factory::{AuthorFactoryModel, AuthorFactoryOutput}, dialogs::new_author::{NewAuthorDialogModel, NewAuthorInput, NewAuthorOutput}, filter, lang, nav_factory::{NavFactoryInit, NavFactoryInput, NavFactoryModel, NavFactoryOutput}
 };
 
 relm4::new_action_group!(MenuActionGroup, "menu");
@@ -32,6 +31,9 @@ pub struct AppModel {
     open_case: OpenCase,
 
     test_case_nav_factory: FactoryVecDeque<NavFactoryModel>,
+    authors_factory: FactoryVecDeque<AuthorFactoryModel>,
+
+    latest_new_author_dlg: Option<Controller<NewAuthorDialogModel>>,
 }
 
 impl AppModel {
@@ -100,8 +102,12 @@ pub enum AppInput {
 
     #[allow(private_interfaces)]
     NavigateTo(OpenCase),
+    DeleteCase(Uuid),
     CreateCaseAndSelect,
     SetMetadataTitle(String),
+    CreateAuthor,
+    _CreateAuthor(Author),
+    DeleteAuthor(Author),
 }
 
 #[relm4::component(pub)]
@@ -220,6 +226,9 @@ impl Component for AppModel {
                             match model.open_case {
                                 OpenCase::Nothing => gtk::Box,
                                 OpenCase::Metadata => gtk::Box {
+                                    set_orientation: gtk::Orientation::Vertical,
+
+                                    // Generic Metadata
                                     adw::PreferencesGroup {
                                         set_title: &lang::lookup("metadata-group-title"),
 
@@ -230,8 +239,24 @@ impl Component for AppModel {
                                                 let _ = sender.input(AppInput::SetMetadataTitle(entry.text().to_string()));
                                             }
                                         }
+                                    },
 
-                                        // TODO Authors
+                                    // Authors
+                                    #[local_ref]
+                                    authors_list -> adw::PreferencesGroup {
+                                        set_title: &lang::lookup("metadata-authors"),
+                                        set_margin_top: 16,
+                                        #[wrap(Some)]
+                                        set_header_suffix = &adw::Bin {
+                                            gtk::Button {
+                                                set_icon_name: relm4_icons::icon_names::PLUS,
+                                                add_css_class: "flat",
+
+                                                connect_clicked[sender] => move |_entry| {
+                                                    sender.input(AppInput::CreateAuthor);
+                                                }
+                                            }
+                                        },
                                     }
                                 },
                                 OpenCase::Case { id, .. } => gtk::Box {
@@ -279,17 +304,28 @@ impl Component for AppModel {
             open_path: None,
             open_case: OpenCase::Nothing,
 
+            latest_new_author_dlg: None,
+
             test_case_nav_factory: FactoryVecDeque::builder().launch_default().forward(
                 sender.input_sender(),
                 |output| match output {
                     NavFactoryOutput::NavigateTo(index, id) => {
                         AppInput::NavigateTo(OpenCase::Case { index, id })
                     }
+                    NavFactoryOutput::DeleteCase(_index, id) => {
+                        AppInput::DeleteCase(id)
+                    }
                 },
             ),
+            authors_factory: FactoryVecDeque::builder().launch_default().forward(sender.input_sender(), |output| match output {
+                AuthorFactoryOutput::DeleteAuthor(author) => {
+                    AppInput::DeleteAuthor(author)
+                }
+            }),
         };
 
         let test_case_list = model.test_case_nav_factory.widget();
+        let authors_list = model.authors_factory.widget();
         let widgets = view_output!();
 
         let sender_c = sender.clone();
@@ -465,6 +501,16 @@ impl Component for AppModel {
                                 .map(|pkg| pkg.metadata().title().clone())
                                 .expect("Cannot navigate to metadata when no package is open"),
                         );
+                        let mut authors = self.authors_factory.guard();
+                        authors.clear();
+                        let pkg_authors = self
+                            .open_package
+                            .as_ref()
+                            .map(|pkg| pkg.metadata().authors().clone())
+                            .expect("Cannot navigate to metadata when no package is open");
+                        for author in pkg_authors {
+                            authors.push_back(author);
+                        }
                         widgets.nav_metadata.set_has_frame(true);
                     }
                     OpenCase::Case { index, .. } => {
@@ -519,6 +565,35 @@ impl Component for AppModel {
             AppInput::SetMetadataTitle(new_title) => {
                 if let Some(pkg) = self.open_package.as_mut() {
                     pkg.metadata_mut().set_title(new_title);
+                }
+            }
+            AppInput::DeleteCase(id) => {
+                if let Some(pkg) = self.open_package.as_mut() {
+                    pkg.delete_test_case(id);
+                    self.update_nav_menu().unwrap(); // TODO review unwrap
+                    sender.input(AppInput::NavigateTo(OpenCase::Metadata));
+                }
+            }
+            AppInput::CreateAuthor => {
+                let new_author_dlg = NewAuthorDialogModel::builder()
+                    .launch(())
+                    .forward(sender.input_sender(), |msg| match msg {
+                        NewAuthorOutput::CreateAuthor(author) => AppInput::_CreateAuthor(author)
+                    });
+                new_author_dlg.emit(NewAuthorInput::Present(root.clone()));
+                self.latest_new_author_dlg = Some(new_author_dlg);
+            }
+            AppInput::_CreateAuthor(author) => {
+                if let Some(pkg) = self.open_package.as_mut() {
+                    pkg.metadata_mut().authors_mut().push(author);
+                    sender.input(AppInput::NavigateTo(OpenCase::Metadata)); // to refresh author list
+                }
+            }
+            AppInput::DeleteAuthor(author) => {
+                if let Some(pkg) = self.open_package.as_mut() {
+                    let idx = pkg.metadata().authors().iter().position(|a| *a == author).unwrap();
+                    pkg.metadata_mut().authors_mut().remove(idx);
+                    sender.input(AppInput::NavigateTo(OpenCase::Metadata)); // to refresh author list
                 }
             }
         }

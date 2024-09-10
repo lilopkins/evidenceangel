@@ -28,6 +28,12 @@ title-no-case = No case open
 
 metadata-group-title = Package Metadata
 metadata-title = Package Title
+metadata-authors = Package Authors
+
+author-create-title = Add Author
+author-create-name = Author Name
+author-create-email = Author Email Address
+author-create-submit = Add Author
 
 test-group-title = Test Case Metadata
 test-title = Test Cast Title

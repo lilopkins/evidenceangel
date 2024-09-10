@@ -21,6 +21,7 @@ pub enum NavFactoryInput {
 #[derive(Debug)]
 pub enum NavFactoryOutput {
     NavigateTo(usize, Uuid),
+    DeleteCase(usize, Uuid),
 }
 
 pub struct NavFactoryInit {
@@ -38,14 +39,26 @@ impl FactoryComponent for NavFactoryModel {
 
     view! {
         #[root]
-        gtk::Button {
-            set_label: &self.name,
-            add_css_class: "flat",
-            #[watch]
-            set_has_frame: self.selected,
+        gtk::Box {
+            gtk::Button {
+                set_label: &self.name,
+                add_css_class: "flat",
+                set_hexpand: true,
+                #[watch]
+                set_has_frame: self.selected,
+    
+                connect_clicked[sender, index, id] => move |_| {
+                    let _ = sender.output(NavFactoryOutput::NavigateTo(index.current_index(), id));
+                },
+            },
 
-            connect_clicked[sender, index, id] => move |_| {
-                let _ = sender.output(NavFactoryOutput::NavigateTo(index.current_index(), id));
+            gtk::Button {
+                set_icon_name: relm4_icons::icon_names::CROSS_LARGE,
+                add_css_class: "flat",
+    
+                connect_clicked[sender, index, id] => move |_| {
+                    let _ = sender.output(NavFactoryOutput::DeleteCase(index.current_index(), id));
+                },
             },
         }
     }

@@ -15,7 +15,7 @@ pub struct Metadata {
 }
 
 /// An author of an [`EvidencePackage`](super::EvidencePackage).
-#[derive(Clone, Debug, Getters, MutGetters, Setters, Serialize, Deserialize)]
+#[derive(Clone, Debug, Getters, MutGetters, Setters, Serialize, Deserialize, PartialEq, Eq)]
 #[getset(get = "pub", get_mut = "pub", set = "pub")]
 pub struct Author {
     /// The author's name.
