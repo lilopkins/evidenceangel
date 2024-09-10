@@ -96,7 +96,6 @@ impl EvidencePackage {
         // Write ZIP file.
         zip.start_file("manifest.json", options)?;
         zip.write_all(manifest_data.as_bytes())?;
-        zip.finish()?;
         manifest.zip.conclude_write()?;
 
         Ok(manifest)
@@ -181,8 +180,6 @@ impl EvidencePackage {
         let manifest_data = serde_json::to_string(&clone).map_err(Error::FailedToCreatePackage)?;
         zip.start_file("manifest.json", options)?;
         zip.write_all(manifest_data.as_bytes())?;
-
-        zip.finish()?;
         self.zip.conclude_write()?;
         Ok(())
     }

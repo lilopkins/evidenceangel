@@ -100,7 +100,8 @@ impl ZipReaderWriter {
         if self.writer.is_some() {
             // Close write
             log::debug!("Closing writer");
-            self.writer = None;
+            let writer = self.writer.take().unwrap();
+            writer.finish()?;
 
             log::debug!("Closing reader");
             self.reader = None;
