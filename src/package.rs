@@ -272,24 +272,18 @@ impl EvidencePackage {
     where
         U: Into<Uuid>,
     {
-        let mut index = usize::MAX;
         let id = id.into();
 
         // Search for matching case
-        for (idx, case) in self.test_cases.iter().enumerate() {
-            if *case.name() == id {
-                index = idx;
-                break;
-            }
-        }
+        let index = self.test_cases.iter().position(|tc| *tc.name() == id);
 
         // Check a case was found
-        if index == usize::MAX {
+        if index.is_none() {
             return Ok(false);
         }
 
         // Remove case and data object
-        let case = self.test_cases.remove(index);
+        let case = self.test_cases.remove(index.unwrap());
         self.test_case_data.remove(case.name());
         Ok(true)
     }
@@ -299,16 +293,10 @@ impl EvidencePackage {
     where
         U: Into<Uuid>,
     {
-        let mut case = None;
         let id = id.into();
 
         // Search for matching case
-        for c in self.test_cases.iter() {
-            if *c.name() == id {
-                case = Some(c);
-                break;
-            }
-        }
+        let case = self.test_cases.iter().find(|tc| *tc.name() == id);
 
         // Return case
         Ok(case.and_then(|tcme| self.test_case_data.get(tcme.name())))
@@ -319,16 +307,10 @@ impl EvidencePackage {
     where
         U: Into<Uuid>,
     {
-        let mut case = None;
         let id = id.into();
 
         // Search for matching case
-        for c in self.test_cases.iter() {
-            if *c.name() == id {
-                case = Some(c);
-                break;
-            }
-        }
+        let case = self.test_cases.iter().find(|tc| *tc.name() == id);
 
         // Return case
         Ok(case.and_then(|tcme| self.test_case_data.get_mut(tcme.name())))

@@ -1,7 +1,7 @@
 use std::{collections::HashMap, path::PathBuf};
 
-use evidenceangel::{Author, EvidencePackage};
 use adw::prelude::*;
+use evidenceangel::{Author, EvidencePackage};
 use gtk::prelude::*;
 use relm4::{
     actions::{AccelsPlus, RelmAction, RelmActionGroup},
@@ -14,7 +14,13 @@ use relm4::{
 use uuid::Uuid;
 
 use crate::{
-    author_factory::{AuthorFactoryModel, AuthorFactoryOutput}, dialogs::{error::{ErrorDialogInit, ErrorDialogInput, ErrorDialogModel}, new_author::{NewAuthorDialogModel, NewAuthorInput, NewAuthorOutput}}, filter, lang, nav_factory::{NavFactoryInit, NavFactoryInput, NavFactoryModel, NavFactoryOutput}
+    author_factory::{AuthorFactoryModel, AuthorFactoryOutput},
+    dialogs::{
+        error::{ErrorDialogInit, ErrorDialogInput, ErrorDialogModel},
+        new_author::{NewAuthorDialogModel, NewAuthorInput, NewAuthorOutput},
+    },
+    filter, lang,
+    nav_factory::{NavFactoryInit, NavFactoryInput, NavFactoryModel, NavFactoryOutput},
 };
 
 relm4::new_action_group!(MenuActionGroup, "menu");
@@ -109,6 +115,8 @@ pub enum AppInput {
     CreateAuthor,
     _CreateAuthor(Author),
     DeleteAuthor(Author),
+
+    SetTestCaseTitle(String),
 }
 
 #[relm4::component(pub)]
@@ -194,7 +202,8 @@ impl Component for AppModel {
                                 if let Some(case) = pkg.test_case(id).ok().flatten() {
                                     case.metadata().title().clone()
                                 } else {
-                                    unreachable!()
+                                    // This is very briefly hit as a case is deleted
+                                    lang::lookup("title-no-case")
                                 }
                             } else {
                                 unreachable!()
@@ -237,7 +246,7 @@ impl Component for AppModel {
                                         adw::EntryRow {
                                             set_title: &lang::lookup("metadata-title"),
                                             connect_changed[sender] => move |entry| {
-                                                let _ = sender.input(AppInput::SetMetadataTitle(entry.text().to_string()));
+                                                sender.input(AppInput::SetMetadataTitle(entry.text().to_string()));
                                             }
                                         }
                                     },
@@ -260,18 +269,24 @@ impl Component for AppModel {
                                         },
                                     }
                                 },
-                                OpenCase::Case { id, .. } => gtk::Box {
+                                OpenCase::Case { .. } => gtk::Box {
                                     adw::PreferencesGroup {
                                         set_title: &lang::lookup("test-group-title"),
-                                        
+
                                         #[name = "test_title"]
                                         adw::EntryRow {
                                             set_title: &lang::lookup("test-title"),
                                             connect_changed[sender] => move |entry| {
-                                                // TODO let _ = sender.input(AppInput::SetTestCaseTitle(entry.text().to_string()));
+                                                sender.input(AppInput::SetTestCaseTitle(entry.text().to_string()));
                                             }
+                                        },
+
+                                        #[name = "test_execution"]
+                                        adw::ActionRow {
+                                            set_title: &lang::lookup("test-execution"),
                                         }
                                     },
+
                                     // TODO Test Case Screen
                                 },
                             }
@@ -314,16 +329,15 @@ impl Component for AppModel {
                     NavFactoryOutput::NavigateTo(index, id) => {
                         AppInput::NavigateTo(OpenCase::Case { index, id })
                     }
-                    NavFactoryOutput::DeleteCase(_index, id) => {
-                        AppInput::DeleteCase(id)
-                    }
+                    NavFactoryOutput::DeleteCase(_index, id) => AppInput::DeleteCase(id),
                 },
             ),
-            authors_factory: FactoryVecDeque::builder().launch_default().forward(sender.input_sender(), |output| match output {
-                AuthorFactoryOutput::DeleteAuthor(author) => {
-                    AppInput::DeleteAuthor(author)
-                }
-            }),
+            authors_factory: FactoryVecDeque::builder().launch_default().forward(
+                sender.input_sender(),
+                |output| match output {
+                    AuthorFactoryOutput::DeleteAuthor(author) => AppInput::DeleteAuthor(author),
+                },
+            ),
         };
 
         let test_case_list = model.test_case_nav_factory.widget();
@@ -395,7 +409,7 @@ impl Component for AppModel {
                     .modal(true)
                     .title(lang::lookup("header-save"))
                     .filters(&filter::filter_list(vec![filter::packages()]))
-                    .initial_folder(&gtk::gio::File::for_path(".".to_string()))
+                    .initial_folder(&gtk::gio::File::for_path("."))
                     .build();
 
                 let sender_c = sender.clone();
@@ -439,7 +453,7 @@ impl Component for AppModel {
                     .modal(true)
                     .title(lang::lookup("header-open"))
                     .filters(&filter::filter_list(vec![filter::packages()]))
-                    .initial_folder(&gtk::gio::File::for_path(".".to_string()))
+                    .initial_folder(&gtk::gio::File::for_path("."))
                     .build();
 
                 let sender_c = sender.clone();
@@ -549,9 +563,19 @@ impl Component for AppModel {
                         }
                         widgets.nav_metadata.set_has_frame(true);
                     }
-                    OpenCase::Case { index, .. } => {
+                    OpenCase::Case { index, id } => {
                         self.test_case_nav_factory
                             .send(index, NavFactoryInput::ShowAsSelected(true));
+
+                        if let Some(pkg) = self.open_package.as_ref() {
+                            if let Some(tc) = pkg.test_case(id).ok().flatten() {
+                                // Update test case metadata on screen
+                                widgets.test_title.set_text(tc.metadata().title());
+                                widgets
+                                    .test_execution
+                                    .set_subtitle(&tc.metadata().execution_datetime().to_rfc3339());
+                            }
+                        }
                     }
                     OpenCase::Nothing => (),
                 }
@@ -567,7 +591,7 @@ impl Component for AppModel {
                     let case = pkg
                         .create_test_case(lang::lookup("default-case-title"))
                         .unwrap(); // doesn't fail
-                    case_id = case.id().clone();
+                    case_id = *case.id();
                 }
 
                 // Establish index
@@ -609,11 +633,14 @@ impl Component for AppModel {
                         let error_dlg = ErrorDialogModel::builder()
                             .launch(ErrorDialogInit {
                                 title: Box::new(lang::lookup("error-failed-delete-case-title")),
-                                body: Box::new(lang::lookup_with_args("error-failed-delete-case-body", {
-                                    let mut map = HashMap::new();
-                                    map.insert("error", e.to_string().into());
-                                    map
-                                })),
+                                body: Box::new(lang::lookup_with_args(
+                                    "error-failed-delete-case-body",
+                                    {
+                                        let mut map = HashMap::new();
+                                        map.insert("error", e.to_string().into());
+                                        map
+                                    },
+                                )),
                             })
                             .forward(sender.input_sender(), |msg| match msg {});
                         error_dlg.emit(ErrorDialogInput::Present(root.clone()));
@@ -624,11 +651,12 @@ impl Component for AppModel {
                 }
             }
             AppInput::CreateAuthor => {
-                let new_author_dlg = NewAuthorDialogModel::builder()
-                    .launch(())
-                    .forward(sender.input_sender(), |msg| match msg {
-                        NewAuthorOutput::CreateAuthor(author) => AppInput::_CreateAuthor(author)
-                    });
+                let new_author_dlg = NewAuthorDialogModel::builder().launch(()).forward(
+                    sender.input_sender(),
+                    |msg| match msg {
+                        NewAuthorOutput::CreateAuthor(author) => AppInput::_CreateAuthor(author),
+                    },
+                );
                 new_author_dlg.emit(NewAuthorInput::Present(root.clone()));
                 self.latest_new_author_dlg = Some(new_author_dlg);
             }
@@ -640,9 +668,27 @@ impl Component for AppModel {
             }
             AppInput::DeleteAuthor(author) => {
                 if let Some(pkg) = self.open_package.as_mut() {
-                    let idx = pkg.metadata().authors().iter().position(|a| *a == author).unwrap();
+                    let idx = pkg
+                        .metadata()
+                        .authors()
+                        .iter()
+                        .position(|a| *a == author)
+                        .unwrap();
                     pkg.metadata_mut().authors_mut().remove(idx);
                     sender.input(AppInput::NavigateTo(OpenCase::Metadata)); // to refresh author list
+                }
+            }
+            AppInput::SetTestCaseTitle(new_title) => {
+                if !new_title.trim().is_empty() {
+                    if let OpenCase::Case { index, id, .. } = &self.open_case {
+                        if let Some(pkg) = self.open_package.as_mut() {
+                            if let Some(tc) = pkg.test_case_mut(*id).ok().flatten() {
+                                tc.metadata_mut().set_title(new_title.clone());
+                                self.test_case_nav_factory
+                                    .send(*index, NavFactoryInput::UpdateTitle(new_title));
+                            }
+                        }
+                    }
                 }
             }
         }

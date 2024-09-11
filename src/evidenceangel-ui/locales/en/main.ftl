@@ -46,4 +46,5 @@ author-create-email = Author Email Address
 author-create-submit = Add Author
 
 test-group-title = Test Case Metadata
-test-title = Test Cast Title
+test-title = Test Case Title
+test-execution = Test Case Execution Time

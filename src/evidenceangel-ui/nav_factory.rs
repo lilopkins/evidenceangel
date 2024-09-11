@@ -16,6 +16,7 @@ pub struct NavFactoryModel {
 #[derive(Clone, Debug)]
 pub enum NavFactoryInput {
     ShowAsSelected(bool),
+    UpdateTitle(String),
 }
 
 #[derive(Debug)]
@@ -41,12 +42,13 @@ impl FactoryComponent for NavFactoryModel {
         #[root]
         gtk::Box {
             gtk::Button {
+                #[watch]
                 set_label: &self.name,
                 add_css_class: "flat",
                 set_hexpand: true,
                 #[watch]
                 set_has_frame: self.selected,
-    
+
                 connect_clicked[sender, index, id] => move |_| {
                     let _ = sender.output(NavFactoryOutput::NavigateTo(index.current_index(), id));
                 },
@@ -55,7 +57,7 @@ impl FactoryComponent for NavFactoryModel {
             gtk::Button {
                 set_icon_name: relm4_icons::icon_names::CROSS_LARGE,
                 add_css_class: "flat",
-    
+
                 connect_clicked[sender, index, id] => move |_| {
                     let _ = sender.output(NavFactoryOutput::DeleteCase(index.current_index(), id));
                 },
@@ -87,6 +89,9 @@ impl FactoryComponent for NavFactoryModel {
         match message {
             NavFactoryInput::ShowAsSelected(sel) => {
                 self.selected = sel;
+            }
+            NavFactoryInput::UpdateTitle(new_title) => {
+                self.name = new_title;
             }
         }
     }

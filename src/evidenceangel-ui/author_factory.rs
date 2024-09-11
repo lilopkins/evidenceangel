@@ -1,8 +1,12 @@
+use adw::prelude::*;
 use evidenceangel::Author;
 use relm4::{
-    adw, gtk, factory::FactoryView, prelude::{DynamicIndex, FactoryComponent}, FactorySender
+    adw,
+    factory::FactoryView,
+    gtk,
+    prelude::{DynamicIndex, FactoryComponent},
+    FactorySender,
 };
-use adw::prelude::*;
 
 pub struct AuthorFactoryModel {
     author: Author,
@@ -43,11 +47,7 @@ impl FactoryComponent for AuthorFactoryModel {
         }
     }
 
-    fn init_model(
-        init: Self::Init,
-        _index: &DynamicIndex,
-        _sender: FactorySender<Self>,
-    ) -> Self {
+    fn init_model(init: Self::Init, _index: &DynamicIndex, _sender: FactorySender<Self>) -> Self {
         Self {
             author: init.clone(),
         }
@@ -66,7 +66,9 @@ impl FactoryComponent for AuthorFactoryModel {
 
     fn update(&mut self, message: Self::Input, sender: FactorySender<Self>) {
         match message {
-            AuthorFactoryInput::DeleteSelf => { let _ = sender.output(AuthorFactoryOutput::DeleteAuthor(self.author.clone())); },
+            AuthorFactoryInput::DeleteSelf => {
+                let _ = sender.output(AuthorFactoryOutput::DeleteAuthor(self.author.clone()));
+            }
         }
     }
 }

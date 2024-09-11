@@ -1,5 +1,8 @@
-use relm4::{adw::{self, ApplicationWindow}, Component, ComponentParts, ComponentSender};
 use adw::prelude::*;
+use relm4::{
+    adw::{self, ApplicationWindow},
+    Component, ComponentParts, ComponentSender,
+};
 
 use crate::lang;
 
@@ -10,7 +13,7 @@ pub struct ErrorDialogModel {
 
 pub struct ErrorDialogInit {
     pub title: Box<dyn ToString>,
-    pub body: Box<dyn ToString>, 
+    pub body: Box<dyn ToString>,
 }
 
 #[derive(Debug)]

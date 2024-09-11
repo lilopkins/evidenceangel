@@ -2,11 +2,11 @@ use relm4::{gtk, RelmApp};
 
 mod about;
 mod app;
+mod author_factory;
+mod dialogs;
 mod filter;
 mod lang;
 mod nav_factory;
-mod author_factory;
-mod dialogs;
 
 fn main() {
     pretty_env_logger::init();

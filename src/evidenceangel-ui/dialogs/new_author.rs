@@ -1,6 +1,9 @@
-use evidenceangel::Author;
-use relm4::{adw::{self, ApplicationWindow}, gtk, Component, ComponentParts, ComponentSender, RelmWidgetExt};
 use adw::prelude::*;
+use evidenceangel::Author;
+use relm4::{
+    adw::{self, ApplicationWindow},
+    gtk, Component, ComponentParts, ComponentSender, RelmWidgetExt,
+};
 
 use crate::lang;
 
@@ -28,13 +31,13 @@ impl Component for NewAuthorDialogModel {
         #[root]
         adw::Dialog {
             #[wrap(Some)]
-            set_child = &gtk::Box { 
+            set_child = &gtk::Box {
                 set_orientation: gtk::Orientation::Vertical,
-                
+
                 adw::PreferencesGroup {
                     set_title: &lang::lookup("author-create-title"),
                     set_margin_all: 16,
-    
+
                     #[name = "name"]
                     adw::EntryRow {
                         set_title: &lang::lookup("author-create-name"),
@@ -88,7 +91,9 @@ impl Component for NewAuthorDialogModel {
                 } else {
                     Author::new_with_email(name, email.trim().to_string())
                 };
-                sender.output(NewAuthorOutput::CreateAuthor(author)).unwrap();
+                sender
+                    .output(NewAuthorOutput::CreateAuthor(author))
+                    .unwrap();
                 root.close();
             }
         }
