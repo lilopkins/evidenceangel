@@ -7,6 +7,8 @@ use relm4::{
 };
 use uuid::Uuid;
 
+use crate::lang;
+
 pub struct NavFactoryModel {
     selected: bool,
     name: String,
@@ -56,6 +58,7 @@ impl FactoryComponent for NavFactoryModel {
 
             gtk::Button {
                 set_icon_name: relm4_icons::icon_names::CROSS_LARGE,
+                set_tooltip_text: Some(&lang::lookup("nav-delete-case")),
                 add_css_class: "flat",
 
                 connect_clicked[sender, index, id] => move |_| {

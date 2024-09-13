@@ -54,9 +54,7 @@ impl Component for NewAuthorDialogModel {
                     set_label: &lang::lookup("author-create-submit"),
                     add_css_class: "flat",
 
-                    connect_clicked[sender] => move |_| {
-                        sender.input(NewAuthorInput::Create);
-                    }
+                    connect_clicked => NewAuthorInput::Create,
                 }
             }
         }

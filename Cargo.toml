@@ -9,17 +9,15 @@ license = "GPL-3.0-or-later"
 [[bin]]
 name = "evidenceangel-cli"
 path = "src/evidenceangel-cli/main.rs"
-required-features = [ "cli" ]
+required-features = ["cli"]
 
 [[bin]]
 name = "evidenceangel-ui"
 path = "src/evidenceangel-ui/main.rs"
-required-features = [ "ui" ]
+required-features = ["ui"]
 
 [features]
-default = [
-    "exporter-html",
-]
+default = ["exporter-html"]
 cli = [
     "exporter-html",
     "exporter-excel",
@@ -27,13 +25,10 @@ cli = [
     "dep:clap_complete",
     "dep:pretty_env_logger",
 ]
-exporter-excel = [
-    "dep:rust_xlsxwriter",
-]
-exporter-html = [
-    "dep:domrs",
-]
+exporter-excel = ["dep:rust_xlsxwriter"]
+exporter-html = ["dep:domrs"]
 ui = [
+    "dep:clap",
     "dep:fluent",
     "dep:fluent-templates",
     "dep:once_cell",
@@ -46,7 +41,7 @@ ui = [
 [dependencies]
 base64 = "0.22.1"
 chrono = { version = "0.4.38", features = ["serde"] }
-clap = { version = "4.5.4", features = [ "derive" ], optional = true }
+clap = { version = "4.5.4", features = ["derive"], optional = true }
 clap_complete = { version = "4.5.2", optional = true }
 domrs = { version = "0.0.16", optional = true }
 fluent = { version = "0.16.1", optional = true }
@@ -56,7 +51,10 @@ infer = "0.16.0"
 log = "0.4.21"
 once_cell = { version = "1.19.0", optional = true }
 pretty_env_logger = { version = "0.5.0", optional = true }
-relm4 = { version = "0.9.0", features = ["libadwaita", "gnome_46"], optional = true }
+relm4 = { version = "0.9.0", features = [
+    "libadwaita",
+    "gnome_46",
+], optional = true }
 relm4-icons = { version = "0.9.0", optional = true }
 rust_xlsxwriter = { version = "0.75.0", features = ["chrono"], optional = true }
 serde = { version = "1.0.200", features = ["derive"] }

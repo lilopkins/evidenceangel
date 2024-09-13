@@ -1,4 +1,5 @@
 use getset::Getters;
+use std::fmt;
 
 /// A media file stored within an [`EvidencePackage`](super::EvidencePackage).
 #[derive(Getters)]
@@ -6,6 +7,12 @@ pub struct MediaFile {
     /// The raw data of this media file.
     #[getset(get = "pub")]
     data: Vec<u8>,
+}
+
+impl fmt::Debug for MediaFile {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "MediaFile ({} bytes)", self.data.len())
+    }
 }
 
 impl MediaFile {

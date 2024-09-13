@@ -1,7 +1,12 @@
-use std::{collections::HashMap, path::PathBuf};
+use std::{
+    collections::HashMap,
+    path::PathBuf,
+    sync::{Arc, RwLock},
+};
 
 use adw::prelude::*;
-use evidenceangel::{Author, EvidencePackage};
+use evidenceangel::{Author, Evidence, EvidencePackage};
+#[allow(unused)]
 use gtk::prelude::*;
 use relm4::{
     actions::{AccelsPlus, RelmAction, RelmActionGroup},
@@ -16,9 +21,14 @@ use uuid::Uuid;
 use crate::{
     author_factory::{AuthorFactoryModel, AuthorFactoryOutput},
     dialogs::{
+        add_evidence::{
+            AddEvidenceInput, AddEvidenceOutput, AddHttpEvidenceDialogModel,
+            AddImageEvidenceDialogModel, AddTextEvidenceDialogModel,
+        },
         error::{ErrorDialogInit, ErrorDialogInput, ErrorDialogModel},
         new_author::{NewAuthorDialogModel, NewAuthorInput, NewAuthorOutput},
     },
+    evidence_factory::{EvidenceFactoryInit, EvidenceFactoryModel},
     filter, lang,
     nav_factory::{NavFactoryInit, NavFactoryInput, NavFactoryModel, NavFactoryOutput},
 };
@@ -32,15 +42,19 @@ relm4::new_stateless_action!(CloseAction, MenuActionGroup, "close");
 relm4::new_stateless_action!(AboutAction, MenuActionGroup, "about");
 
 pub struct AppModel {
-    open_package: Option<EvidencePackage>,
+    open_package: Option<Arc<RwLock<EvidencePackage>>>,
     open_path: Option<PathBuf>,
     open_case: OpenCase,
 
     latest_new_author_dlg: Option<Controller<NewAuthorDialogModel>>,
+    latest_add_evidence_text_dlg: Option<Controller<AddTextEvidenceDialogModel>>,
+    latest_add_evidence_http_dlg: Option<Controller<AddHttpEvidenceDialogModel>>,
+    latest_add_evidence_image_dlg: Option<Controller<AddImageEvidenceDialogModel>>,
     latest_error_dlg: Option<Controller<ErrorDialogModel>>,
 
     test_case_nav_factory: FactoryVecDeque<NavFactoryModel>,
     authors_factory: FactoryVecDeque<AuthorFactoryModel>,
+    test_evidence_factory: FactoryVecDeque<EvidenceFactoryModel>,
 }
 
 impl AppModel {
@@ -56,7 +70,7 @@ impl AppModel {
             authors,
         )?;
         log::debug!("Package opened: {pkg:?}");
-        self.open_package = Some(pkg);
+        self.open_package = Some(Arc::new(RwLock::new(pkg)));
         self.update_nav_menu()?;
         Ok(())
     }
@@ -64,7 +78,7 @@ impl AppModel {
     fn open(&mut self, path: PathBuf) -> evidenceangel::Result<()> {
         let pkg = EvidencePackage::open(path.clone())?;
         log::debug!("Package opened: {pkg:?}");
-        self.open_package = Some(pkg);
+        self.open_package = Some(Arc::new(RwLock::new(pkg)));
         self.open_path = Some(path);
         self.update_nav_menu()?;
         Ok(())
@@ -81,6 +95,7 @@ impl AppModel {
         let mut test_case_data = self.test_case_nav_factory.guard();
         test_case_data.clear();
         if let Some(pkg) = self.open_package.as_ref() {
+            let pkg = pkg.read().unwrap();
             for case in pkg.test_case_iter()? {
                 test_case_data.push_back(NavFactoryInit {
                     id: *case.id(),
@@ -89,6 +104,10 @@ impl AppModel {
             }
         }
         Ok(())
+    }
+
+    fn get_package(&self) -> Option<Arc<RwLock<EvidencePackage>>> {
+        self.open_package.as_ref().map(|pkg| pkg.clone())
     }
 }
 
@@ -117,6 +136,12 @@ pub enum AppInput {
     DeleteAuthor(Author),
 
     SetTestCaseTitle(String),
+    AddTextEvidence,
+    AddHttpEvidence,
+    AddImageEvidence,
+    #[allow(dead_code)]
+    AddFileEvidence,
+    _AddEvidence(Evidence),
 }
 
 #[relm4::component(pub)]
@@ -124,7 +149,7 @@ impl Component for AppModel {
     type CommandOutput = ();
     type Input = AppInput;
     type Output = ();
-    type Init = ();
+    type Init = Option<PathBuf>;
 
     view! {
         #[root]
@@ -140,7 +165,7 @@ impl Component for AppModel {
 
                     adw::ToolbarView {
                         add_top_bar = &adw::HeaderBar {
-                            pack_start = &gtk::MenuButton {
+                            pack_end = &gtk::MenuButton {
                                 set_icon_name: relm4_icons::icon_names::MENU,
                                 set_tooltip: &lang::lookup("header-menu"),
                                 set_direction: gtk::ArrowType::Down,
@@ -177,10 +202,18 @@ impl Component for AppModel {
                                 },
 
                                 gtk::Button {
-                                    set_label: &lang::lookup("nav-create-case"),
                                     add_css_class: "flat",
-                                    set_icon_name: relm4_icons::icon_names::PLUS,
                                     connect_clicked => AppInput::CreateCaseAndSelect,
+
+                                    gtk::Box {
+                                        set_spacing: 2,
+                                        set_halign: gtk::Align::Center,
+
+                                        gtk::Image::from_icon_name(relm4_icons::icon_names::PLUS),
+                                        gtk::Label {
+                                            set_label: &lang::lookup("nav-create-case"),
+                                        },
+                                    }
                                 },
                             }
                         }
@@ -191,7 +224,7 @@ impl Component for AppModel {
                 set_content = &adw::NavigationPage {
                     #[watch]
                     set_title: &format!("{} · {}", if let Some(pkg) = model.open_package.as_ref() {
-                        pkg.metadata().title().clone()
+                        pkg.read().unwrap().metadata().title().clone()
                     } else {
                         lang::lookup("title-no-package")
                     }, match model.open_case {
@@ -199,14 +232,15 @@ impl Component for AppModel {
                         OpenCase::Metadata => lang::lookup("nav-metadata"),
                         OpenCase::Case { id, .. } => {
                             if let Some(pkg) = model.open_package.as_ref() {
-                                if let Some(case) = pkg.test_case(id).ok().flatten() {
+                                if let Some(case) = pkg.read().unwrap().test_case(id).ok().flatten() {
                                     case.metadata().title().clone()
                                 } else {
                                     // This is very briefly hit as a case is deleted
                                     lang::lookup("title-no-case")
                                 }
                             } else {
-                                unreachable!()
+                                // This is hit when a case is open and the "Open" button is selected again
+                                lang::lookup("title-no-case")
                             }
                         },
                     }),
@@ -270,24 +304,95 @@ impl Component for AppModel {
                                     }
                                 },
                                 OpenCase::Case { .. } => gtk::Box {
-                                    adw::PreferencesGroup {
-                                        set_title: &lang::lookup("test-group-title"),
+                                    gtk::ScrolledWindow {
+                                        set_hscrollbar_policy: gtk::PolicyType::Never,
+                                        set_vexpand: true,
 
-                                        #[name = "test_title"]
-                                        adw::EntryRow {
-                                            set_title: &lang::lookup("test-title"),
-                                            connect_changed[sender] => move |entry| {
-                                                sender.input(AppInput::SetTestCaseTitle(entry.text().to_string()));
-                                            }
-                                        },
+                                        gtk::Box {
+                                            set_orientation: gtk::Orientation::Vertical,
 
-                                        #[name = "test_execution"]
-                                        adw::ActionRow {
-                                            set_title: &lang::lookup("test-execution"),
+                                            adw::PreferencesGroup {
+                                                set_title: &lang::lookup("test-group-title"),
+
+                                                #[name = "test_title"]
+                                                adw::EntryRow {
+                                                    set_title: &lang::lookup("test-title"),
+                                                    connect_changed[sender] => move |entry| {
+                                                        sender.input(AppInput::SetTestCaseTitle(entry.text().to_string()));
+                                                    }
+                                                },
+
+                                                #[name = "test_execution"]
+                                                adw::ActionRow {
+                                                    set_title: &lang::lookup("test-execution"),
+                                                }
+                                            },
+
+                                            // Test Case Screen
+                                            #[local_ref]
+                                            evidence_list -> gtk::Box {
+                                                set_orientation: gtk::Orientation::Vertical,
+                                                set_spacing: 8,
+                                                set_margin_top: 8,
+                                            },
+
+                                            gtk::Box {
+                                                set_orientation: gtk::Orientation::Horizontal,
+                                                set_margin_top: 8,
+                                                set_spacing: 4,
+                                                set_halign: gtk::Align::Center,
+
+                                                gtk::Button {
+                                                    connect_clicked => AppInput::AddTextEvidence,
+
+                                                    gtk::Box {
+                                                        set_orientation: gtk::Orientation::Horizontal,
+
+                                                        gtk::Image::from_icon_name(relm4_icons::icon_names::PLUS),
+                                                        gtk::Label {
+                                                            set_label: "Text",
+                                                        },
+                                                    }
+                                                },
+                                                gtk::Button {
+                                                    connect_clicked => AppInput::AddHttpEvidence,
+
+                                                    gtk::Box {
+                                                        set_orientation: gtk::Orientation::Horizontal,
+
+                                                        gtk::Image::from_icon_name(relm4_icons::icon_names::PLUS),
+                                                        gtk::Label {
+                                                            set_label: "HTTP Request",
+                                                        },
+                                                    }
+                                                },
+                                                gtk::Button {
+                                                    connect_clicked => AppInput::AddImageEvidence,
+
+                                                    gtk::Box {
+                                                        set_orientation: gtk::Orientation::Horizontal,
+
+                                                        gtk::Image::from_icon_name(relm4_icons::icon_names::PLUS),
+                                                        gtk::Label {
+                                                            set_label: "Image",
+                                                        },
+                                                    }
+                                                },
+                                                /* gtk::Button {
+                                                    connect_clicked => AppInput::AddFileEvidence,
+
+                                                    gtk::Box {
+                                                        set_orientation: gtk::Orientation::Horizontal,
+
+                                                        gtk::Image::from_icon_name(relm4_icons::icon_names::PLUS),
+                                                        gtk::Label {
+                                                            set_label: "File",
+                                                        },
+                                                    }
+                                                }, */
+                                            },
                                         }
-                                    },
-
-                                    // TODO Test Case Screen
+                                    }
                                 },
                             }
                         },
@@ -311,7 +416,7 @@ impl Component for AppModel {
     }
 
     fn init(
-        _init: Self::Init,
+        init: Self::Init,
         root: Self::Root,
         sender: ComponentSender<Self>,
     ) -> ComponentParts<Self> {
@@ -322,6 +427,9 @@ impl Component for AppModel {
 
             latest_error_dlg: None,
             latest_new_author_dlg: None,
+            latest_add_evidence_text_dlg: None,
+            latest_add_evidence_http_dlg: None,
+            latest_add_evidence_image_dlg: None,
 
             test_case_nav_factory: FactoryVecDeque::builder().launch_default().forward(
                 sender.input_sender(),
@@ -338,10 +446,14 @@ impl Component for AppModel {
                     AuthorFactoryOutput::DeleteAuthor(author) => AppInput::DeleteAuthor(author),
                 },
             ),
+            test_evidence_factory: FactoryVecDeque::builder()
+                .launch_default()
+                .forward(sender.input_sender(), |msg| match msg {}),
         };
 
         let test_case_list = model.test_case_nav_factory.widget();
         let authors_list = model.authors_factory.widget();
+        let evidence_list = model.test_evidence_factory.widget();
         let widgets = view_output!();
 
         let sender_c = sender.clone();
@@ -388,7 +500,12 @@ impl Component for AppModel {
         group.add_action(save_as_action);
         group.add_action(close_action);
         group.add_action(about_action);
-        group.register_for_widget(root);
+        group.register_for_widget(&root);
+
+        if let Some(file) = init {
+            sender.input(AppInput::_OpenFile(file));
+            root.set_visible(true);
+        }
 
         ComponentParts { model, widgets }
     }
@@ -486,8 +603,8 @@ impl Component for AppModel {
                 }
             }
             AppInput::SaveFile => {
-                if let Some(package) = self.open_package.as_mut() {
-                    if let Err(e) = package.save() {
+                if let Some(package) = self.get_package() {
+                    if let Err(e) = package.write().unwrap().save() {
                         // Show error dialog
                         let error_dlg = ErrorDialogModel::builder()
                             .launch(ErrorDialogInit {
@@ -548,7 +665,7 @@ impl Component for AppModel {
                             &self
                                 .open_package
                                 .as_ref()
-                                .map(|pkg| pkg.metadata().title().clone())
+                                .map(|pkg| pkg.read().unwrap().metadata().title().clone())
                                 .expect("Cannot navigate to metadata when no package is open"),
                         );
                         let mut authors = self.authors_factory.guard();
@@ -556,7 +673,7 @@ impl Component for AppModel {
                         let pkg_authors = self
                             .open_package
                             .as_ref()
-                            .map(|pkg| pkg.metadata().authors().clone())
+                            .map(|pkg| pkg.read().unwrap().metadata().authors().clone())
                             .expect("Cannot navigate to metadata when no package is open");
                         for author in pkg_authors {
                             authors.push_back(author);
@@ -567,14 +684,30 @@ impl Component for AppModel {
                         self.test_case_nav_factory
                             .send(index, NavFactoryInput::ShowAsSelected(true));
 
-                        if let Some(pkg) = self.open_package.as_ref() {
-                            if let Some(tc) = pkg.test_case(id).ok().flatten() {
+                        let mut new_evidence = vec![];
+                        if let Some(pkg) = self.get_package() {
+                            if let Some(tc) = pkg.read().unwrap().test_case(id).ok().flatten() {
                                 // Update test case metadata on screen
                                 widgets.test_title.set_text(tc.metadata().title());
                                 widgets
                                     .test_execution
                                     .set_subtitle(&tc.metadata().execution_datetime().to_rfc3339());
+
+                                for ev in tc.evidence() {
+                                    new_evidence.push(EvidenceFactoryInit {
+                                        evidence: ev.clone(),
+                                        package: pkg.clone(),
+                                    });
+                                }
                             }
+                        }
+
+                        // This MUST be delayed so that the RwLock over the EvidencePackage is no longer in read mode.
+                        // Otherwise, images cannot be loaded from media (as they need a write lock over the package).
+                        let mut evidence = self.test_evidence_factory.guard();
+                        evidence.clear();
+                        for ev in new_evidence {
+                            evidence.push_back(ev);
                         }
                     }
                     OpenCase::Nothing => (),
@@ -587,7 +720,8 @@ impl Component for AppModel {
 
                 let mut index = usize::MAX;
                 let mut case_id = Uuid::default();
-                if let Some(pkg) = self.open_package.as_mut() {
+                if let Some(pkg) = self.get_package() {
+                    let mut pkg = pkg.write().unwrap();
                     let case = pkg
                         .create_test_case(lang::lookup("default-case-title"))
                         .unwrap(); // doesn't fail
@@ -598,6 +732,8 @@ impl Component for AppModel {
                 for (idx, c) in self
                     .open_package
                     .as_ref()
+                    .unwrap()
+                    .read()
                     .unwrap()
                     .test_case_iter()
                     .unwrap()
@@ -623,13 +759,13 @@ impl Component for AppModel {
                 self.open_case = OpenCase::Case { index, id: case_id };
             }
             AppInput::SetMetadataTitle(new_title) => {
-                if let Some(pkg) = self.open_package.as_mut() {
-                    pkg.metadata_mut().set_title(new_title);
+                if let Some(pkg) = self.get_package() {
+                    pkg.write().unwrap().metadata_mut().set_title(new_title);
                 }
             }
             AppInput::DeleteCase(id) => {
-                if let Some(pkg) = self.open_package.as_mut() {
-                    if let Err(e) = pkg.delete_test_case(id) {
+                if let Some(pkg) = self.get_package() {
+                    if let Err(e) = pkg.write().unwrap().delete_test_case(id) {
                         let error_dlg = ErrorDialogModel::builder()
                             .launch(ErrorDialogInit {
                                 title: Box::new(lang::lookup("error-failed-delete-case-title")),
@@ -661,33 +797,88 @@ impl Component for AppModel {
                 self.latest_new_author_dlg = Some(new_author_dlg);
             }
             AppInput::_CreateAuthor(author) => {
-                if let Some(pkg) = self.open_package.as_mut() {
-                    pkg.metadata_mut().authors_mut().push(author);
+                if let Some(pkg) = self.get_package() {
+                    pkg.write()
+                        .unwrap()
+                        .metadata_mut()
+                        .authors_mut()
+                        .push(author);
                     sender.input(AppInput::NavigateTo(OpenCase::Metadata)); // to refresh author list
                 }
             }
             AppInput::DeleteAuthor(author) => {
-                if let Some(pkg) = self.open_package.as_mut() {
+                if let Some(pkg) = self.get_package() {
                     let idx = pkg
+                        .read()
+                        .unwrap()
                         .metadata()
                         .authors()
                         .iter()
                         .position(|a| *a == author)
                         .unwrap();
-                    pkg.metadata_mut().authors_mut().remove(idx);
+                    pkg.write()
+                        .unwrap()
+                        .metadata_mut()
+                        .authors_mut()
+                        .remove(idx);
                     sender.input(AppInput::NavigateTo(OpenCase::Metadata)); // to refresh author list
                 }
             }
             AppInput::SetTestCaseTitle(new_title) => {
                 if !new_title.trim().is_empty() {
                     if let OpenCase::Case { index, id, .. } = &self.open_case {
-                        if let Some(pkg) = self.open_package.as_mut() {
-                            if let Some(tc) = pkg.test_case_mut(*id).ok().flatten() {
+                        if let Some(pkg) = self.get_package() {
+                            if let Some(tc) = pkg.write().unwrap().test_case_mut(*id).ok().flatten()
+                            {
                                 tc.metadata_mut().set_title(new_title.clone());
                                 self.test_case_nav_factory
                                     .send(*index, NavFactoryInput::UpdateTitle(new_title));
                             }
                         }
+                    }
+                }
+            }
+            AppInput::AddTextEvidence => {
+                let add_evidence_text_dlg = AddTextEvidenceDialogModel::builder()
+                    .launch(self.get_package().unwrap())
+                    .forward(sender.input_sender(), |msg| match msg {
+                        AddEvidenceOutput::AddEvidence(ev) => AppInput::_AddEvidence(ev),
+                    });
+                add_evidence_text_dlg.emit(AddEvidenceInput::Present(root.clone()));
+                self.latest_add_evidence_text_dlg = Some(add_evidence_text_dlg);
+            }
+            AppInput::AddHttpEvidence => {
+                let add_evidence_http_dlg = AddHttpEvidenceDialogModel::builder()
+                    .launch(self.get_package().unwrap())
+                    .forward(sender.input_sender(), |msg| match msg {
+                        AddEvidenceOutput::AddEvidence(ev) => AppInput::_AddEvidence(ev),
+                    });
+                add_evidence_http_dlg.emit(AddEvidenceInput::Present(root.clone()));
+                self.latest_add_evidence_http_dlg = Some(add_evidence_http_dlg);
+            }
+            AppInput::AddImageEvidence => {
+                let add_evidence_image_dlg = AddImageEvidenceDialogModel::builder()
+                    .launch(self.get_package().unwrap())
+                    .forward(sender.input_sender(), |msg| match msg {
+                        AddEvidenceOutput::AddEvidence(ev) => AppInput::_AddEvidence(ev),
+                    });
+                add_evidence_image_dlg.emit(AddEvidenceInput::Present(root.clone()));
+                self.latest_add_evidence_image_dlg = Some(add_evidence_image_dlg);
+            }
+            AppInput::AddFileEvidence => (),
+            AppInput::_AddEvidence(ev) => {
+                if let Some(pkg) = self.get_package() {
+                    if let OpenCase::Case { id, .. } = &self.open_case {
+                        pkg.write()
+                            .unwrap()
+                            .test_case_mut(*id)
+                            .ok()
+                            .flatten()
+                            .unwrap()
+                            .evidence_mut()
+                            .push(ev);
+                        // to refresh evidence
+                        sender.input(AppInput::NavigateTo(self.open_case));
                     }
                 }
             }

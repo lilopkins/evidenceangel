@@ -1,5 +1,6 @@
 app-name = EvidenceAngel
 ok = Ok
+invalid-data = Invalid data
 
 header-new = New
 header-open = Open
@@ -32,6 +33,7 @@ default-case-title = New Case
 
 nav-metadata = Metadata
 nav-create-case = Create Test Case
+nav-delete-case = Delete Test Case
 
 title-no-package = No package open
 title-no-case = No case open
@@ -48,3 +50,10 @@ author-create-submit = Add Author
 test-group-title = Test Case Metadata
 test-title = Test Case Title
 test-execution = Test Case Execution Time
+
+add-evidence-title = Add Evidence
+add-evidence-submit = Add
+add-evidence-text-label = Text Evidence
+add-evidence-http-req-label = HTTP Raw Request
+add-evidence-http-res-label = HTTP Raw Response
+add-evidence-image-label = Image Path
