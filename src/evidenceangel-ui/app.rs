@@ -251,7 +251,35 @@ impl Component for AppModel {
                     }),
 
                     adw::ToolbarView {
-                        add_top_bar = &adw::HeaderBar,
+                        add_top_bar = &adw::HeaderBar {
+                            #[wrap(Some)]
+                            set_title_widget = &adw::WindowTitle {
+                                #[watch]
+                                set_title: &if let Some(pkg) = model.open_package.as_ref() {
+                                    pkg.read().unwrap().metadata().title().clone()
+                                } else {
+                                    lang::lookup("title-no-package")
+                                },
+                                #[watch]
+                                set_subtitle: &match model.open_case {
+                                    OpenCase::Nothing => lang::lookup("title-no-case"),
+                                    OpenCase::Metadata => lang::lookup("nav-metadata"),
+                                    OpenCase::Case { id, .. } => {
+                                        if let Some(pkg) = model.open_package.as_ref() {
+                                            if let Some(case) = pkg.read().unwrap().test_case(id).ok().flatten() {
+                                                case.metadata().title().clone()
+                                            } else {
+                                                // This is very briefly hit as a case is deleted
+                                                lang::lookup("title-no-case")
+                                            }
+                                        } else {
+                                            // This is hit when a case is open and the "Open" button is selected again
+                                            lang::lookup("title-no-case")
+                                        }
+                                    },
+                                },
+                            }
+                        },
 
                         gtk::Box {
                             set_orientation: gtk::Orientation::Vertical,
