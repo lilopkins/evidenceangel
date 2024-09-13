@@ -142,6 +142,11 @@ pub enum AppInput {
     #[allow(dead_code)]
     AddFileEvidence,
     _AddEvidence(Evidence),
+    /// Show an error dialog.
+    ShowError {
+        title: String,
+        message: String,
+    },
 }
 
 #[relm4::component(pub)]
@@ -749,14 +754,7 @@ impl Component for AppModel {
                 self.update_nav_menu().unwrap(); // doesn't fail
 
                 // Switch to case
-                // First unselect all cases
-                widgets.nav_metadata.set_has_frame(false);
-                self.test_case_nav_factory
-                    .broadcast(NavFactoryInput::ShowAsSelected(false));
-                // Then select the new case
-                self.test_case_nav_factory
-                    .send(index, NavFactoryInput::ShowAsSelected(true));
-                self.open_case = OpenCase::Case { index, id: case_id };
+                sender.input(AppInput::NavigateTo(OpenCase::Case { index, id: case_id }));
             }
             AppInput::SetMetadataTitle(new_title) => {
                 if let Some(pkg) = self.get_package() {
@@ -843,6 +841,9 @@ impl Component for AppModel {
                     .launch(self.get_package().unwrap())
                     .forward(sender.input_sender(), |msg| match msg {
                         AddEvidenceOutput::AddEvidence(ev) => AppInput::_AddEvidence(ev),
+                        AddEvidenceOutput::Error { title, message } => {
+                            AppInput::ShowError { title, message }
+                        }
                     });
                 add_evidence_text_dlg.emit(AddEvidenceInput::Present(root.clone()));
                 self.latest_add_evidence_text_dlg = Some(add_evidence_text_dlg);
@@ -852,6 +853,9 @@ impl Component for AppModel {
                     .launch(self.get_package().unwrap())
                     .forward(sender.input_sender(), |msg| match msg {
                         AddEvidenceOutput::AddEvidence(ev) => AppInput::_AddEvidence(ev),
+                        AddEvidenceOutput::Error { title, message } => {
+                            AppInput::ShowError { title, message }
+                        }
                     });
                 add_evidence_http_dlg.emit(AddEvidenceInput::Present(root.clone()));
                 self.latest_add_evidence_http_dlg = Some(add_evidence_http_dlg);
@@ -861,6 +865,9 @@ impl Component for AppModel {
                     .launch(self.get_package().unwrap())
                     .forward(sender.input_sender(), |msg| match msg {
                         AddEvidenceOutput::AddEvidence(ev) => AppInput::_AddEvidence(ev),
+                        AddEvidenceOutput::Error { title, message } => {
+                            AppInput::ShowError { title, message }
+                        }
                     });
                 add_evidence_image_dlg.emit(AddEvidenceInput::Present(root.clone()));
                 self.latest_add_evidence_image_dlg = Some(add_evidence_image_dlg);
@@ -881,6 +888,16 @@ impl Component for AppModel {
                         sender.input(AppInput::NavigateTo(self.open_case));
                     }
                 }
+            }
+            AppInput::ShowError { title, message } => {
+                let error_dlg = ErrorDialogModel::builder()
+                    .launch(ErrorDialogInit {
+                        title: Box::new(title),
+                        body: Box::new(message),
+                    })
+                    .forward(sender.input_sender(), |msg| match msg {});
+                error_dlg.emit(ErrorDialogInput::Present(root.clone()));
+                self.latest_error_dlg = Some(error_dlg);
             }
         }
         self.update_view(widgets, sender)

@@ -11,6 +11,8 @@ header-about = About { app-name }
 header-menu = Menu
 
 filetype-package = Evidence Package
+filetype-images = Images
+
 nothing-open = Nothing is Open
 nothing-open-package-description = Open or create a package from the menu.
 nothing-open-case-description = Select a case from the left panel to view and edit here.
@@ -57,3 +59,6 @@ add-evidence-text-label = Text Evidence
 add-evidence-http-req-label = HTTP Raw Request
 add-evidence-http-res-label = HTTP Raw Response
 add-evidence-image-label = Image Path
+add-evidence-image-caption-label = Image Caption
+add-evidence-image-failed = Failed to Add Image
+add-evidence-image-failed-message = Failed to add image to package: { $error }
