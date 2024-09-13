@@ -581,6 +581,7 @@ impl Component for AppModel {
             }
             AppInput::_NewFile => {
                 // Set default name, author, execution date and path.
+                sender.input(AppInput::NavigateTo(OpenCase::Nothing));
                 if let Err(e) = self.open_new() {
                     let error_dlg = ErrorDialogModel::builder()
                         .launch(ErrorDialogInit {
@@ -620,6 +621,7 @@ impl Component for AppModel {
                 );
             }
             AppInput::_OpenFile(path) => {
+                sender.input(AppInput::NavigateTo(OpenCase::Nothing));
                 if let Err(e) = self.open(path) {
                     let error_dlg = ErrorDialogModel::builder()
                         .launch(ErrorDialogInit {
@@ -666,7 +668,7 @@ impl Component for AppModel {
             }
             AppInput::CloseFile => {
                 // TODO Propose to save if needed
-                self.open_case = OpenCase::Nothing;
+                sender.input(AppInput::NavigateTo(OpenCase::Nothing));
                 self.close();
             }
             AppInput::OpenAboutDialog => {
