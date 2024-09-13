@@ -123,6 +123,8 @@ impl FactoryComponent for EvidenceFactoryModel {
                 ));
                 label.set_margin_all(8);
                 label.set_selectable(true);
+                label.set_halign(gtk::Align::Start);
+                label.set_valign(gtk::Align::Start);
                 scrolled.set_child(Some(&label));
 
                 frame.set_child(Some(&scrolled));
