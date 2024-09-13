@@ -621,7 +621,6 @@ impl Component for AppModel {
                 );
             }
             AppInput::_OpenFile(path) => {
-                sender.input(AppInput::NavigateTo(OpenCase::Nothing));
                 if let Err(e) = self.open(path) {
                     let error_dlg = ErrorDialogModel::builder()
                         .launch(ErrorDialogInit {
@@ -663,6 +662,7 @@ impl Component for AppModel {
             }
             AppInput::CloseFileIfOpenThen(then) => {
                 // TODO Propose to save if needed
+                sender.input(AppInput::NavigateTo(OpenCase::Nothing));
                 self.close();
                 sender.input(*then);
             }

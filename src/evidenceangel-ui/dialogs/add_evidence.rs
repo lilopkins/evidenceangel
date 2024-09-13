@@ -51,6 +51,7 @@ impl Component for AddTextEvidenceDialogModel {
                     #[name = "text_entry"]
                     adw::EntryRow {
                         set_title: &lang::lookup("add-evidence-text-label"),
+                        connect_entry_activated => AddEvidenceInput::_AddEvidence,
                     },
                 },
                 gtk::Separator {
@@ -119,13 +120,38 @@ impl Component for AddHttpEvidenceDialogModel {
                     set_title: &lang::lookup("add-evidence-title"),
                     set_margin_all: 16,
 
-                    #[name = "req_entry"]
-                    adw::EntryRow {
-                        set_title: &lang::lookup("add-evidence-http-req-label"),
-                    },
-                    #[name = "res_entry"]
-                    adw::EntryRow {
-                        set_title: &lang::lookup("add-evidence-http-res-label"),
+                    gtk::Box {
+                        set_spacing: 8,
+                        set_height_request: 300,
+                        set_width_request: 500,
+
+                        gtk::ScrolledWindow {
+                            set_hexpand: true,
+
+                            gtk::Frame {
+                                set_label: Some(&lang::lookup("add-evidence-http-req-label")),
+                                #[name = "req_entry"]
+                                gtk::TextView {
+                                    set_monospace: true,
+                                },
+                            },
+                        },
+                        gtk::ScrolledWindow {
+                            set_hexpand: true,
+
+                            gtk::Frame {
+                                set_label: Some(&lang::lookup("add-evidence-http-res-label")),
+                                #[name = "res_entry"]
+                                gtk::TextView {
+                                    set_monospace: true,
+                                },
+                            },
+                        },
+                        #[name = "caption_entry"]
+                        adw::EntryRow {
+                            set_title: &lang::lookup("add-evidence-http-caption-label"),
+                            connect_entry_activated => AddEvidenceInput::_AddEvidence,
+                        },
                     },
                 },
                 gtk::Separator {
@@ -163,10 +189,20 @@ impl Component for AddHttpEvidenceDialogModel {
                 root.present(Some(&window));
             }
             AddEvidenceInput::_AddEvidence => {
-                let req_content = widgets.req_entry.text().to_string();
-                let res_content = widgets.res_entry.text().to_string();
+                let req_buffer = widgets.req_entry.buffer();
+                let req_content = req_buffer
+                    .text(&req_buffer.start_iter(), &req_buffer.end_iter(), false)
+                    .to_string();
+                let res_buffer = widgets.res_entry.buffer();
+                let res_content = res_buffer
+                    .text(&res_buffer.start_iter(), &res_buffer.end_iter(), false)
+                    .to_string();
                 let content = format!("{req_content}\n\n\x1e{res_content}");
                 let ev = Evidence::new(EvidenceKind::Http, EvidenceData::Text { content });
+                let caption_text = widgets.caption_entry.text().to_string();
+                if !caption_text.trim().is_empty() {
+                    ev.set_caption(Some(caption_text.trim().to_string()));
+                }
                 let _ = sender.output(AddEvidenceOutput::AddEvidence(ev));
                 root.close();
             }
@@ -178,7 +214,6 @@ impl Component for AddHttpEvidenceDialogModel {
 
 pub struct AddImageEvidenceDialogModel {
     package: Arc<RwLock<EvidencePackage>>,
-    selected_file: Option<PathBuf>,
 }
 
 #[relm4::component(pub)]
@@ -201,14 +236,19 @@ impl Component for AddImageEvidenceDialogModel {
                     set_margin_all: 16,
 
                     #[name = "file_row"]
-                    adw::ActionRow {
+                    adw::EntryRow {
                         set_title: &lang::lookup("add-evidence-image-label"),
-                        set_activatable: true,
-                        connect_activated => AddEvidenceInput::_SelectFile,
+                        add_suffix = &gtk::Button {
+                            set_icon_name: relm4_icons::icon_names::FOLDER_OPEN_FILLED,
+                            add_css_class: "flat",
+                            connect_clicked => AddEvidenceInput::_SelectFile,
+                        },
+                        connect_entry_activated => AddEvidenceInput::_AddEvidence,
                     },
                     #[name = "caption_entry"]
                     adw::EntryRow {
                         set_title: &lang::lookup("add-evidence-image-caption-label"),
+                        connect_entry_activated => AddEvidenceInput::_AddEvidence,
                     },
                 },
                 gtk::Separator {
@@ -229,10 +269,7 @@ impl Component for AddImageEvidenceDialogModel {
         root: Self::Root,
         sender: ComponentSender<Self>,
     ) -> ComponentParts<Self> {
-        let model = AddImageEvidenceDialogModel {
-            package: init,
-            selected_file: None,
-        };
+        let model = AddImageEvidenceDialogModel { package: init };
         let widgets = view_output!();
         ComponentParts { model, widgets }
     }
@@ -249,12 +286,8 @@ impl Component for AddImageEvidenceDialogModel {
                 root.present(Some(&window));
             }
             AddEvidenceInput::_AddEvidence => {
-                if self.selected_file.is_none() {
-                    root.close();
-                    return;
-                }
+                let path = widgets.file_row.text().to_string();
                 // Read file data
-                let path = self.selected_file.clone().unwrap();
                 let read_data = move || {
                     use std::fs::File;
 
@@ -330,10 +363,7 @@ impl Component for AddImageEvidenceDialogModel {
                 );
             }
             AddEvidenceInput::_FileSelected(path) => {
-                widgets
-                    .file_row
-                    .set_subtitle(path.to_str().unwrap_or_default());
-                self.selected_file = Some(path);
+                widgets.file_row.set_text(path.to_str().unwrap_or_default());
             }
         }
         self.update_view(widgets, sender)

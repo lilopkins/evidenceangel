@@ -90,7 +90,10 @@ impl FactoryComponent for EvidenceFactoryModel {
         let main_widget = match self.evidence.kind() {
             EvidenceKind::Text => {
                 let ui_box = gtk::Box::default();
-                ui_box.append(&gtk::Label::new(Some(&self.get_data_as_string())));
+                let label = gtk::Label::new(Some(&self.get_data_as_string()));
+                label.set_ellipsize(gtk::pango::EllipsizeMode::End);
+                label.set_selectable(true);
+                ui_box.append(&label);
                 ui_box
             }
             EvidenceKind::Image => {
@@ -106,17 +109,24 @@ impl FactoryComponent for EvidenceFactoryModel {
             }
             EvidenceKind::Http => {
                 let ui_box = gtk::Box::default();
+                ui_box.set_spacing(8);
+
+                let data = self.get_data_as_string();
+                let data_parts = data
+                    .split("\x1e")
+                    .map(|s| s.to_string())
+                    .collect::<Vec<_>>();
+                let request = data_parts.get(0).map(|s| s.clone()).unwrap_or_default();
+                let response = data_parts.get(1).map(|s| s.clone()).unwrap_or_default();
 
                 let frame = gtk::Frame::default();
                 frame.set_height_request(EVIDENCE_HEIGHT_REQUEST);
-
                 let scrolled = gtk::ScrolledWindow::new();
                 scrolled.set_hexpand(true);
-
                 let label = gtk::Label::default();
                 label.set_markup(&format!(
                     "<tt>{}</tt>",
-                    self.get_data_as_string()
+                    request
                         .replace("&", "&amp;")
                         .replace("<", "&lt;")
                         .replace(">", "&gt;")
@@ -126,7 +136,26 @@ impl FactoryComponent for EvidenceFactoryModel {
                 label.set_halign(gtk::Align::Start);
                 label.set_valign(gtk::Align::Start);
                 scrolled.set_child(Some(&label));
+                frame.set_child(Some(&scrolled));
+                ui_box.append(&frame);
 
+                let frame = gtk::Frame::default();
+                frame.set_height_request(EVIDENCE_HEIGHT_REQUEST);
+                let scrolled = gtk::ScrolledWindow::new();
+                scrolled.set_hexpand(true);
+                let label = gtk::Label::default();
+                label.set_markup(&format!(
+                    "<tt>{}</tt>",
+                    response
+                        .replace("&", "&amp;")
+                        .replace("<", "&lt;")
+                        .replace(">", "&gt;")
+                ));
+                label.set_margin_all(8);
+                label.set_selectable(true);
+                label.set_halign(gtk::Align::Start);
+                label.set_valign(gtk::Align::Start);
+                scrolled.set_child(Some(&label));
                 frame.set_child(Some(&scrolled));
                 ui_box.append(&frame);
 
