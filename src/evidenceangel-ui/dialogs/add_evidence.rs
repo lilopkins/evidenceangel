@@ -147,12 +147,12 @@ impl Component for AddHttpEvidenceDialogModel {
                                 },
                             },
                         },
-                        #[name = "caption_entry"]
-                        adw::EntryRow {
-                            set_title: &lang::lookup("add-evidence-http-caption-label"),
-                            connect_entry_activated => AddEvidenceInput::_AddEvidence,
-                        },
                     },
+                },
+                #[name = "caption_entry"]
+                adw::EntryRow {
+                    set_title: &lang::lookup("add-evidence-http-caption-label"),
+                    connect_entry_activated => AddEvidenceInput::_AddEvidence,
                 },
                 gtk::Separator {
                     set_orientation: gtk::Orientation::Horizontal,
