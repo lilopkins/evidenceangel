@@ -104,12 +104,19 @@ impl EvidencePackage {
     /// Save the package to disk.
     pub fn save(&mut self) -> Result<()> {
         let mut clone = self.clone_serde();
+        {
+            // IMPORTANT!
+            // This needs to be here to load the archive in read mode first, so that media can be migrated over.
+            let _reader = self.zip.as_reader()?;
+        }
         let (mut maybe_old_archive, zip) = self.zip.as_writer()?;
         let options = SimpleFileOptions::default();
 
         // Create empty structure.
         zip.add_directory("media", options)?;
         zip.add_directory("testcases", options)?;
+
+        log::trace!("Current media cache: {:?}", self.media_data);
 
         let mut media_used = vec![];
 
@@ -152,6 +159,7 @@ impl EvidencePackage {
             zip.start_file(format!("media/{hash}"), options)?;
             if self.media_data.contains_key(hash) {
                 // If in memory, write from there
+                log::trace!("Writing from cache {hash}");
                 zip.write_all(self.media_data.get(hash).unwrap().data())?;
             } else {
                 // Otherwise pull from previous package.
@@ -172,6 +180,8 @@ impl EvidencePackage {
                             io::copy(&mut file, zip)?;
                         }
                     }
+                } else {
+                    unreachable!();
                 }
             }
         }
@@ -336,6 +346,7 @@ impl EvidencePackage {
             self.media.push(manifest_entry);
 
             // Insert data and return reference
+            log::trace!("New media cache entry: {hash}");
             self.media_data.insert(hash.clone(), media_file);
         }
 
@@ -374,6 +385,7 @@ impl EvidencePackage {
 
                 // Add to in-memory cache
                 let media: MediaFile = buf.into();
+                log::trace!("New media cache entry: {hash}");
                 self.media_data.insert(hash.clone(), media);
 
                 // Return cached version
