@@ -96,11 +96,20 @@ impl AppModel {
         test_case_data.clear();
         if let Some(pkg) = self.open_package.as_ref() {
             let pkg = pkg.read().unwrap();
+            let mut ordered_cases = vec![];
             for case in pkg.test_case_iter()? {
-                test_case_data.push_back(NavFactoryInit {
-                    id: *case.id(),
-                    name: case.metadata().title().clone(),
-                });
+                ordered_cases.push((
+                    case.metadata().execution_datetime(),
+                    NavFactoryInit {
+                        id: *case.id(),
+                        name: case.metadata().title().clone(),
+                    },
+                ));
+            }
+            // Sort
+            ordered_cases.sort_by(|(a, _), (b, _)| b.cmp(a));
+            for (_exdt, case) in ordered_cases {
+                test_case_data.push_back(case);
             }
         }
         Ok(())
@@ -127,6 +136,8 @@ pub enum AppInput {
     _SetPathThen(PathBuf, Box<AppInput>),
 
     #[allow(private_interfaces)]
+    /// NavigateTo ignores the index provided as part of OpenCase::Case and establishes
+    /// it automatically.
     NavigateTo(OpenCase),
     DeleteCase(Uuid),
     CreateCaseAndSelect,
@@ -715,7 +726,22 @@ impl Component for AppModel {
                         }
                         widgets.nav_metadata.set_has_frame(true);
                     }
-                    OpenCase::Case { index, id } => {
+                    OpenCase::Case { id, .. } => {
+                        // Determine own index
+                        let pkg = self.open_package.as_ref().unwrap();
+                        let pkg = pkg.read().unwrap();
+                        let mut ordered_cases = vec![];
+                        for case in pkg.test_case_iter().unwrap() {
+                            ordered_cases.push((case.metadata().execution_datetime(), *case.id()));
+                        }
+                        // Sort
+                        ordered_cases.sort_by(|(a, _), (b, _)| b.cmp(a));
+                        let index = ordered_cases
+                            .iter()
+                            .position(|(_dt, ocid)| *ocid == id)
+                            .unwrap();
+                        self.open_case = OpenCase::Case { index, id };
+
                         self.test_case_nav_factory
                             .send(index, NavFactoryInput::ShowAsSelected(true));
 
@@ -753,7 +779,6 @@ impl Component for AppModel {
                     return;
                 }
 
-                let mut index = usize::MAX;
                 let mut case_id = Uuid::default();
                 if let Some(pkg) = self.get_package() {
                     let mut pkg = pkg.write().unwrap();
@@ -763,28 +788,15 @@ impl Component for AppModel {
                     case_id = *case.id();
                 }
 
-                // Establish index
-                for (idx, c) in self
-                    .open_package
-                    .as_ref()
-                    .unwrap()
-                    .read()
-                    .unwrap()
-                    .test_case_iter()
-                    .unwrap()
-                    .enumerate()
-                {
-                    if c.id() == &case_id {
-                        index = idx;
-                    }
-                }
-                assert_ne!(index, usize::MAX);
-
                 // Add case to navigation
                 self.update_nav_menu().unwrap(); // doesn't fail
 
                 // Switch to case
-                sender.input(AppInput::NavigateTo(OpenCase::Case { index, id: case_id }));
+                sender.input(AppInput::NavigateTo(OpenCase::Case {
+                    // index will be calculated by NavigateTo
+                    index: 0,
+                    id: case_id,
+                }));
             }
             AppInput::SetMetadataTitle(new_title) => {
                 if let Some(pkg) = self.get_package() {
