@@ -116,8 +116,8 @@ impl FactoryComponent for EvidenceFactoryModel {
                     .split("\x1e")
                     .map(|s| s.to_string())
                     .collect::<Vec<_>>();
-                let request = data_parts.get(0).map(|s| s.clone()).unwrap_or_default();
-                let response = data_parts.get(1).map(|s| s.clone()).unwrap_or_default();
+                let request = data_parts.first().cloned().unwrap_or_default();
+                let response = data_parts.get(1).cloned().unwrap_or_default();
 
                 let frame = gtk::Frame::default();
                 frame.set_height_request(EVIDENCE_HEIGHT_REQUEST);
