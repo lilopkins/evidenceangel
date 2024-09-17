@@ -185,6 +185,12 @@ impl Component for AppModel {
 
                     adw::ToolbarView {
                         add_top_bar = &adw::HeaderBar {
+                            pack_start = &gtk::Button {
+                                add_css_class: "flat",
+                                set_icon_name: relm4_icons::icon_names::PLUS,
+                                set_tooltip: &lang::lookup("nav-create-case"),
+                                connect_clicked => AppInput::CreateCaseAndSelect,
+                            },
                             pack_end = &gtk::MenuButton {
                                 set_icon_name: relm4_icons::icon_names::MENU,
                                 set_tooltip: &lang::lookup("header-menu"),
@@ -219,21 +225,6 @@ impl Component for AppModel {
                                 test_case_list -> gtk::Box {
                                     set_orientation: gtk::Orientation::Vertical,
                                     set_spacing: 2,
-                                },
-
-                                gtk::Button {
-                                    add_css_class: "flat",
-                                    connect_clicked => AppInput::CreateCaseAndSelect,
-
-                                    gtk::Box {
-                                        set_spacing: 2,
-                                        set_halign: gtk::Align::Center,
-
-                                        gtk::Image::from_icon_name(relm4_icons::icon_names::PLUS),
-                                        gtk::Label {
-                                            set_label: &lang::lookup("nav-create-case"),
-                                        },
-                                    }
                                 },
                             }
                         }
@@ -296,154 +287,157 @@ impl Component for AppModel {
                             }
                         },
 
-                        gtk::Box {
-                            set_orientation: gtk::Orientation::Vertical,
-                            set_margin_all: 16,
+                        #[name = "toast_target"]
+                        adw::ToastOverlay {
+                            gtk::Box {
+                                set_orientation: gtk::Orientation::Vertical,
+                                set_margin_all: 16,
 
-                            adw::StatusPage {
-                                set_title: &lang::lookup("nothing-open"),
-                                #[watch]
-                                set_description: Some(&if model.open_package.is_some() {
-                                    lang::lookup("nothing-open-case-description")
-                                } else {
-                                    lang::lookup("nothing-open-package-description")
-                                }),
-                                set_icon_name: Some(relm4_icons::icon_names::LIGHTBULB),
-                                #[watch]
-                                set_visible: model.open_case == OpenCase::Nothing,
-                                set_vexpand: true,
-                            },
+                                adw::StatusPage {
+                                    set_title: &lang::lookup("nothing-open"),
+                                    #[watch]
+                                    set_description: Some(&if model.open_package.is_some() {
+                                        lang::lookup("nothing-open-case-description")
+                                    } else {
+                                        lang::lookup("nothing-open-package-description")
+                                    }),
+                                    set_icon_name: Some(relm4_icons::icon_names::LIGHTBULB),
+                                    #[watch]
+                                    set_visible: model.open_case == OpenCase::Nothing,
+                                    set_vexpand: true,
+                                },
 
-                            // Content
-                            match model.open_case {
-                                OpenCase::Nothing => gtk::Box,
-                                OpenCase::Metadata => gtk::Box {
-                                    set_orientation: gtk::Orientation::Vertical,
+                                // Content
+                                match model.open_case {
+                                    OpenCase::Nothing => gtk::Box,
+                                    OpenCase::Metadata => gtk::Box {
+                                        set_orientation: gtk::Orientation::Vertical,
 
-                                    // Generic Metadata
-                                    adw::PreferencesGroup {
-                                        set_title: &lang::lookup("metadata-group-title"),
+                                        // Generic Metadata
+                                        adw::PreferencesGroup {
+                                            set_title: &lang::lookup("metadata-group-title"),
 
-                                        #[name = "metadata_title"]
-                                        adw::EntryRow {
-                                            set_title: &lang::lookup("metadata-title"),
-                                            connect_changed[sender] => move |entry| {
-                                                sender.input(AppInput::SetMetadataTitle(entry.text().to_string()));
-                                            }
-                                        }
-                                    },
-
-                                    // Authors
-                                    #[local_ref]
-                                    authors_list -> adw::PreferencesGroup {
-                                        set_title: &lang::lookup("metadata-authors"),
-                                        set_margin_top: 16,
-                                        #[wrap(Some)]
-                                        set_header_suffix = &adw::Bin {
-                                            gtk::Button {
-                                                set_icon_name: relm4_icons::icon_names::PLUS,
-                                                add_css_class: "flat",
-
-                                                connect_clicked[sender] => move |_entry| {
-                                                    sender.input(AppInput::CreateAuthor);
+                                            #[name = "metadata_title"]
+                                            adw::EntryRow {
+                                                set_title: &lang::lookup("metadata-title"),
+                                                connect_changed[sender] => move |entry| {
+                                                    sender.input(AppInput::SetMetadataTitle(entry.text().to_string()));
                                                 }
                                             }
                                         },
-                                    }
-                                },
-                                OpenCase::Case { .. } => gtk::Box {
-                                    gtk::ScrolledWindow {
-                                        set_hscrollbar_policy: gtk::PolicyType::Never,
-                                        set_vexpand: true,
 
-                                        gtk::Box {
-                                            set_orientation: gtk::Orientation::Vertical,
+                                        // Authors
+                                        #[local_ref]
+                                        authors_list -> adw::PreferencesGroup {
+                                            set_title: &lang::lookup("metadata-authors"),
+                                            set_margin_top: 16,
+                                            #[wrap(Some)]
+                                            set_header_suffix = &adw::Bin {
+                                                gtk::Button {
+                                                    set_icon_name: relm4_icons::icon_names::PLUS,
+                                                    add_css_class: "flat",
 
-                                            adw::PreferencesGroup {
-                                                set_title: &lang::lookup("test-group-title"),
-
-                                                #[name = "test_title"]
-                                                adw::EntryRow {
-                                                    set_title: &lang::lookup("test-title"),
-                                                    connect_changed[sender] => move |entry| {
-                                                        sender.input(AppInput::SetTestCaseTitle(entry.text().to_string()));
+                                                    connect_clicked[sender] => move |_entry| {
+                                                        sender.input(AppInput::CreateAuthor);
                                                     }
-                                                },
-
-                                                #[name = "test_execution"]
-                                                adw::ActionRow {
-                                                    set_title: &lang::lookup("test-execution"),
                                                 }
                                             },
-
-                                            // Test Case Screen
-                                            #[local_ref]
-                                            evidence_list -> gtk::Box {
-                                                set_orientation: gtk::Orientation::Vertical,
-                                                set_spacing: 8,
-                                                set_margin_top: 8,
-                                            },
+                                        }
+                                    },
+                                    OpenCase::Case { .. } => gtk::Box {
+                                        gtk::ScrolledWindow {
+                                            set_hscrollbar_policy: gtk::PolicyType::Never,
+                                            set_vexpand: true,
 
                                             gtk::Box {
-                                                set_orientation: gtk::Orientation::Horizontal,
-                                                set_margin_top: 8,
-                                                set_spacing: 4,
-                                                set_halign: gtk::Align::Center,
+                                                set_orientation: gtk::Orientation::Vertical,
 
-                                                gtk::Button {
-                                                    connect_clicked => AppInput::AddTextEvidence,
+                                                adw::PreferencesGroup {
+                                                    set_title: &lang::lookup("test-group-title"),
 
-                                                    gtk::Box {
-                                                        set_orientation: gtk::Orientation::Horizontal,
+                                                    #[name = "test_title"]
+                                                    adw::EntryRow {
+                                                        set_title: &lang::lookup("test-title"),
+                                                        connect_changed[sender] => move |entry| {
+                                                            sender.input(AppInput::SetTestCaseTitle(entry.text().to_string()));
+                                                        }
+                                                    },
 
-                                                        gtk::Image::from_icon_name(relm4_icons::icon_names::PLUS),
-                                                        gtk::Label {
-                                                            set_label: "Text",
-                                                        },
+                                                    #[name = "test_execution"]
+                                                    adw::ActionRow {
+                                                        set_title: &lang::lookup("test-execution"),
                                                     }
                                                 },
-                                                gtk::Button {
-                                                    connect_clicked => AppInput::AddHttpEvidence,
 
-                                                    gtk::Box {
-                                                        set_orientation: gtk::Orientation::Horizontal,
-
-                                                        gtk::Image::from_icon_name(relm4_icons::icon_names::PLUS),
-                                                        gtk::Label {
-                                                            set_label: "HTTP Request",
-                                                        },
-                                                    }
+                                                // Test Case Screen
+                                                #[local_ref]
+                                                evidence_list -> gtk::Box {
+                                                    set_orientation: gtk::Orientation::Vertical,
+                                                    set_spacing: 8,
+                                                    set_margin_top: 8,
                                                 },
-                                                gtk::Button {
-                                                    connect_clicked => AppInput::AddImageEvidence,
 
-                                                    gtk::Box {
-                                                        set_orientation: gtk::Orientation::Horizontal,
+                                                gtk::Box {
+                                                    set_orientation: gtk::Orientation::Horizontal,
+                                                    set_margin_top: 8,
+                                                    set_spacing: 4,
+                                                    set_halign: gtk::Align::Center,
 
-                                                        gtk::Image::from_icon_name(relm4_icons::icon_names::PLUS),
-                                                        gtk::Label {
-                                                            set_label: "Image",
-                                                        },
-                                                    }
+                                                    gtk::Button {
+                                                        connect_clicked => AppInput::AddTextEvidence,
+
+                                                        gtk::Box {
+                                                            set_orientation: gtk::Orientation::Horizontal,
+
+                                                            gtk::Image::from_icon_name(relm4_icons::icon_names::PLUS),
+                                                            gtk::Label {
+                                                                set_label: "Text",
+                                                            },
+                                                        }
+                                                    },
+                                                    gtk::Button {
+                                                        connect_clicked => AppInput::AddHttpEvidence,
+
+                                                        gtk::Box {
+                                                            set_orientation: gtk::Orientation::Horizontal,
+
+                                                            gtk::Image::from_icon_name(relm4_icons::icon_names::PLUS),
+                                                            gtk::Label {
+                                                                set_label: "HTTP Request",
+                                                            },
+                                                        }
+                                                    },
+                                                    gtk::Button {
+                                                        connect_clicked => AppInput::AddImageEvidence,
+
+                                                        gtk::Box {
+                                                            set_orientation: gtk::Orientation::Horizontal,
+
+                                                            gtk::Image::from_icon_name(relm4_icons::icon_names::PLUS),
+                                                            gtk::Label {
+                                                                set_label: "Image",
+                                                            },
+                                                        }
+                                                    },
+                                                    /* gtk::Button {
+                                                        connect_clicked => AppInput::AddFileEvidence,
+
+                                                        gtk::Box {
+                                                            set_orientation: gtk::Orientation::Horizontal,
+
+                                                            gtk::Image::from_icon_name(relm4_icons::icon_names::PLUS),
+                                                            gtk::Label {
+                                                                set_label: "File",
+                                                            },
+                                                        }
+                                                    }, */
                                                 },
-                                                /* gtk::Button {
-                                                    connect_clicked => AppInput::AddFileEvidence,
-
-                                                    gtk::Box {
-                                                        set_orientation: gtk::Orientation::Horizontal,
-
-                                                        gtk::Image::from_icon_name(relm4_icons::icon_names::PLUS),
-                                                        gtk::Label {
-                                                            set_label: "File",
-                                                        },
-                                                    }
-                                                }, */
-                                            },
+                                            }
                                         }
-                                    }
-                                },
-                            }
-                        },
+                                    },
+                                }
+                            },
+                        }
                     },
                 },
             },
@@ -690,6 +684,10 @@ impl Component for AppModel {
                             .forward(sender.input_sender(), |msg| match msg {});
                         error_dlg.emit(ErrorDialogInput::Present(root.clone()));
                         self.latest_error_dlg = Some(error_dlg);
+                    } else {
+                        let toast = adw::Toast::new(&lang::lookup("toast-saved"));
+                        toast.set_timeout(3);
+                        widgets.toast_target.add_toast(toast);
                     }
                 }
             }
@@ -777,9 +775,12 @@ impl Component for AppModel {
                             if let Some(tc) = pkg.read().unwrap().test_case(id).ok().flatten() {
                                 // Update test case metadata on screen
                                 widgets.test_title.set_text(tc.metadata().title());
-                                widgets
-                                    .test_execution
-                                    .set_subtitle(&tc.metadata().execution_datetime().to_rfc3339());
+                                widgets.test_execution.set_subtitle(&format!(
+                                    "{}",
+                                    tc.metadata()
+                                        .execution_datetime()
+                                        .format(&lang::lookup("date-time"))
+                                ));
 
                                 for ev in tc.evidence() {
                                     new_evidence.push(EvidenceFactoryInit {

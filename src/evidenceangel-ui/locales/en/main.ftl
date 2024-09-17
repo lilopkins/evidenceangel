@@ -2,6 +2,7 @@ app-name = EvidenceAngel
 ok = Ok
 invalid-data = Invalid data
 select = Select
+date-time = %d/%m/%Y %H:%M:%S
 
 header-new = New
 header-open = Open
@@ -19,6 +20,8 @@ filetype-images = Images
 nothing-open = Nothing is Open
 nothing-open-package-description = Open or create a package from the menu.
 nothing-open-case-description = Select a case from the left panel to view and edit here.
+
+toast-saved = Package saved.
 
 error-failed-save-title = Failed to Save
 error-failed-save-body = Failed to save the evidence package: { $error }
