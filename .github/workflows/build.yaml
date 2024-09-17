@@ -1,0 +1,313 @@
+name: Build and Publish
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  CARGO_NAME: "relm-test"
+
+jobs:
+  create-release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    permissions: write-all
+
+    outputs:
+      CARGO_PKG_VERSION: ${{ steps.version.outputs.CARGO_PKG_VERSION }}
+      CARGO_PKG_PRERELEASE: ${{ steps.version.outputs.CARGO_PKG_PRERELEASE }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Determine Cargo version
+        id: version
+        run: |
+          export CARGO_PKG_VERSION=$(awk -F '["=]' '/^\[(workspace.)?package\]/{p=1} p && /^version[[:space:]]*=/ {gsub(/"/, "", $3); print $3; p=0}' Cargo.toml)
+          export CARGO_PKG_PRERELEASE=$([[ $CARGO_PKG_VERSION =~ -[0-9A-Za-z]+ ]] && echo "true" || echo "false")
+          echo "CARGO_PKG_VERSION=${CARGO_PKG_VERSION}" >> $GITHUB_OUTPUT
+          echo "CARGO_PKG_PRERELEASE=${CARGO_PKG_PRERELEASE}" >> $GITHUB_OUTPUT
+      - name: Create Tag and Release
+        uses: actions/create-release@latest
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.version.outputs.CARGO_PKG_VERSION }}
+          release_name: v${{ steps.version.outputs.CARGO_PKG_VERSION }}
+          prerelease: ${{ steps.version.outputs.CARGO_PKG_PRERELEASE }}
+
+  build-cli:
+    name: ${{ matrix.platform.os_name }} with rust ${{ matrix.toolchain }}
+    runs-on: ${{ matrix.platform.os }}
+    needs:
+      - create-release
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - os_name: Linux-aarch64
+            os: ubuntu-20.04
+            target: aarch64-unknown-linux-musl
+            bin: evidenceangel-cli-linux-arm64
+          - os_name: Linux-x86_64
+            os: ubuntu-20.04
+            target: x86_64-unknown-linux-gnu
+            bin: evidenceangel-cli-linux-amd64
+          - os_name: Windows-x86_64
+            os: windows-latest
+            target: x86_64-pc-windows-msvc
+            bin: evidenceangel-cli-amd64.exe
+          - os_name: macOS-x86_64
+            os: macOS-latest
+            target: x86_64-apple-darwin
+            bin: evidenceangel-cli-darwin-amd64
+          - os_name: macOS-aarch64
+            os: macOS-latest
+            target: aarch64-apple-darwin
+            bin: evidenceangel-cli-darwin-arm64
+        toolchain:
+          - stable
+    steps:
+      - uses: actions/checkout@v3
+      - name: Build binary
+        uses: houseabsolute/actions-rust-cross@v0
+        with:
+          command: "build"
+          target: ${{ matrix.platform.target }}
+          toolchain: ${{ matrix.toolchain }}
+          args: "--features cli --bin evidenceangel-cli --locked --release"
+          strip: true
+      - name: Rename binary (linux and macos)
+        run: mv target/${{ matrix.platform.target }}/release/evidenceangel-cli target/${{ matrix.platform.target }}/release/${{ matrix.platform.bin }}
+        if: matrix.platform.os_name != 'Windows-x86_64'
+      - name: Rename binary (windows)
+        run: mv target/${{ matrix.platform.target }}/release/evidenceangel-cli.exe target/${{ matrix.platform.target }}/release/${{ matrix.platform.bin }}
+        if: matrix.platform.os_name == 'Windows-x86_64'
+      - name: Generate SHA-256
+        run: shasum -a 256 target/${{ matrix.platform.target }}/release/${{ matrix.platform.bin }} | cut -d ' ' -f 1 > target/${{ matrix.platform.target }}/release/${{ matrix.platform.bin }}.sha256
+      - name: Release binary and SHA-256 checksum to GitHub
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ needs.create-release.outputs.CARGO_PKG_VERSION }}
+          prerelease: ${{ needs.create-release.outputs.CARGO_PKG_PRERELEASE }}
+          files: |
+            target/${{ matrix.platform.target }}/release/${{ matrix.platform.bin }}
+            target/${{ matrix.platform.target }}/release/${{ matrix.platform.bin }}.sha256
+
+  build-linux:
+    name: Build and Publish (Linux)
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/gtk-rs/gtk4-rs/gtk4:latest
+    permissions: write-all
+    needs: create-release
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Restore Cargo cache
+        uses: actions/cache/restore@v3
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build
+        run: |
+          cargo build --release
+          strip target/release/${{ env.CARGO_NAME }}
+          mv target/release/${{ env.CARGO_NAME }} target/release/${{ env.CARGO_NAME }}-linux-x86_64
+
+      - name: Save Cargo cache
+        uses: actions/cache/save@v3
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: target/release/${{ env.CARGO_NAME }}-linux-x86_64
+          tag_name: ${{ needs.create-release.outputs.CARGO_PKG_VERSION }}
+          prerelease: ${{ needs.create-release.outputs.CARGO_PKG_PRERELEASE }}
+
+  build-windows:
+    name: Build and Publish (Windows)
+    runs-on: windows-latest
+    permissions: write-all
+    needs: create-release
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Restore GTK4
+        id: cache-gtk4
+        uses: actions/cache/restore@v3
+        with:
+          key: windows-gtk4
+          path: |
+            C:\gtk-build
+
+      - name: Move git binary
+        run: |
+          Move-Item "C:\Program Files\Git\usr\bin" "C:\Program Files\Git\usr\notbin"
+          Move-Item "C:\Program Files\Git\bin" "C:\Program Files\Git\notbin"
+
+      - name: Build GTK4
+        continue-on-error: true
+        id: build-gtk4-fallible
+        run: |
+          python -m pip install --user pipx
+          python -m pipx ensurepath
+          pipx install gvsbuild
+          gvsbuild build gtk4 libadwaita librsvg --ninja-opts -j2
+
+      - name: Build GTK4 with known good gvsbuild (${{ vars.GVSBUILD_KNOWN_GOOD_VERSION }})
+        if: steps.build-gtk4-fallible.outcome == 'failure'
+        run: |
+          python -m pip install --user pipx
+          python -m pipx ensurepath
+          pipx install --force gvsbuild==${{ vars.GVSBUILD_KNOWN_GOOD_VERSION }}
+          gvsbuild build gtk4 libadwaita librsvg --ninja-opts -j2
+
+      - name: Restore git binary
+        run: |
+          Move-Item "C:\Program Files\Git\usr\notbin" "C:\Program Files\Git\usr\bin"
+          Move-Item "C:\Program Files\Git\notbin" "C:\Program Files\Git\bin"
+
+      - name: Save GTK4
+        uses: actions/cache/save@v3
+        with:
+          key: ${{ steps.cache-gtk4.outputs.cache-primary-key }}
+          path: |
+            C:\gtk-build
+
+      - name: Tree GTK release
+        run: tree C:\gtk-build\gtk\x64\
+
+      - name: Restore Cargo cache
+        uses: actions/cache/restore@v3
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build
+        shell: pwsh
+        run: |
+          $env:PATH="C:\gtk-build\gtk\x64\release\bin;" + $env:PATH
+          $env:LIB="C:\gtk-build\gtk\x64\release\lib;" + $env:LIB
+          $env:INCLUDE="C:\gtk-build\gtk\x64\release\include;C:\gtk-build\gtk\x64\release\include\cairo;C:\gtk-build\gtk\x64\release\include\glib-2.0;C:\gtk-build\gtk\x64\release\include\gobject-introspection-1.0;C:\gtk-build\gtk\x64\release\lib\glib-2.0\include;" + $env:INCLUDE
+          $env:PKG_CONFIG_PATH="C:\gtk-build\gtk\x64\release\lib\pkgconfig;" + $env:PKG_CONFIG_PATH
+
+          cargo build --release
+          mkdir -p bundle
+          mv target/release/${{ env.CARGO_NAME }}.exe bundle/${{ env.CARGO_NAME }}-windows-x86_64.exe
+          cp C:\gtk-build\gtk\x64\release\bin\*.dll bundle/
+
+          # GSchemas for FileChooser
+          mkdir -p bundle/share/glib-2.0/schemas
+          copy C:\gtk-build\gtk\x64\release\share\glib-2.0\schemas\gschemas.compiled bundle/share/glib-2.0/schemas/
+
+          # SVG loader for icons
+          mkdir -p bundle/lib/gdk-pixbuf-2.0/2.10.0/loaders
+          copy C:\gtk-build\gtk\x64\release\lib\gdk-pixbuf-2.0\2.10.0\loaders.cache bundle/lib/gdk-pixbuf-2.0/2.10.0/
+          copy C:\gtk-build\gtk\x64\release\lib\gdk-pixbuf-2.0\2.10.0\loaders\libpixbufloader-svg.dll bundle/lib/gdk-pixbuf-2.0/2.10.0/loaders/
+
+      - name: Save Cargo cache
+        uses: actions/cache/save@v3
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Archive release
+        uses: thedoctor0/zip-release@0.7.1
+        with:
+          type: zip
+          path: bundle
+          filename: ${{ env.CARGO_NAME }}-windows-x86_64.zip
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: ${{ env.CARGO_NAME }}-windows-x86_64.zip
+          tag_name: ${{ needs.create-release.outputs.CARGO_PKG_VERSION }}
+          prerelease: ${{ needs.create-release.outputs.CARGO_PKG_PRERELEASE }}
+
+  build-mac:
+    name: Build and Publish (Mac)
+    runs-on: macos-latest
+    permissions: write-all
+    needs: create-release
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Restore Cargo cache
+        uses: actions/cache/restore@v3
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install dependencies
+        run: brew install gtk4 libadwaita
+
+      - name: Build
+        run: |
+          cargo build --release
+          strip target/release/${{ env.CARGO_NAME }}
+          mv target/release/${{ env.CARGO_NAME }} target/release/${{ env.CARGO_NAME }}-macos-x86_64
+
+      - name: Save Cargo cache
+        uses: actions/cache/save@v3
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: target/release/${{ env.CARGO_NAME }}-macos-x86_64
+          tag_name: ${{ needs.create-release.outputs.CARGO_PKG_VERSION }}
+          prerelease: ${{ needs.create-release.outputs.CARGO_PKG_PRERELEASE }}
