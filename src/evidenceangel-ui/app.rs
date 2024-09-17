@@ -5,7 +5,10 @@ use std::{
 };
 
 use adw::prelude::*;
-use evidenceangel::{Author, Evidence, EvidencePackage};
+use evidenceangel::{
+    exporters::{excel::ExcelExporter, html::HtmlExporter, Exporter},
+    Author, Evidence, EvidencePackage,
+};
 #[allow(unused)]
 use gtk::prelude::*;
 use relm4::{
@@ -20,14 +23,7 @@ use uuid::Uuid;
 
 use crate::{
     author_factory::{AuthorFactoryModel, AuthorFactoryOutput},
-    dialogs::{
-        add_evidence::{
-            AddEvidenceInput, AddEvidenceOutput, AddHttpEvidenceDialogModel,
-            AddImageEvidenceDialogModel, AddTextEvidenceDialogModel,
-        },
-        error::{ErrorDialogInit, ErrorDialogInput, ErrorDialogModel},
-        new_author::{NewAuthorDialogModel, NewAuthorInput, NewAuthorOutput},
-    },
+    dialogs::{add_evidence::*, error::*, export::*, new_author::*},
     evidence_factory::{EvidenceFactoryInit, EvidenceFactoryModel},
     filter, lang,
     nav_factory::{NavFactoryInit, NavFactoryInput, NavFactoryModel, NavFactoryOutput},
@@ -40,6 +36,8 @@ relm4::new_stateless_action!(SaveAction, MenuActionGroup, "save");
 relm4::new_stateless_action!(SaveAsAction, MenuActionGroup, "save-as");
 relm4::new_stateless_action!(CloseAction, MenuActionGroup, "close");
 relm4::new_stateless_action!(AboutAction, MenuActionGroup, "about");
+relm4::new_stateless_action!(ExportPackageAction, MenuActionGroup, "export-package");
+relm4::new_stateless_action!(ExportTestCaseAction, MenuActionGroup, "export-test-case");
 
 pub struct AppModel {
     open_package: Option<Arc<RwLock<EvidencePackage>>>,
@@ -51,6 +49,7 @@ pub struct AppModel {
     latest_add_evidence_http_dlg: Option<Controller<AddHttpEvidenceDialogModel>>,
     latest_add_evidence_image_dlg: Option<Controller<AddImageEvidenceDialogModel>>,
     latest_error_dlg: Option<Controller<ErrorDialogModel>>,
+    latest_export_dlg: Option<Controller<ExportDialogModel>>,
 
     test_case_nav_factory: FactoryVecDeque<NavFactoryModel>,
     authors_factory: FactoryVecDeque<AuthorFactoryModel>,
@@ -158,6 +157,11 @@ pub enum AppInput {
         title: String,
         message: String,
     },
+
+    ExportPackage,
+    _ExportPackage(String, PathBuf),
+    ExportTestCase,
+    _ExportTestCase(String, PathBuf),
 }
 
 #[relm4::component(pub)]
@@ -454,8 +458,12 @@ impl Component for AppModel {
             &lang::lookup("header-save-as") => SaveAsAction,
             &lang::lookup("header-close") => CloseAction,
             section! {
+                &lang::lookup("header-export-package") => ExportPackageAction,
+                &lang::lookup("header-export-test-case") => ExportTestCaseAction,
+            },
+            section! {
                 &lang::lookup("header-about") => AboutAction,
-            }
+            },
         }
     }
 
@@ -474,6 +482,7 @@ impl Component for AppModel {
             latest_add_evidence_text_dlg: None,
             latest_add_evidence_http_dlg: None,
             latest_add_evidence_image_dlg: None,
+            latest_export_dlg: None,
 
             test_case_nav_factory: FactoryVecDeque::builder().launch_default().forward(
                 sender.input_sender(),
@@ -532,6 +541,22 @@ impl Component for AppModel {
         relm4::main_application().set_accelerators_for_action::<CloseAction>(&["<primary>W"]);
 
         let sender_c = sender.clone();
+        let export_package_action: RelmAction<ExportPackageAction> =
+            RelmAction::new_stateless(move |_| {
+                sender_c.input(AppInput::ExportPackage);
+            });
+        relm4::main_application()
+            .set_accelerators_for_action::<ExportPackageAction>(&["<primary>E"]);
+
+        let sender_c = sender.clone();
+        let export_test_case_action: RelmAction<ExportTestCaseAction> =
+            RelmAction::new_stateless(move |_| {
+                sender_c.input(AppInput::ExportTestCase);
+            });
+        relm4::main_application()
+            .set_accelerators_for_action::<ExportTestCaseAction>(&["<primary><shift>E"]);
+
+        let sender_c = sender.clone();
         let about_action: RelmAction<AboutAction> = RelmAction::new_stateless(move |_| {
             sender_c.input(AppInput::OpenAboutDialog);
         });
@@ -544,6 +569,8 @@ impl Component for AppModel {
         group.add_action(save_as_action);
         group.add_action(close_action);
         group.add_action(about_action);
+        group.add_action(export_package_action);
+        group.add_action(export_test_case_action);
         group.register_for_widget(&root);
 
         if let Some(file) = init {
@@ -940,6 +967,125 @@ impl Component for AppModel {
                     .forward(sender.input_sender(), |msg| match msg {});
                 error_dlg.emit(ErrorDialogInput::Present(root.clone()));
                 self.latest_error_dlg = Some(error_dlg);
+            }
+            AppInput::ExportPackage => {
+                let export_dlg = ExportDialogModel::builder()
+                    .launch(ExportDialogInit {
+                        test_case_name: None,
+                    })
+                    .forward(sender.input_sender(), |msg| match msg {
+                        ExportOutput::Export { format, path } => {
+                            AppInput::_ExportPackage(format, path)
+                        }
+                    });
+                export_dlg.emit(ExportInput::Present(root.clone()));
+                self.latest_export_dlg = Some(export_dlg);
+            }
+            AppInput::ExportTestCase => {
+                let export_dlg = ExportDialogModel::builder()
+                    .launch(ExportDialogInit {
+                        test_case_name: None,
+                    })
+                    .forward(sender.input_sender(), |msg| match msg {
+                        ExportOutput::Export { format, path } => {
+                            AppInput::_ExportTestCase(format, path)
+                        }
+                    });
+                export_dlg.emit(ExportInput::Present(root.clone()));
+                self.latest_export_dlg = Some(export_dlg);
+            }
+            AppInput::_ExportPackage(format, path) => {
+                if let Some(pkg) = &self.open_package {
+                    let mut pkg = pkg.write().unwrap();
+                    if let Err(e) = match format.as_str() {
+                        "html" => HtmlExporter.export_package(&mut pkg, path),
+                        "excel" => ExcelExporter.export_package(&mut pkg, path),
+                        _ => {
+                            log::error!("Invalid format specified.");
+                            Ok(())
+                        }
+                    } {
+                        // Show error dialog
+                        let error_dlg = ErrorDialogModel::builder()
+                            .launch(ErrorDialogInit {
+                                title: Box::new(lang::lookup("export-error-failed-title")),
+                                body: Box::new(lang::lookup_with_args(
+                                    "export-error-failed-message",
+                                    {
+                                        let mut map = HashMap::new();
+                                        map.insert("error", e.to_string().into());
+                                        map
+                                    },
+                                )),
+                            })
+                            .forward(sender.input_sender(), |msg| match msg {});
+                        error_dlg.emit(ErrorDialogInput::Present(root.clone()));
+                        self.latest_error_dlg = Some(error_dlg);
+                    }
+                } else {
+                    // Show error dialog
+                    let error_dlg = ErrorDialogModel::builder()
+                        .launch(ErrorDialogInit {
+                            title: Box::new(lang::lookup("export-error-nothing-open-title")),
+                            body: Box::new(lang::lookup("export-error-nothing-open-message")),
+                        })
+                        .forward(sender.input_sender(), |msg| match msg {});
+                    error_dlg.emit(ErrorDialogInput::Present(root.clone()));
+                    self.latest_error_dlg = Some(error_dlg);
+                }
+            }
+            AppInput::_ExportTestCase(format, path) => {
+                if let Some(pkg) = &self.open_package {
+                    let mut pkg = pkg.write().unwrap();
+
+                    if let OpenCase::Case { id, .. } = &self.open_case {
+                        if let Err(e) = match format.as_str() {
+                            "html" => HtmlExporter.export_case(&mut pkg, *id, path),
+                            "excel" => ExcelExporter.export_case(&mut pkg, *id, path),
+                            _ => {
+                                log::error!("Invalid format specified.");
+                                Ok(())
+                            }
+                        } {
+                            // Show error dialog
+                            let error_dlg = ErrorDialogModel::builder()
+                                .launch(ErrorDialogInit {
+                                    title: Box::new(lang::lookup("export-error-failed-title")),
+                                    body: Box::new(lang::lookup_with_args(
+                                        "export-error-failed-message",
+                                        {
+                                            let mut map = HashMap::new();
+                                            map.insert("error", e.to_string().into());
+                                            map
+                                        },
+                                    )),
+                                })
+                                .forward(sender.input_sender(), |msg| match msg {});
+                            error_dlg.emit(ErrorDialogInput::Present(root.clone()));
+                            self.latest_error_dlg = Some(error_dlg);
+                        }
+                    } else {
+                        // Show error dialog
+                        let error_dlg = ErrorDialogModel::builder()
+                            .launch(ErrorDialogInit {
+                                title: Box::new(lang::lookup("export-error-nothing-open-title")),
+                                body: Box::new(lang::lookup("export-error-nothing-open-message")),
+                            })
+                            .forward(sender.input_sender(), |msg| match msg {});
+                        error_dlg.emit(ErrorDialogInput::Present(root.clone()));
+                        self.latest_error_dlg = Some(error_dlg);
+                    }
+                } else {
+                    // Show error dialog
+                    let error_dlg = ErrorDialogModel::builder()
+                        .launch(ErrorDialogInit {
+                            title: Box::new(lang::lookup("export-error-nothing-open-title")),
+                            body: Box::new(lang::lookup("export-error-nothing-open-message")),
+                        })
+                        .forward(sender.input_sender(), |msg| match msg {});
+                    error_dlg.emit(ErrorDialogInput::Present(root.clone()));
+                    self.latest_error_dlg = Some(error_dlg);
+                }
             }
         }
         self.update_view(widgets, sender)

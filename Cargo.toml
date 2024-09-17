@@ -36,6 +36,8 @@ ui = [
     "dep:relm4",
     "dep:relm4-icons",
     "dep:sys-locale",
+    "exporter-html",
+    "exporter-excel",
 ]
 
 [dependencies]

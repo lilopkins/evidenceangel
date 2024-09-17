@@ -1,6 +1,7 @@
 app-name = EvidenceAngel
 ok = Ok
 invalid-data = Invalid data
+select = Select
 
 header-new = New
 header-open = Open
@@ -9,6 +10,8 @@ header-save-as = Save as...
 header-close = Close
 header-about = About { app-name }
 header-menu = Menu
+header-export-package = Export Package...
+header-export-test-case = Export Test Case...
 
 filetype-package = Evidence Package
 filetype-images = Images
@@ -63,3 +66,14 @@ add-evidence-image-label = Image Path
 add-evidence-image-caption-label = Image Caption (optional)
 add-evidence-image-failed = Failed to Add Image
 add-evidence-image-failed-message = Failed to add image to package: { $error }
+
+export-title = Export
+export-target-label = Exporting
+export-target-package = Entire Package
+export-file-label = Export to...
+export-format-label = Export Format
+export-submit = Export
+export-error-nothing-open-title = Nothing Open to Export
+export-error-nothing-open-message = Nothing is open to export.
+export-error-failed-title = Failed to Export
+export-error-failed-message = Failed to export: { $error }
