@@ -40,6 +40,7 @@ jobs:
   build-cli:
     name: ${{ matrix.platform.os_name }} with rust ${{ matrix.toolchain }}
     runs-on: ${{ matrix.platform.os }}
+    permissions: write-all
     needs:
       - create-release
     strategy:
