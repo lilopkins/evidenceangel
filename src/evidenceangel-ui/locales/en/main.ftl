@@ -21,6 +21,8 @@ nothing-open = Nothing is Open
 nothing-open-package-description = Open or create a package from the menu.
 nothing-open-case-description = Select a case from the left panel to view and edit here.
 
+toast-saved = Package saved.
+
 error-failed-save-title = Failed to Save
 error-failed-save-body = Failed to save the evidence package: { $error }
 error-failed-open-title = Failed to Open
