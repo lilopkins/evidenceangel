@@ -2,6 +2,7 @@ app-name = EvidenceAngel
 ok = Ok
 invalid-data = Invalid data
 select = Select
+date-time = %d/%m/%Y %H:%M:%S
 
 header-new = New
 header-open = Open

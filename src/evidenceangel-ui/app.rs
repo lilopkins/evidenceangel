@@ -768,9 +768,12 @@ impl Component for AppModel {
                             if let Some(tc) = pkg.read().unwrap().test_case(id).ok().flatten() {
                                 // Update test case metadata on screen
                                 widgets.test_title.set_text(tc.metadata().title());
-                                widgets
-                                    .test_execution
-                                    .set_subtitle(&tc.metadata().execution_datetime().to_rfc3339());
+                                widgets.test_execution.set_subtitle(&format!(
+                                    "{}",
+                                    tc.metadata()
+                                        .execution_datetime()
+                                        .format(&lang::lookup("date-time"))
+                                ));
 
                                 for ev in tc.evidence() {
                                     new_evidence.push(EvidenceFactoryInit {
