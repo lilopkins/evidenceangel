@@ -29,6 +29,7 @@ exporter-excel = ["dep:rust_xlsxwriter"]
 exporter-html = ["dep:domrs"]
 ui = [
     "dep:clap",
+    "dep:fern",
     "dep:fluent",
     "dep:fluent-templates",
     "dep:once_cell",
@@ -39,6 +40,7 @@ ui = [
     "exporter-html",
     "exporter-excel",
 ]
+windows-keep-console-window = []
 
 [dependencies]
 base64 = "0.22.1"
@@ -46,6 +48,7 @@ chrono = { version = "0.4.38", features = ["serde"] }
 clap = { version = "4.5.4", features = ["derive"], optional = true }
 clap_complete = { version = "4.5.2", optional = true }
 domrs = { version = "0.0.16", optional = true }
+fern = { version = "0.6.2", optional = true }
 fluent = { version = "0.16.1", optional = true }
 fluent-templates = { version = "0.10.1", optional = true }
 getset = "0.1.2"

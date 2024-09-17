@@ -1,3 +1,8 @@
+#![cfg_attr(
+    all(not(debug_assertions), not(feature = "windows-keep-console-window")),
+    windows_subsystem = "windows"
+)]
+
 use std::path::PathBuf;
 
 use clap::Parser;
@@ -28,7 +33,22 @@ struct Args {
 }
 
 fn main() {
-    pretty_env_logger::init();
+    fern::Dispatch::new()
+        .format(|out, message, record| {
+            out.finish(format_args!(
+                "[{} {} {}] {}",
+                chrono::Local::now(),
+                record.level(),
+                record.target(),
+                message
+            ))
+        })
+        .level(log::LevelFilter::Info)
+        .level_for("evidenceangel", log::LevelFilter::Debug)
+        .chain(std::io::stdout())
+        .chain(fern::log_file("evidenceangel.log").expect("Couldn't open log file."))
+        .apply()
+        .expect("Couldn't start logger!");
 
     let cli = Args::parse();
 

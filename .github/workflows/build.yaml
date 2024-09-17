@@ -223,9 +223,11 @@ jobs:
           $env:INCLUDE="C:\gtk-build\gtk\x64\release\include;C:\gtk-build\gtk\x64\release\include\cairo;C:\gtk-build\gtk\x64\release\include\glib-2.0;C:\gtk-build\gtk\x64\release\include\gobject-introspection-1.0;C:\gtk-build\gtk\x64\release\lib\glib-2.0\include;" + $env:INCLUDE
           $env:PKG_CONFIG_PATH="C:\gtk-build\gtk\x64\release\lib\pkgconfig;" + $env:PKG_CONFIG_PATH
 
-          cargo build --release --features ui --bin evidenceangel-ui
           mkdir -p bundle
+          cargo build --release --features ui --bin evidenceangel-ui
           mv target/release/${{ env.CARGO_NAME }}.exe bundle/${{ env.CARGO_NAME }}-windows-x86_64.exe
+          cargo build --release --features ui,windows-keep-console-window --bin evidenceangel-ui
+          mv target/release/${{ env.CARGO_NAME }}.exe bundle/${{ env.CARGO_NAME }}-windows-console-x86_64.exe
           cp C:\gtk-build\gtk\x64\release\bin\*.dll bundle/
 
           # GSchemas for FileChooser
