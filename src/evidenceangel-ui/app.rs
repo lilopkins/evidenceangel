@@ -185,6 +185,12 @@ impl Component for AppModel {
 
                     adw::ToolbarView {
                         add_top_bar = &adw::HeaderBar {
+                            pack_start = &gtk::Button {
+                                add_css_class: "flat",
+                                set_icon_name: relm4_icons::icon_names::PLUS,
+                                set_tooltip: &lang::lookup("nav-create-case"),
+                                connect_clicked => AppInput::CreateCaseAndSelect,
+                            },
                             pack_end = &gtk::MenuButton {
                                 set_icon_name: relm4_icons::icon_names::MENU,
                                 set_tooltip: &lang::lookup("header-menu"),
@@ -219,21 +225,6 @@ impl Component for AppModel {
                                 test_case_list -> gtk::Box {
                                     set_orientation: gtk::Orientation::Vertical,
                                     set_spacing: 2,
-                                },
-
-                                gtk::Button {
-                                    add_css_class: "flat",
-                                    connect_clicked => AppInput::CreateCaseAndSelect,
-
-                                    gtk::Box {
-                                        set_spacing: 2,
-                                        set_halign: gtk::Align::Center,
-
-                                        gtk::Image::from_icon_name(relm4_icons::icon_names::PLUS),
-                                        gtk::Label {
-                                            set_label: &lang::lookup("nav-create-case"),
-                                        },
-                                    }
                                 },
                             }
                         }
