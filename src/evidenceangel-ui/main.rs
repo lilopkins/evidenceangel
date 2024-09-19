@@ -45,6 +45,7 @@ fn main() {
         })
         .level(log::LevelFilter::Info)
         .level_for("evidenceangel", log::LevelFilter::Debug)
+        .level_for("evidenceangel_ui", log::LevelFilter::Debug)
         .chain(std::io::stdout())
         .chain(fern::log_file("evidenceangel.log").expect("Couldn't open log file."))
         .apply()
