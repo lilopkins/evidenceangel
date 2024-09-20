@@ -189,6 +189,8 @@ impl Component for AppModel {
                                 add_css_class: "flat",
                                 set_icon_name: relm4_icons::icon_names::PLUS,
                                 set_tooltip: &lang::lookup("nav-create-case"),
+                                #[watch]
+                                set_visible: model.open_package.is_some(),
                                 connect_clicked => AppInput::CreateCaseAndSelect,
                             },
                             pack_end = &gtk::MenuButton {
