@@ -320,6 +320,8 @@ impl Component for AppModel {
                                             #[name = "metadata_title"]
                                             adw::EntryRow {
                                                 set_title: &lang::lookup("metadata-title"),
+                                                // TODO After adwaita 1.6 set_max_length: 30,
+                                                
                                                 connect_changed[sender] => move |entry| {
                                                     sender.input(AppInput::SetMetadataTitle(entry.text().to_string()));
                                                 }
@@ -358,6 +360,8 @@ impl Component for AppModel {
                                                     #[name = "test_title"]
                                                     adw::EntryRow {
                                                         set_title: &lang::lookup("test-title"),
+                                                        // TODO After adwaita 1.6 set_max_length: 30,
+
                                                         connect_changed[sender] => move |entry| {
                                                             sender.input(AppInput::SetTestCaseTitle(entry.text().to_string()));
                                                         }
@@ -830,8 +834,20 @@ impl Component for AppModel {
                 }));
             }
             AppInput::SetMetadataTitle(new_title) => {
-                if let Some(pkg) = self.get_package() {
-                    pkg.write().unwrap().metadata_mut().set_title(new_title);
+                if !new_title.trim().is_empty() {
+                    if new_title.len() <= 30 {
+                        if let Some(pkg) = self.get_package() {
+                            pkg.write().unwrap().metadata_mut().set_title(new_title);
+                        }
+                    } else {
+                        let toast = adw::Toast::new(&lang::lookup("toast-name-too-long"));
+                        toast.set_timeout(1);
+                        widgets.toast_target.add_toast(toast);
+                    }
+                } else {
+                    let toast = adw::Toast::new(&lang::lookup("toast-name-cant-be-empty"));
+                    toast.set_timeout(1);
+                    widgets.toast_target.add_toast(toast);
                 }
             }
             AppInput::DeleteCase(id) => {
@@ -897,16 +913,26 @@ impl Component for AppModel {
             }
             AppInput::SetTestCaseTitle(new_title) => {
                 if !new_title.trim().is_empty() {
-                    if let OpenCase::Case { index, id, .. } = &self.open_case {
-                        if let Some(pkg) = self.get_package() {
-                            if let Some(tc) = pkg.write().unwrap().test_case_mut(*id).ok().flatten()
-                            {
-                                tc.metadata_mut().set_title(new_title.clone());
-                                self.test_case_nav_factory
-                                    .send(*index, NavFactoryInput::UpdateTitle(new_title));
+                    if new_title.len() <= 30 {
+                        if let OpenCase::Case { index, id, .. } = &self.open_case {
+                            if let Some(pkg) = self.get_package() {
+                                if let Some(tc) = pkg.write().unwrap().test_case_mut(*id).ok().flatten()
+                                {
+                                    tc.metadata_mut().set_title(new_title.clone());
+                                    self.test_case_nav_factory
+                                        .send(*index, NavFactoryInput::UpdateTitle(new_title));
+                                }
                             }
                         }
+                    } else {
+                        let toast = adw::Toast::new(&lang::lookup("toast-name-too-long"));
+                        toast.set_timeout(1);
+                        widgets.toast_target.add_toast(toast);
                     }
+                } else {
+                    let toast = adw::Toast::new(&lang::lookup("toast-name-cant-be-empty"));
+                    toast.set_timeout(1);
+                    widgets.toast_target.add_toast(toast);
                 }
             }
             AppInput::AddTextEvidence => {

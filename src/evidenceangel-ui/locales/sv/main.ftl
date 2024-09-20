@@ -22,6 +22,8 @@ nothing-open-package-description = Öppna eller skapa ett paket från menyn.
 nothing-open-case-description = Välj ett fall från den vänstra panelen för att visa och redigera här.
 
 toast-saved = Bevispaket sparade.
+toast-name-too-long = Namnet är för långt. Vänligen gör det mindre än 30 tecken.
+toast-name-cant-be-empty = Namnet får inte vara tomt.
 
 error-failed-save-title = Misslyckades att Spara
 error-failed-save-body = Misslyckades att spara bevispaketet: { $error }

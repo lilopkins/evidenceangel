@@ -65,6 +65,11 @@ impl Component for ExportDialogModel {
                             lang::lookup("export-target-package")
                         }
                     },
+                    #[name = "format_row"]
+                    adw::ComboRow {
+                        set_title: &lang::lookup("export-format-label"),
+                        set_model: Some(&StringList::new(EXPORT_FORMATS)),
+                    },
                     #[name = "file_row"]
                     adw::EntryRow {
                         set_title: &lang::lookup("export-file-label"),
@@ -74,11 +79,6 @@ impl Component for ExportDialogModel {
                             connect_clicked => ExportInput::_SelectFile,
                         },
                         connect_entry_activated => ExportInput::_Export,
-                    },
-                    #[name = "format_row"]
-                    adw::ComboRow {
-                        set_title: &lang::lookup("export-format-label"),
-                        set_model: Some(&StringList::new(EXPORT_FORMATS)),
                     },
                 },
                 gtk::Separator {
