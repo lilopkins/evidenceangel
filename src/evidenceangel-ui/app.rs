@@ -410,10 +410,11 @@ impl Component for AppModel {
                                                     set_orientation: gtk::Orientation::Horizontal,
                                                     set_margin_top: 8,
                                                     set_halign: gtk::Align::Center,
-                                                    add_css_class: "linked",
+                                                    set_spacing: 8,
 
                                                     gtk::Button {
                                                         connect_clicked => AppInput::AddTextEvidence,
+                                                        add_css_class: "pill",
 
                                                         gtk::Box {
                                                             set_orientation: gtk::Orientation::Horizontal,
@@ -426,6 +427,7 @@ impl Component for AppModel {
                                                     },
                                                     gtk::Button {
                                                         connect_clicked => AppInput::AddHttpEvidence,
+                                                        add_css_class: "pill",
 
                                                         gtk::Box {
                                                             set_orientation: gtk::Orientation::Horizontal,
@@ -438,6 +440,7 @@ impl Component for AppModel {
                                                     },
                                                     gtk::Button {
                                                         connect_clicked => AppInput::AddImageEvidence,
+                                                        add_css_class: "pill",
 
                                                         gtk::Box {
                                                             set_orientation: gtk::Orientation::Horizontal,
@@ -450,6 +453,7 @@ impl Component for AppModel {
                                                     },
                                                     /* gtk::Button {
                                                         connect_clicked => AppInput::AddFileEvidence,
+                                                        add_css_class: "pill",
 
                                                         gtk::Box {
                                                             set_orientation: gtk::Orientation::Horizontal,
