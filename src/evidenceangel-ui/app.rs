@@ -931,10 +931,6 @@ impl Component for AppModel {
                         toast.set_timeout(1);
                         widgets.toast_target.add_toast(toast);
                     }
-                } else {
-                    let toast = adw::Toast::new(&lang::lookup("toast-name-cant-be-empty"));
-                    toast.set_timeout(1);
-                    widgets.toast_target.add_toast(toast);
                 }
             }
             AppInput::AddTextEvidence => {
