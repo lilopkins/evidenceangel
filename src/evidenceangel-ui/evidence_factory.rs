@@ -168,7 +168,21 @@ impl FactoryComponent for EvidenceFactoryModel {
             EvidenceKind::File => gtk::Box::default(),
         };
 
-        root.append(&main_widget);
+        let box_widget = gtk::Box::new(gtk::Orientation::Vertical, 8);
+        box_widget.append(&main_widget);
+
+        // Append caption (if set)
+        if let Some(caption) = self.evidence.caption() {
+            let caption_lbl = gtk::Label::default();
+            caption_lbl.set_text(caption);
+            caption_lbl.set_selectable(true);
+            box_widget.append(&caption_lbl);
+        }
+
+        // Append separator
+        box_widget.append(&gtk::Separator::default());
+
+        root.append(&box_widget);
 
         widgets
     }
