@@ -7,8 +7,6 @@ use relm4::{
 };
 use uuid::Uuid;
 
-use crate::lang;
-
 pub struct NavFactoryModel {
     selected: bool,
     name: String,
@@ -24,7 +22,6 @@ pub enum NavFactoryInput {
 #[derive(Debug)]
 pub enum NavFactoryOutput {
     NavigateTo(usize, Uuid),
-    DeleteCase(usize, Uuid),
 }
 
 pub struct NavFactoryInit {
@@ -53,16 +50,6 @@ impl FactoryComponent for NavFactoryModel {
 
                 connect_clicked[sender, index, id] => move |_| {
                     let _ = sender.output(NavFactoryOutput::NavigateTo(index.current_index(), id));
-                },
-            },
-
-            gtk::Button {
-                set_icon_name: relm4_icons::icon_names::CROSS_LARGE,
-                set_tooltip_text: Some(&lang::lookup("nav-delete-case")),
-                add_css_class: "flat",
-
-                connect_clicked[sender, index, id] => move |_| {
-                    let _ = sender.output(NavFactoryOutput::DeleteCase(index.current_index(), id));
                 },
             },
         }

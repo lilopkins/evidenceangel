@@ -1,5 +1,6 @@
 app-name = EvidenceAngel
 ok = Ok
+cancel = Cancel
 invalid-data = Invalid data
 select = Select
 date-time = %d/%m/%Y %H:%M:%S
@@ -82,3 +83,12 @@ export-error-nothing-open-title = Nothing Open to Export
 export-error-nothing-open-message = Nothing is open to export.
 export-error-failed-title = Failed to Export
 export-error-failed-message = Failed to export: { $error }
+
+evidence-text = Text
+evidence-http = HTTP Request
+evidence-image = Image
+evidence-file = File
+
+delete-case-title = Delete { $name }?
+delete-case-message = Do you really want to irreversible delete test case { $name }?
+delete-case-affirm = Delete

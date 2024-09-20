@@ -1,5 +1,6 @@
 app-name = EvidenceAngel
 ok = Ok
+cancel = Avbryt
 invalid-data = Ogiltiga data
 select = Välj
 date-time = %Y-%m-%d %H:%M:%S
@@ -82,3 +83,12 @@ export-error-nothing-open-title = Inget öppet att exportera
 export-error-nothing-open-message = Inget är öppet att exportera.
 export-error-failed-title = Misslyckades att Exportera
 export-error-failed-message = Misslyckades att exportera: { $error }
+
+evidence-text = Text
+evidence-http = HTTP-begäran
+evidence-image = Bild
+evidence-file = Fil
+
+delete-case-title = Radera { $name }?
+delete-case-message = Vill du verkligen oåterkalleligt radera testfallet { $name }?
+delete-case-affirm = Radera

@@ -146,6 +146,8 @@ pub enum AppInput {
     DeleteAuthor(Author),
 
     SetTestCaseTitle(String),
+    DeleteSelectedCase,
+    _DeleteSelectedCase,
     AddTextEvidence,
     AddHttpEvidence,
     AddImageEvidence,
@@ -410,60 +412,63 @@ impl Component for AppModel {
                                                     set_orientation: gtk::Orientation::Horizontal,
                                                     set_margin_top: 8,
                                                     set_halign: gtk::Align::Center,
-                                                    set_spacing: 8,
+                                                    //set_spacing: 8,
+                                                    add_css_class: "linked",
 
                                                     gtk::Button {
                                                         connect_clicked => AppInput::AddTextEvidence,
                                                         add_css_class: "pill",
 
-                                                        gtk::Box {
-                                                            set_orientation: gtk::Orientation::Horizontal,
-
-                                                            gtk::Image::from_icon_name(relm4_icons::icon_names::PLUS),
-                                                            gtk::Label {
-                                                                set_label: "Text",
-                                                            },
+                                                        adw::ButtonContent {
+                                                            set_icon_name: relm4_icons::icon_names::PLUS,
+                                                            set_label: &lang::lookup("evidence-text"),
                                                         }
                                                     },
                                                     gtk::Button {
                                                         connect_clicked => AppInput::AddHttpEvidence,
                                                         add_css_class: "pill",
 
-                                                        gtk::Box {
-                                                            set_orientation: gtk::Orientation::Horizontal,
-
-                                                            gtk::Image::from_icon_name(relm4_icons::icon_names::PLUS),
-                                                            gtk::Label {
-                                                                set_label: "HTTP Request",
-                                                            },
+                                                        adw::ButtonContent {
+                                                            set_icon_name: relm4_icons::icon_names::PLUS,
+                                                            set_label: &lang::lookup("evidence-http"),
                                                         }
                                                     },
                                                     gtk::Button {
                                                         connect_clicked => AppInput::AddImageEvidence,
                                                         add_css_class: "pill",
 
-                                                        gtk::Box {
-                                                            set_orientation: gtk::Orientation::Horizontal,
-
-                                                            gtk::Image::from_icon_name(relm4_icons::icon_names::PLUS),
-                                                            gtk::Label {
-                                                                set_label: "Image",
-                                                            },
+                                                        adw::ButtonContent {
+                                                            set_icon_name: relm4_icons::icon_names::PLUS,
+                                                            set_label: &lang::lookup("evidence-image"),
                                                         }
                                                     },
                                                     /* gtk::Button {
                                                         connect_clicked => AppInput::AddFileEvidence,
                                                         add_css_class: "pill",
 
-                                                        gtk::Box {
-                                                            set_orientation: gtk::Orientation::Horizontal,
-
-                                                            gtk::Image::from_icon_name(relm4_icons::icon_names::PLUS),
-                                                            gtk::Label {
-                                                                set_label: "File",
-                                                            },
+                                                        adw::ButtonContent {
+                                                            set_icon_name: relm4_icons::icon_names::PLUS,
+                                                            set_label: &lang::lookup("evidence-file"),
                                                         }
                                                     }, */
+                                                },
+
+                                                gtk::Separator {
+                                                    add_css_class: "spacer",
+                                                },
+
+                                                gtk::Button {
+                                                    add_css_class: "pill",
+                                                    add_css_class: "destructive-action",
+                                                    set_margin_top: 8,
+                                                    set_halign: gtk::Align::Center,
+
+                                                    connect_clicked => AppInput::DeleteSelectedCase,
+                    
+                                                    adw::ButtonContent {
+                                                        set_icon_name: relm4_icons::icon_names::DELETE_FILLED,
+                                                        set_label: &lang::lookup("nav-delete-case"),
+                                                    }
                                                 },
                                             }
                                         }
@@ -517,7 +522,6 @@ impl Component for AppModel {
                     NavFactoryOutput::NavigateTo(index, id) => {
                         AppInput::NavigateTo(OpenCase::Case { index, id })
                     }
-                    NavFactoryOutput::DeleteCase(_index, id) => AppInput::DeleteCase(id),
                 },
             ),
             authors_factory: FactoryVecDeque::builder().launch_default().forward(
@@ -970,6 +974,53 @@ impl Component for AppModel {
                     widgets.test_title.add_css_class("error");
                     widgets.test_title_error_popover_label.set_text(&lang::lookup("toast-name-cant-be-empty"));
                     widgets.test_title_error_popover.set_visible(true);
+                }
+            }
+            AppInput::DeleteSelectedCase => {
+                if let Some(pkg) = &self.open_package {
+                    let pkg = pkg.read().unwrap();
+
+                    if let OpenCase::Case { id, .. } = &self.open_case {
+                        let case = pkg.test_case(*id).ok().flatten().expect("opened case must exist");
+
+                        let dialog = adw::MessageDialog::builder()
+                            .transient_for(root)
+                            .title(&lang::lookup_with_args("delete-case-title", {
+                                let mut map = HashMap::new();
+                                map.insert("name", case.metadata().title().into());
+                                map
+                            }))
+                            .heading(&lang::lookup_with_args("delete-case-title", {
+                                let mut map = HashMap::new();
+                                map.insert("name", case.metadata().title().into());
+                                map
+                            }))
+                            .body(&lang::lookup_with_args("delete-case-message", {
+                                let mut map = HashMap::new();
+                                map.insert("name", case.metadata().title().into());
+                                map
+                            }))
+                            .modal(true)
+                            .build();
+                        dialog.add_response("cancel", &lang::lookup("cancel"));
+                        dialog.add_response("delete", &lang::lookup("delete-case-affirm"));
+                        dialog.set_default_response(Some("cancel"));
+                        dialog.set_close_response("cancel");
+                        dialog.set_response_appearance("delete", adw::ResponseAppearance::Destructive);
+                        dialog.set_visible(true);
+
+                        let sender_c = sender.clone();
+                        dialog.connect_response(None, move |_dlg, res| {
+                            if res == "delete" {
+                                sender_c.input(AppInput::_DeleteSelectedCase);
+                            }
+                        });
+                    }
+                }
+            }
+            AppInput::_DeleteSelectedCase => {
+                if let OpenCase::Case { id, .. } = &self.open_case {
+                    sender.input(AppInput::DeleteCase(*id));
                 }
             }
             AppInput::AddTextEvidence => {
