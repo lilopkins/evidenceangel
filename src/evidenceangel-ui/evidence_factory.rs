@@ -180,7 +180,7 @@ impl FactoryComponent for EvidenceFactoryModel {
             caption_lbl.set_selectable(true);
             box_widget.append(&caption_lbl);
         }
-        
+
         box_widget.append(&main_widget);
 
         root.append(&box_widget);

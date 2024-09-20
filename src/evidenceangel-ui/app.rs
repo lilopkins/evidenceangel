@@ -44,6 +44,12 @@ pub struct AppModel {
     open_path: Option<PathBuf>,
     open_case: OpenCase,
 
+    action_save: RelmAction<SaveAction>,
+    action_save_as: RelmAction<SaveAsAction>,
+    action_close: RelmAction<CloseAction>,
+    action_export_package: RelmAction<ExportPackageAction>,
+    action_export_test_case: RelmAction<ExportTestCaseAction>,
+
     latest_new_author_dlg: Option<Controller<NewAuthorDialogModel>>,
     latest_add_evidence_text_dlg: Option<Controller<AddTextEvidenceDialogModel>>,
     latest_add_evidence_http_dlg: Option<Controller<AddHttpEvidenceDialogModel>>,
@@ -70,6 +76,10 @@ impl AppModel {
         )?;
         log::debug!("Package opened: {pkg:?}");
         self.open_package = Some(Arc::new(RwLock::new(pkg)));
+        self.action_save.set_enabled(true);
+        self.action_save_as.set_enabled(true);
+        self.action_close.set_enabled(true);
+        self.action_export_package.set_enabled(true);
         self.update_nav_menu()?;
         Ok(())
     }
@@ -79,6 +89,10 @@ impl AppModel {
         log::debug!("Package opened: {pkg:?}");
         self.open_package = Some(Arc::new(RwLock::new(pkg)));
         self.open_path = Some(path);
+        self.action_save.set_enabled(true);
+        self.action_save_as.set_enabled(true);
+        self.action_close.set_enabled(true);
+        self.action_export_package.set_enabled(true);
         self.update_nav_menu()?;
         Ok(())
     }
@@ -86,6 +100,10 @@ impl AppModel {
     fn close(&mut self) {
         self.open_package = None;
         self.open_path = None;
+        self.action_save.set_enabled(false);
+        self.action_save_as.set_enabled(false);
+        self.action_close.set_enabled(false);
+        self.action_export_package.set_enabled(false);
         log::debug!("Package closed.");
     }
 
@@ -387,7 +405,7 @@ impl Component for AppModel {
                                                     #[name = "test_title_error_popover"]
                                                     gtk::Popover {
                                                         set_autohide: false,
-        
+
                                                         #[name = "test_title_error_popover_label"]
                                                         gtk::Label {
                                                             set_text: &lang::lookup("toast-name-too-long"),
@@ -407,7 +425,7 @@ impl Component for AppModel {
                                                     #[name = "test_execution_error_popover"]
                                                     gtk::Popover {
                                                         set_autohide: false,
-        
+
                                                         #[name = "test_execution_error_popover_label"]
                                                         gtk::Label {
                                                             set_text: &lang::lookup("toast-name-too-long"),
@@ -480,7 +498,7 @@ impl Component for AppModel {
                                                     set_halign: gtk::Align::Center,
 
                                                     connect_clicked => AppInput::DeleteSelectedCase,
-                    
+
                                                     adw::ButtonContent {
                                                         set_icon_name: relm4_icons::icon_names::DELETE_FILLED,
                                                         set_label: &lang::lookup("nav-delete-case"),
@@ -520,10 +538,85 @@ impl Component for AppModel {
         root: Self::Root,
         sender: ComponentSender<Self>,
     ) -> ComponentParts<Self> {
+        let sender_c = sender.clone();
+        let action_new: RelmAction<NewAction> = RelmAction::new_stateless(move |_| {
+            sender_c.input(AppInput::CloseFileIfOpenThen(Box::new(AppInput::NewFile)));
+        });
+        relm4::main_application().set_accelerators_for_action::<NewAction>(&["<primary>N"]);
+
+        let sender_c = sender.clone();
+        let action_open: RelmAction<OpenAction> = RelmAction::new_stateless(move |_| {
+            sender_c.input(AppInput::CloseFileIfOpenThen(Box::new(AppInput::OpenFile)));
+        });
+        relm4::main_application().set_accelerators_for_action::<OpenAction>(&["<primary>O"]);
+
+        let sender_c = sender.clone();
+        let action_save: RelmAction<SaveAction> = RelmAction::new_stateless(move |_| {
+            sender_c.input(AppInput::SaveFile);
+        });
+        action_save.set_enabled(false);
+        relm4::main_application().set_accelerators_for_action::<SaveAction>(&["<primary>S"]);
+
+        let sender_c = sender.clone();
+        let action_save_as: RelmAction<SaveAsAction> = RelmAction::new_stateless(move |_| {
+            sender_c.input(AppInput::SaveAsFile);
+        });
+        action_save_as.set_enabled(false);
+        relm4::main_application()
+            .set_accelerators_for_action::<SaveAsAction>(&["<primary><shift>S"]);
+
+        let sender_c = sender.clone();
+        let action_close: RelmAction<CloseAction> = RelmAction::new_stateless(move |_| {
+            sender_c.input(AppInput::CloseFile);
+        });
+        action_close.set_enabled(false);
+        relm4::main_application().set_accelerators_for_action::<CloseAction>(&["<primary>W"]);
+
+        let sender_c = sender.clone();
+        let action_export_package: RelmAction<ExportPackageAction> =
+            RelmAction::new_stateless(move |_| {
+                sender_c.input(AppInput::ExportPackage);
+            });
+        action_export_package.set_enabled(false);
+        relm4::main_application()
+            .set_accelerators_for_action::<ExportPackageAction>(&["<primary>E"]);
+
+        let sender_c = sender.clone();
+        let action_export_test_case: RelmAction<ExportTestCaseAction> =
+            RelmAction::new_stateless(move |_| {
+                sender_c.input(AppInput::ExportTestCase);
+            });
+        action_export_test_case.set_enabled(false);
+        relm4::main_application()
+            .set_accelerators_for_action::<ExportTestCaseAction>(&["<primary><shift>E"]);
+
+        let sender_c = sender.clone();
+        let action_about: RelmAction<AboutAction> = RelmAction::new_stateless(move |_| {
+            sender_c.input(AppInput::OpenAboutDialog);
+        });
+        relm4::main_application().set_accelerators_for_action::<AboutAction>(&["F1"]);
+
+        let mut group = RelmActionGroup::<MenuActionGroup>::new();
+        group.add_action(action_new);
+        group.add_action(action_open);
+        group.add_action(action_save.clone());
+        group.add_action(action_save_as.clone());
+        group.add_action(action_close.clone());
+        group.add_action(action_about);
+        group.add_action(action_export_package.clone());
+        group.add_action(action_export_test_case.clone());
+        group.register_for_widget(&root);
+
         let model = AppModel {
             open_package: None,
             open_path: None,
             open_case: OpenCase::Nothing,
+
+            action_save,
+            action_save_as,
+            action_export_package,
+            action_export_test_case,
+            action_close,
 
             latest_error_dlg: None,
             latest_new_author_dlg: None,
@@ -558,70 +651,6 @@ impl Component for AppModel {
         if cfg!(debug_assertions) {
             root.add_css_class("devel");
         }
-
-        let sender_c = sender.clone();
-        let new_action: RelmAction<NewAction> = RelmAction::new_stateless(move |_| {
-            sender_c.input(AppInput::CloseFileIfOpenThen(Box::new(AppInput::NewFile)));
-        });
-        relm4::main_application().set_accelerators_for_action::<NewAction>(&["<primary>N"]);
-
-        let sender_c = sender.clone();
-        let open_action: RelmAction<OpenAction> = RelmAction::new_stateless(move |_| {
-            sender_c.input(AppInput::CloseFileIfOpenThen(Box::new(AppInput::OpenFile)));
-        });
-        relm4::main_application().set_accelerators_for_action::<OpenAction>(&["<primary>O"]);
-
-        let sender_c = sender.clone();
-        let save_action: RelmAction<SaveAction> = RelmAction::new_stateless(move |_| {
-            sender_c.input(AppInput::SaveFile);
-        });
-        relm4::main_application().set_accelerators_for_action::<SaveAction>(&["<primary>S"]);
-
-        let sender_c = sender.clone();
-        let save_as_action: RelmAction<SaveAsAction> = RelmAction::new_stateless(move |_| {
-            sender_c.input(AppInput::SaveAsFile);
-        });
-        relm4::main_application()
-            .set_accelerators_for_action::<SaveAsAction>(&["<primary><shift>S"]);
-
-        let sender_c = sender.clone();
-        let close_action: RelmAction<CloseAction> = RelmAction::new_stateless(move |_| {
-            sender_c.input(AppInput::CloseFile);
-        });
-        relm4::main_application().set_accelerators_for_action::<CloseAction>(&["<primary>W"]);
-
-        let sender_c = sender.clone();
-        let export_package_action: RelmAction<ExportPackageAction> =
-            RelmAction::new_stateless(move |_| {
-                sender_c.input(AppInput::ExportPackage);
-            });
-        relm4::main_application()
-            .set_accelerators_for_action::<ExportPackageAction>(&["<primary>E"]);
-
-        let sender_c = sender.clone();
-        let export_test_case_action: RelmAction<ExportTestCaseAction> =
-            RelmAction::new_stateless(move |_| {
-                sender_c.input(AppInput::ExportTestCase);
-            });
-        relm4::main_application()
-            .set_accelerators_for_action::<ExportTestCaseAction>(&["<primary><shift>E"]);
-
-        let sender_c = sender.clone();
-        let about_action: RelmAction<AboutAction> = RelmAction::new_stateless(move |_| {
-            sender_c.input(AppInput::OpenAboutDialog);
-        });
-        relm4::main_application().set_accelerators_for_action::<AboutAction>(&["F1"]);
-
-        let mut group = RelmActionGroup::<MenuActionGroup>::new();
-        group.add_action(new_action);
-        group.add_action(open_action);
-        group.add_action(save_action);
-        group.add_action(save_as_action);
-        group.add_action(close_action);
-        group.add_action(about_action);
-        group.add_action(export_package_action);
-        group.add_action(export_test_case_action);
-        group.register_for_widget(&root);
 
         if let Some(file) = init {
             sender.input(AppInput::_OpenFile(file));
@@ -783,6 +812,7 @@ impl Component for AppModel {
                 widgets.nav_metadata.set_has_frame(false);
                 self.test_case_nav_factory
                     .broadcast(NavFactoryInput::ShowAsSelected(false));
+                self.action_export_test_case.set_enabled(false);
 
                 // Then select the new case
                 match target {
@@ -825,6 +855,7 @@ impl Component for AppModel {
                                 .unwrap()
                         };
                         self.open_case = OpenCase::Case { index, id };
+                        self.action_export_test_case.set_enabled(true);
 
                         self.test_case_nav_factory
                             .send(index, NavFactoryInput::ShowAsSelected(true));
@@ -900,12 +931,16 @@ impl Component for AppModel {
                         }
                     } else {
                         widgets.metadata_title.add_css_class("error");
-                        widgets.metadata_title_error_popover_label.set_text(&lang::lookup("toast-name-too-long"));
+                        widgets
+                            .metadata_title_error_popover_label
+                            .set_text(&lang::lookup("toast-name-too-long"));
                         widgets.metadata_title_error_popover.set_visible(true);
                     }
                 } else {
                     widgets.metadata_title.add_css_class("error");
-                    widgets.metadata_title_error_popover_label.set_text(&lang::lookup("toast-name-cant-be-empty"));
+                    widgets
+                        .metadata_title_error_popover_label
+                        .set_text(&lang::lookup("toast-name-cant-be-empty"));
                     widgets.metadata_title_error_popover.set_visible(true);
                 }
             }
@@ -988,12 +1023,16 @@ impl Component for AppModel {
                         }
                     } else {
                         widgets.test_title.add_css_class("error");
-                        widgets.test_title_error_popover_label.set_text(&lang::lookup("toast-name-cant-be-empty"));
+                        widgets
+                            .test_title_error_popover_label
+                            .set_text(&lang::lookup("toast-name-cant-be-empty"));
                         widgets.test_title_error_popover.set_visible(true);
                     }
                 } else {
                     widgets.test_title.add_css_class("error");
-                    widgets.test_title_error_popover_label.set_text(&lang::lookup("toast-name-cant-be-empty"));
+                    widgets
+                        .test_title_error_popover_label
+                        .set_text(&lang::lookup("toast-name-cant-be-empty"));
                     widgets.test_title_error_popover.set_visible(true);
                 }
             }
@@ -1014,10 +1053,12 @@ impl Component for AppModel {
                                 }
                             }
                         }
-                    },
+                    }
                     Err(e) => {
                         widgets.test_execution.add_css_class("error");
-                        widgets.test_execution_error_popover_label.set_text(&e.to_string());
+                        widgets
+                            .test_execution_error_popover_label
+                            .set_text(&e.to_string());
                         widgets.test_execution_error_popover.set_visible(true);
                     }
                 }
@@ -1027,21 +1068,25 @@ impl Component for AppModel {
                     let pkg = pkg.read().unwrap();
 
                     if let OpenCase::Case { id, .. } = &self.open_case {
-                        let case = pkg.test_case(*id).ok().flatten().expect("opened case must exist");
+                        let case = pkg
+                            .test_case(*id)
+                            .ok()
+                            .flatten()
+                            .expect("opened case must exist");
 
                         let dialog = adw::MessageDialog::builder()
                             .transient_for(root)
-                            .title(&lang::lookup_with_args("delete-case-title", {
+                            .title(lang::lookup_with_args("delete-case-title", {
                                 let mut map = HashMap::new();
                                 map.insert("name", case.metadata().title().into());
                                 map
                             }))
-                            .heading(&lang::lookup_with_args("delete-case-title", {
+                            .heading(lang::lookup_with_args("delete-case-title", {
                                 let mut map = HashMap::new();
                                 map.insert("name", case.metadata().title().into());
                                 map
                             }))
-                            .body(&lang::lookup_with_args("delete-case-message", {
+                            .body(lang::lookup_with_args("delete-case-message", {
                                 let mut map = HashMap::new();
                                 map.insert("name", case.metadata().title().into());
                                 map
@@ -1052,7 +1097,10 @@ impl Component for AppModel {
                         dialog.add_response("delete", &lang::lookup("delete-case-affirm"));
                         dialog.set_default_response(Some("cancel"));
                         dialog.set_close_response("cancel");
-                        dialog.set_response_appearance("delete", adw::ResponseAppearance::Destructive);
+                        dialog.set_response_appearance(
+                            "delete",
+                            adw::ResponseAppearance::Destructive,
+                        );
                         dialog.set_visible(true);
 
                         let sender_c = sender.clone();

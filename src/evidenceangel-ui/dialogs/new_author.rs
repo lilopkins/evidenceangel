@@ -46,7 +46,7 @@ impl Component for NewAuthorDialogModel {
 
                     adw::PreferencesGroup {
                         //set_title: &lang::lookup("author-create-title"),
-    
+
                         #[name = "name"]
                         adw::EntryRow {
                             set_title: &lang::lookup("author-create-name"),
@@ -58,13 +58,13 @@ impl Component for NewAuthorDialogModel {
                             connect_entry_activated => NewAuthorInput::_Create,
                         }
                     },
-    
+
                     gtk::Button {
                         set_label: &lang::lookup("author-create-submit"),
                         add_css_class: "pill",
                         add_css_class: "suggested-action",
                         set_halign: gtk::Align::Center,
-    
+
                         connect_clicked => NewAuthorInput::_Create,
                     }
                 }
