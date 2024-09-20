@@ -73,8 +73,7 @@ add-evidence-image-caption-label = Bildrubrik (valfritt)
 add-evidence-image-failed = Misslyckades att Lägg till Bild
 add-evidence-image-failed-message = Misslyckades att lägga till bild i paketet: { $error }
 
-export-title = Exportera
-export-target-label = Exporterar
+export-title = Exportera { $target }
 export-target-package = Hela Paketet
 export-file-label = Exportera till...
 export-format-label = Exportformat

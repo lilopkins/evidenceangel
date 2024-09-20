@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::{collections::HashMap, path::PathBuf};
 
 use adw::prelude::*;
 use relm4::{
@@ -52,18 +52,21 @@ impl Component for ExportDialogModel {
                 set_width_request: 400,
 
                 adw::PreferencesGroup {
-                    set_title: &lang::lookup("export-title"),
+                    set_title: &if let Some(name) = &model.test_case_name {
+                        lang::lookup_with_args("export-title", {
+                            let mut map = HashMap::new();
+                            map.insert("target", name.clone().into());
+                            map
+                        })
+                    } else {
+                        lang::lookup_with_args("export-title", {
+                            let mut map = HashMap::new();
+                            map.insert("target", lang::lookup("export-target-package").into());
+                            map
+                        })
+                    },
                     set_margin_all: 16,
 
-                    #[name = "name"]
-                    adw::ActionRow {
-                        set_title: &lang::lookup("export-target-label"),
-                        set_subtitle: &if let Some(name) = &model.test_case_name {
-                            name.clone()
-                        } else {
-                            lang::lookup("export-target-package")
-                        }
-                    },
                     #[name = "format_row"]
                     adw::ComboRow {
                         set_title: &lang::lookup("export-format-label"),

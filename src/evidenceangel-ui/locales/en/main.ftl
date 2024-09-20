@@ -73,8 +73,7 @@ add-evidence-image-caption-label = Image Caption (optional)
 add-evidence-image-failed = Failed to Add Image
 add-evidence-image-failed-message = Failed to add image to package: { $error }
 
-export-title = Export
-export-target-label = Exporting
+export-title = Export { $target }
 export-target-package = Entire Package
 export-file-label = Export to...
 export-format-label = Export Format

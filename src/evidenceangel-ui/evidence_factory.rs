@@ -170,6 +170,9 @@ impl FactoryComponent for EvidenceFactoryModel {
 
         let box_widget = gtk::Box::new(gtk::Orientation::Vertical, 8);
 
+        // Append separator
+        box_widget.append(&gtk::Separator::default());
+
         // Append caption (if set)
         if let Some(caption) = self.evidence.caption() {
             let caption_lbl = gtk::Label::default();
@@ -179,9 +182,6 @@ impl FactoryComponent for EvidenceFactoryModel {
         }
         
         box_widget.append(&main_widget);
-
-        // Append separator
-        box_widget.append(&gtk::Separator::default());
 
         root.append(&box_widget);
 
