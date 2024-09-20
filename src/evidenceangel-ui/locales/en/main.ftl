@@ -22,6 +22,9 @@ nothing-open-package-description = Open or create a package from the menu.
 nothing-open-case-description = Select a case from the left panel to view and edit here.
 
 toast-saved = Package saved.
+toast-export-complete = Export complete.
+toast-name-too-long = Name too long. Please make it less than 30 characters.
+toast-name-cant-be-empty = Name cannot be empty.
 
 error-failed-save-title = Failed to Save
 error-failed-save-body = Failed to save the evidence package: { $error }

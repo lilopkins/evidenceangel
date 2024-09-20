@@ -189,6 +189,8 @@ impl Component for AppModel {
                                 add_css_class: "flat",
                                 set_icon_name: relm4_icons::icon_names::PLUS,
                                 set_tooltip: &lang::lookup("nav-create-case"),
+                                #[watch]
+                                set_visible: model.open_package.is_some(),
                                 connect_clicked => AppInput::CreateCaseAndSelect,
                             },
                             pack_end = &gtk::MenuButton {
@@ -320,6 +322,8 @@ impl Component for AppModel {
                                             #[name = "metadata_title"]
                                             adw::EntryRow {
                                                 set_title: &lang::lookup("metadata-title"),
+                                                // TODO After adwaita 1.6 set_max_length: 30,
+
                                                 connect_changed[sender] => move |entry| {
                                                     sender.input(AppInput::SetMetadataTitle(entry.text().to_string()));
                                                 }
@@ -358,6 +362,8 @@ impl Component for AppModel {
                                                     #[name = "test_title"]
                                                     adw::EntryRow {
                                                         set_title: &lang::lookup("test-title"),
+                                                        // TODO After adwaita 1.6 set_max_length: 30,
+
                                                         connect_changed[sender] => move |entry| {
                                                             sender.input(AppInput::SetTestCaseTitle(entry.text().to_string()));
                                                         }
@@ -366,6 +372,7 @@ impl Component for AppModel {
                                                     #[name = "test_execution"]
                                                     adw::ActionRow {
                                                         set_title: &lang::lookup("test-execution"),
+                                                        add_css_class: "property",
                                                     }
                                                 },
 
@@ -380,8 +387,8 @@ impl Component for AppModel {
                                                 gtk::Box {
                                                     set_orientation: gtk::Orientation::Horizontal,
                                                     set_margin_top: 8,
-                                                    set_spacing: 4,
                                                     set_halign: gtk::Align::Center,
+                                                    add_css_class: "linked",
 
                                                     gtk::Button {
                                                         connect_clicked => AppInput::AddTextEvidence,
@@ -502,6 +509,9 @@ impl Component for AppModel {
         let authors_list = model.authors_factory.widget();
         let evidence_list = model.test_evidence_factory.widget();
         let widgets = view_output!();
+        if cfg!(debug_assertions) {
+            root.add_css_class("devel");
+        }
 
         let sender_c = sender.clone();
         let new_action: RelmAction<NewAction> = RelmAction::new_stateless(move |_| {
@@ -830,8 +840,20 @@ impl Component for AppModel {
                 }));
             }
             AppInput::SetMetadataTitle(new_title) => {
-                if let Some(pkg) = self.get_package() {
-                    pkg.write().unwrap().metadata_mut().set_title(new_title);
+                if !new_title.trim().is_empty() {
+                    if new_title.len() <= 30 {
+                        if let Some(pkg) = self.get_package() {
+                            pkg.write().unwrap().metadata_mut().set_title(new_title);
+                        }
+                    } else {
+                        let toast = adw::Toast::new(&lang::lookup("toast-name-too-long"));
+                        toast.set_timeout(1);
+                        widgets.toast_target.add_toast(toast);
+                    }
+                } else {
+                    let toast = adw::Toast::new(&lang::lookup("toast-name-cant-be-empty"));
+                    toast.set_timeout(1);
+                    widgets.toast_target.add_toast(toast);
                 }
             }
             AppInput::DeleteCase(id) => {
@@ -897,15 +919,22 @@ impl Component for AppModel {
             }
             AppInput::SetTestCaseTitle(new_title) => {
                 if !new_title.trim().is_empty() {
-                    if let OpenCase::Case { index, id, .. } = &self.open_case {
-                        if let Some(pkg) = self.get_package() {
-                            if let Some(tc) = pkg.write().unwrap().test_case_mut(*id).ok().flatten()
-                            {
-                                tc.metadata_mut().set_title(new_title.clone());
-                                self.test_case_nav_factory
-                                    .send(*index, NavFactoryInput::UpdateTitle(new_title));
+                    if new_title.len() <= 30 {
+                        if let OpenCase::Case { index, id, .. } = &self.open_case {
+                            if let Some(pkg) = self.get_package() {
+                                if let Some(tc) =
+                                    pkg.write().unwrap().test_case_mut(*id).ok().flatten()
+                                {
+                                    tc.metadata_mut().set_title(new_title.clone());
+                                    self.test_case_nav_factory
+                                        .send(*index, NavFactoryInput::UpdateTitle(new_title));
+                                }
                             }
                         }
+                    } else {
+                        let toast = adw::Toast::new(&lang::lookup("toast-name-too-long"));
+                        toast.set_timeout(1);
+                        widgets.toast_target.add_toast(toast);
                     }
                 }
             }
@@ -1017,8 +1046,8 @@ impl Component for AppModel {
                 if let Some(pkg) = &self.open_package {
                     let mut pkg = pkg.write().unwrap();
                     if let Err(e) = match format.as_str() {
-                        "html" => HtmlExporter.export_package(&mut pkg, path),
-                        "excel" => ExcelExporter.export_package(&mut pkg, path),
+                        "html document" => HtmlExporter.export_package(&mut pkg, path),
+                        "excel workbook" => ExcelExporter.export_package(&mut pkg, path),
                         _ => {
                             log::error!("Invalid format specified.");
                             Ok(())
@@ -1040,6 +1069,10 @@ impl Component for AppModel {
                             .forward(sender.input_sender(), |msg| match msg {});
                         error_dlg.emit(ErrorDialogInput::Present(root.clone()));
                         self.latest_error_dlg = Some(error_dlg);
+                    } else {
+                        let toast = adw::Toast::new(&lang::lookup("toast-export-complete"));
+                        toast.set_timeout(1);
+                        widgets.toast_target.add_toast(toast);
                     }
                 } else {
                     // Show error dialog
@@ -1059,8 +1092,8 @@ impl Component for AppModel {
 
                     if let OpenCase::Case { id, .. } = &self.open_case {
                         if let Err(e) = match format.as_str() {
-                            "html" => HtmlExporter.export_case(&mut pkg, *id, path),
-                            "excel" => ExcelExporter.export_case(&mut pkg, *id, path),
+                            "html document" => HtmlExporter.export_case(&mut pkg, *id, path),
+                            "excel workbook" => ExcelExporter.export_case(&mut pkg, *id, path),
                             _ => {
                                 log::error!("Invalid format specified.");
                                 Ok(())
@@ -1082,6 +1115,10 @@ impl Component for AppModel {
                                 .forward(sender.input_sender(), |msg| match msg {});
                             error_dlg.emit(ErrorDialogInput::Present(root.clone()));
                             self.latest_error_dlg = Some(error_dlg);
+                        } else {
+                            let toast = adw::Toast::new(&lang::lookup("toast-export-complete"));
+                            toast.set_timeout(1);
+                            widgets.toast_target.add_toast(toast);
                         }
                     } else {
                         // Show error dialog

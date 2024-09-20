@@ -9,7 +9,9 @@
       "properties": {
         "title": {
           "type": "string",
-          "description": "The title of the test case"
+          "description": "The title of the test case",
+          "minLength": 1,
+          "maxLength": 30
         },
         "execution_datetime": {
           "type": "string",

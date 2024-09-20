@@ -2,6 +2,8 @@ use getset::{Getters, MutGetters, Setters};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+use std::fmt;
+
 /// [`EvidencePackage`](super::EvidencePackage) metadata.
 #[derive(Clone, Debug, Getters, MutGetters, Setters, Serialize, Deserialize)]
 #[getset(get = "pub", set = "pub")]
@@ -39,6 +41,16 @@ impl Author {
         Self {
             name: name.into(),
             email: Some(email_address.into()),
+        }
+    }
+}
+
+impl fmt::Display for Author {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if self.email.is_some() {
+            write!(f, "{} <{}>", self.name, self.email.as_ref().unwrap())
+        } else {
+            write!(f, "{}", self.name)
         }
     }
 }

@@ -12,7 +12,7 @@ pub struct NewAuthorDialogModel {}
 #[derive(Debug)]
 pub enum NewAuthorInput {
     Present(ApplicationWindow),
-    Create,
+    _Create,
 }
 
 #[derive(Debug)]
@@ -41,10 +41,12 @@ impl Component for NewAuthorDialogModel {
                     #[name = "name"]
                     adw::EntryRow {
                         set_title: &lang::lookup("author-create-name"),
+                        connect_entry_activated => NewAuthorInput::_Create,
                     },
                     #[name = "email"]
                     adw::EntryRow {
                         set_title: &lang::lookup("author-create-email"),
+                        connect_entry_activated => NewAuthorInput::_Create,
                     }
                 },
                 gtk::Separator {
@@ -54,7 +56,7 @@ impl Component for NewAuthorDialogModel {
                     set_label: &lang::lookup("author-create-submit"),
                     add_css_class: "flat",
 
-                    connect_clicked => NewAuthorInput::Create,
+                    connect_clicked => NewAuthorInput::_Create,
                 }
             }
         }
@@ -81,7 +83,7 @@ impl Component for NewAuthorDialogModel {
             NewAuthorInput::Present(window) => {
                 root.present(Some(&window));
             }
-            NewAuthorInput::Create => {
+            NewAuthorInput::_Create => {
                 let name = widgets.name.text().to_string();
                 let email = widgets.email.text().to_string();
                 let author = if email.trim().is_empty() {

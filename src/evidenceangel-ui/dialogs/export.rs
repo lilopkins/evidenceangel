@@ -9,7 +9,7 @@ use relm4::{
 
 use crate::lang;
 
-const EXPORT_FORMATS: &[&str] = &["HTML", "Excel"];
+const EXPORT_FORMATS: &[&str] = &["HTML Document", "Excel Workbook"];
 const EXPORT_EXTENSIONS: &[&str] = &["html", "xlsx"];
 
 #[derive(Debug)]
@@ -64,6 +64,11 @@ impl Component for ExportDialogModel {
                             lang::lookup("export-target-package")
                         }
                     },
+                    #[name = "format_row"]
+                    adw::ComboRow {
+                        set_title: &lang::lookup("export-format-label"),
+                        set_model: Some(&StringList::new(EXPORT_FORMATS)),
+                    },
                     #[name = "file_row"]
                     adw::EntryRow {
                         set_title: &lang::lookup("export-file-label"),
@@ -73,11 +78,6 @@ impl Component for ExportDialogModel {
                             connect_clicked => ExportInput::_SelectFile,
                         },
                         connect_entry_activated => ExportInput::_Export,
-                    },
-                    #[name = "format_row"]
-                    adw::ComboRow {
-                        set_title: &lang::lookup("export-format-label"),
-                        set_model: Some(&StringList::new(EXPORT_FORMATS)),
                     },
                 },
                 gtk::Separator {
@@ -117,7 +117,11 @@ impl Component for ExportDialogModel {
             }
             ExportInput::_Export => {
                 let path = widgets.file_row.text().to_string();
-                let path = PathBuf::from(path);
+                let mut path = PathBuf::from(path);
+                // Update extension
+                let extension = EXPORT_EXTENSIONS[widgets.format_row.selected() as usize];
+                path.set_extension(extension);
+
                 let format = EXPORT_FORMATS[widgets.format_row.selected() as usize].to_lowercase();
                 let _ = sender.output(ExportOutput::Export { format, path });
                 root.close();
