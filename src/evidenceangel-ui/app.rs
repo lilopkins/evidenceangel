@@ -327,7 +327,18 @@ impl Component for AppModel {
                                                 connect_changed[sender] => move |entry| {
                                                     sender.input(AppInput::SetMetadataTitle(entry.text().to_string()));
                                                 }
-                                            }
+                                            },
+
+                                            #[name = "metadata_title_error_popover"]
+                                            gtk::Popover {
+                                                set_autohide: false,
+
+                                                #[name = "metadata_title_error_popover_label"]
+                                                gtk::Label {
+                                                    set_text: &lang::lookup("toast-name-too-long"),
+                                                    add_css_class: "error",
+                                                }
+                                            },
                                         },
 
                                         // Authors
@@ -366,6 +377,17 @@ impl Component for AppModel {
 
                                                         connect_changed[sender] => move |entry| {
                                                             sender.input(AppInput::SetTestCaseTitle(entry.text().to_string()));
+                                                        }
+                                                    },
+
+                                                    #[name = "test_title_error_popover"]
+                                                    gtk::Popover {
+                                                        set_autohide: false,
+        
+                                                        #[name = "test_title_error_popover_label"]
+                                                        gtk::Label {
+                                                            set_text: &lang::lookup("toast-name-too-long"),
+                                                            add_css_class: "error",
                                                         }
                                                     },
 
@@ -842,18 +864,20 @@ impl Component for AppModel {
             AppInput::SetMetadataTitle(new_title) => {
                 if !new_title.trim().is_empty() {
                     if new_title.len() <= 30 {
+                        widgets.metadata_title.remove_css_class("error");
+                        widgets.metadata_title_error_popover.set_visible(false);
                         if let Some(pkg) = self.get_package() {
                             pkg.write().unwrap().metadata_mut().set_title(new_title);
                         }
                     } else {
-                        let toast = adw::Toast::new(&lang::lookup("toast-name-too-long"));
-                        toast.set_timeout(1);
-                        widgets.toast_target.add_toast(toast);
+                        widgets.metadata_title.add_css_class("error");
+                        widgets.metadata_title_error_popover_label.set_text(&lang::lookup("toast-name-too-long"));
+                        widgets.metadata_title_error_popover.set_visible(true);
                     }
                 } else {
-                    let toast = adw::Toast::new(&lang::lookup("toast-name-cant-be-empty"));
-                    toast.set_timeout(1);
-                    widgets.toast_target.add_toast(toast);
+                    widgets.metadata_title.add_css_class("error");
+                    widgets.metadata_title_error_popover_label.set_text(&lang::lookup("toast-name-cant-be-empty"));
+                    widgets.metadata_title_error_popover.set_visible(true);
                 }
             }
             AppInput::DeleteCase(id) => {
@@ -920,6 +944,8 @@ impl Component for AppModel {
             AppInput::SetTestCaseTitle(new_title) => {
                 if !new_title.trim().is_empty() {
                     if new_title.len() <= 30 {
+                        widgets.test_title.remove_css_class("error");
+                        widgets.test_title_error_popover.set_visible(false);
                         if let OpenCase::Case { index, id, .. } = &self.open_case {
                             if let Some(pkg) = self.get_package() {
                                 if let Some(tc) =
@@ -932,10 +958,14 @@ impl Component for AppModel {
                             }
                         }
                     } else {
-                        let toast = adw::Toast::new(&lang::lookup("toast-name-too-long"));
-                        toast.set_timeout(1);
-                        widgets.toast_target.add_toast(toast);
+                        widgets.test_title.add_css_class("error");
+                        widgets.test_title_error_popover_label.set_text(&lang::lookup("toast-name-cant-be-empty"));
+                        widgets.test_title_error_popover.set_visible(true);
                     }
+                } else {
+                    widgets.test_title.add_css_class("error");
+                    widgets.test_title_error_popover_label.set_text(&lang::lookup("toast-name-cant-be-empty"));
+                    widgets.test_title_error_popover.set_visible(true);
                 }
             }
             AppInput::AddTextEvidence => {
