@@ -31,5 +31,5 @@ jobs:
         with:
           components: ${{ matrix.checks.component }}
 
-      - name: Check formatting
+      - name: Checking ${{ matrix.checks.name }}
         run: cargo ${{ matrix.checks.command }}
