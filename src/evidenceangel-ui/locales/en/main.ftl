@@ -1,5 +1,6 @@
 app-name = EvidenceAngel
 ok = Ok
+cancel = Cancel
 invalid-data = Invalid data
 select = Select
 date-time = %d/%m/%Y %H:%M:%S
@@ -7,7 +8,6 @@ date-time = %d/%m/%Y %H:%M:%S
 header-new = New
 header-open = Open
 header-save = Save
-header-save-as = Save as...
 header-close = Close
 header-about = About { app-name }
 header-menu = Menu
@@ -56,7 +56,7 @@ metadata-authors = Package Authors
 author-create-title = Add Author
 author-create-name = Author Name
 author-create-email = Author Email Address
-author-create-submit = Add Author
+author-create-submit = Add
 
 test-group-title = Test Case Metadata
 test-title = Test Case Title
@@ -73,8 +73,7 @@ add-evidence-image-caption-label = Image Caption (optional)
 add-evidence-image-failed = Failed to Add Image
 add-evidence-image-failed-message = Failed to add image to package: { $error }
 
-export-title = Export
-export-target-label = Exporting
+export-title = Export { $target }
 export-target-package = Entire Package
 export-file-label = Export to...
 export-format-label = Export Format
@@ -83,3 +82,17 @@ export-error-nothing-open-title = Nothing Open to Export
 export-error-nothing-open-message = Nothing is open to export.
 export-error-failed-title = Failed to Export
 export-error-failed-message = Failed to export: { $error }
+
+evidence-text = Text
+evidence-http = HTTP Request
+evidence-image = Image
+evidence-file = File
+
+delete-case-title = Delete { $name }?
+delete-case-message = Do you really want to irreversible delete test case { $name }?
+delete-case-affirm = Delete
+
+needs-saving-title = Save changes?
+needs-saving-message = The open package contains unsaved changes. Changes which are not saved will be permanently lost.
+needs-saving-yes = Save
+needs-saving-no = Discard

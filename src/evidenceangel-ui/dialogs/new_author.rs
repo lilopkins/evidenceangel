@@ -31,32 +31,42 @@ impl Component for NewAuthorDialogModel {
         #[root]
         adw::Dialog {
             #[wrap(Some)]
-            set_child = &gtk::Box {
-                set_orientation: gtk::Orientation::Vertical,
-
-                adw::PreferencesGroup {
-                    set_title: &lang::lookup("author-create-title"),
-                    set_margin_all: 16,
-
-                    #[name = "name"]
-                    adw::EntryRow {
-                        set_title: &lang::lookup("author-create-name"),
-                        connect_entry_activated => NewAuthorInput::_Create,
-                    },
-                    #[name = "email"]
-                    adw::EntryRow {
-                        set_title: &lang::lookup("author-create-email"),
-                        connect_entry_activated => NewAuthorInput::_Create,
+            set_child = &adw::ToolbarView {
+                add_top_bar = &adw::HeaderBar {
+                    #[wrap(Some)]
+                    set_title_widget = &adw::WindowTitle {
+                        set_title: &lang::lookup("author-create-title"),
                     }
                 },
-                gtk::Separator {
-                    set_orientation: gtk::Orientation::Horizontal,
-                },
-                gtk::Button {
-                    set_label: &lang::lookup("author-create-submit"),
-                    add_css_class: "flat",
 
-                    connect_clicked => NewAuthorInput::_Create,
+                gtk::Box {
+                    set_orientation: gtk::Orientation::Vertical,
+                    set_spacing: 8,
+                    set_margin_all: 16,
+
+                    adw::PreferencesGroup {
+                        //set_title: &lang::lookup("author-create-title"),
+
+                        #[name = "name"]
+                        adw::EntryRow {
+                            set_title: &lang::lookup("author-create-name"),
+                            connect_entry_activated => NewAuthorInput::_Create,
+                        },
+                        #[name = "email"]
+                        adw::EntryRow {
+                            set_title: &lang::lookup("author-create-email"),
+                            connect_entry_activated => NewAuthorInput::_Create,
+                        }
+                    },
+
+                    gtk::Button {
+                        set_label: &lang::lookup("author-create-submit"),
+                        add_css_class: "pill",
+                        add_css_class: "suggested-action",
+                        set_halign: gtk::Align::Center,
+
+                        connect_clicked => NewAuthorInput::_Create,
+                    }
                 }
             }
         }

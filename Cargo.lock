@@ -555,7 +555,7 @@ checksum = "5443807d6dff69373d433ab9ef5378ad8df50ca6298caf15de6e52e24aaf54d5"
 
 [[package]]
 name = "evidenceangel"
-version = "0.2.4"
+version = "0.2.5"
 dependencies = [
  "base64",
  "chrono",
@@ -570,6 +570,7 @@ dependencies = [
  "jsonschema",
  "log",
  "once_cell",
+ "parse_datetime",
  "pretty_env_logger",
  "relm4",
  "relm4-icons",
@@ -1749,6 +1750,17 @@ dependencies = [
  "redox_syscall",
  "smallvec",
  "windows-targets",
+]
+
+[[package]]
+name = "parse_datetime"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a8720474e3dd4af20cea8716703498b9f3b690f318fa9d9d9e2e38eaf44b96d0"
+dependencies = [
+ "chrono",
+ "nom",
+ "regex",
 ]
 
 [[package]]

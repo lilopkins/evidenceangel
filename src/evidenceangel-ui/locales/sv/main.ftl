@@ -1,5 +1,6 @@
 app-name = EvidenceAngel
 ok = Ok
+cancel = Avbryt
 invalid-data = Ogiltiga data
 select = Välj
 date-time = %Y-%m-%d %H:%M:%S
@@ -7,7 +8,6 @@ date-time = %Y-%m-%d %H:%M:%S
 header-new = Ny
 header-open = Öppna
 header-save = Spara
-header-save-as = Spara som...
 header-close = Stäng
 header-about = Om { app-name }
 header-menu = Meny
@@ -56,7 +56,7 @@ metadata-authors = Paketets Författare
 author-create-title = Lägg till Författare
 author-create-name = Författarens Namn
 author-create-email = Författarens E-postadress
-author-create-submit = Lägg till Författare
+author-create-submit = Lägg till
 
 test-group-title = Testfallsmetadata
 test-title = Testfallstitel
@@ -73,8 +73,7 @@ add-evidence-image-caption-label = Bildrubrik (valfritt)
 add-evidence-image-failed = Misslyckades att Lägg till Bild
 add-evidence-image-failed-message = Misslyckades att lägga till bild i paketet: { $error }
 
-export-title = Exportera
-export-target-label = Exporterar
+export-title = Exportera { $target }
 export-target-package = Hela Paketet
 export-file-label = Exportera till...
 export-format-label = Exportformat
@@ -83,3 +82,17 @@ export-error-nothing-open-title = Inget öppet att exportera
 export-error-nothing-open-message = Inget är öppet att exportera.
 export-error-failed-title = Misslyckades att Exportera
 export-error-failed-message = Misslyckades att exportera: { $error }
+
+evidence-text = Text
+evidence-http = HTTP-begäran
+evidence-image = Bild
+evidence-file = Fil
+
+delete-case-title = Radera { $name }?
+delete-case-message = Vill du verkligen oåterkalleligt radera testfallet { $name }?
+delete-case-affirm = Radera
+
+needs-saving-title = Spara ändringar?
+needs-saving-message = Det öppna paketet innehåller osparade ändringar. Ändringar som inte sparas ska förlora permanent.
+needs-saving-yes = Spara
+needs-saving-no = Kasta ut
