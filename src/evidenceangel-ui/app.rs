@@ -1072,6 +1072,10 @@ impl Component for AppModel {
                             .forward(sender.input_sender(), |msg| match msg {});
                         error_dlg.emit(ErrorDialogInput::Present(root.clone()));
                         self.latest_error_dlg = Some(error_dlg);
+                    } else {
+                        let toast = adw::Toast::new(&lang::lookup("toast-export-complete"));
+                        toast.set_timeout(1);
+                        widgets.toast_target.add_toast(toast);
                     }
                 } else {
                     // Show error dialog
@@ -1114,6 +1118,10 @@ impl Component for AppModel {
                                 .forward(sender.input_sender(), |msg| match msg {});
                             error_dlg.emit(ErrorDialogInput::Present(root.clone()));
                             self.latest_error_dlg = Some(error_dlg);
+                        } else {
+                            let toast = adw::Toast::new(&lang::lookup("toast-export-complete"));
+                            toast.set_timeout(1);
+                            widgets.toast_target.add_toast(toast);
                         }
                     } else {
                         // Show error dialog
