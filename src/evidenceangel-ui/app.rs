@@ -323,7 +323,7 @@ impl Component for AppModel {
                                             adw::EntryRow {
                                                 set_title: &lang::lookup("metadata-title"),
                                                 // TODO After adwaita 1.6 set_max_length: 30,
-                                                
+
                                                 connect_changed[sender] => move |entry| {
                                                     sender.input(AppInput::SetMetadataTitle(entry.text().to_string()));
                                                 }
@@ -918,7 +918,8 @@ impl Component for AppModel {
                     if new_title.len() <= 30 {
                         if let OpenCase::Case { index, id, .. } = &self.open_case {
                             if let Some(pkg) = self.get_package() {
-                                if let Some(tc) = pkg.write().unwrap().test_case_mut(*id).ok().flatten()
+                                if let Some(tc) =
+                                    pkg.write().unwrap().test_case_mut(*id).ok().flatten()
                                 {
                                     tc.metadata_mut().set_title(new_title.clone());
                                     self.test_case_nav_factory
@@ -1008,9 +1009,6 @@ impl Component for AppModel {
                         ExportOutput::Export { format, path } => {
                             AppInput::_ExportPackage(format, path)
                         }
-                        ExportOutput::Error { title, message } => {
-                            AppInput::ShowError { title, message }
-                        }
                     });
                 export_dlg.emit(ExportInput::Present(root.clone()));
                 self.latest_export_dlg = Some(export_dlg);
@@ -1035,9 +1033,6 @@ impl Component for AppModel {
                             ExportOutput::Export { format, path } => {
                                 AppInput::_ExportTestCase(format, path)
                             }
-                            ExportOutput::Error { title, message } => {
-                                AppInput::ShowError { title, message }
-                            }
                         });
                     export_dlg.emit(ExportInput::Present(root.clone()));
                     self.latest_export_dlg = Some(export_dlg);
@@ -1047,8 +1042,8 @@ impl Component for AppModel {
                 if let Some(pkg) = &self.open_package {
                     let mut pkg = pkg.write().unwrap();
                     if let Err(e) = match format.as_str() {
-                        "html" => HtmlExporter.export_package(&mut pkg, path),
-                        "excel" => ExcelExporter.export_package(&mut pkg, path),
+                        "html document" => HtmlExporter.export_package(&mut pkg, path),
+                        "excel workbook" => ExcelExporter.export_package(&mut pkg, path),
                         _ => {
                             log::error!("Invalid format specified.");
                             Ok(())
@@ -1093,8 +1088,8 @@ impl Component for AppModel {
 
                     if let OpenCase::Case { id, .. } = &self.open_case {
                         if let Err(e) = match format.as_str() {
-                            "html" => HtmlExporter.export_case(&mut pkg, *id, path),
-                            "excel" => ExcelExporter.export_case(&mut pkg, *id, path),
+                            "html document" => HtmlExporter.export_case(&mut pkg, *id, path),
+                            "excel workbook" => ExcelExporter.export_case(&mut pkg, *id, path),
                             _ => {
                                 log::error!("Invalid format specified.");
                                 Ok(())

@@ -83,5 +83,3 @@ export-error-nothing-open-title = Inget öppet att exportera
 export-error-nothing-open-message = Inget är öppet att exportera.
 export-error-failed-title = Misslyckades att Exportera
 export-error-failed-message = Misslyckades att exportera: { $error }
-export-error-invalid-path-title = Ogiltig exportsökväg
-export-error-invalid-path-message = Ogiltig sökväg har angetts för export.

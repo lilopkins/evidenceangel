@@ -25,6 +25,10 @@ impl Exporter for ExcelExporter {
     ) -> crate::Result<()> {
         let mut workbook = Workbook::new();
 
+        // Create metadata sheet
+        create_metadata_sheet(workbook.add_worksheet(), package)
+            .map_err(crate::Error::OtherExportError)?;
+
         let mut test_cases: Vec<&TestCase> = package.test_case_iter()?.collect();
         test_cases.sort_by(|a, b| {
             a.metadata()
@@ -67,6 +71,32 @@ impl Exporter for ExcelExporter {
 
         Ok(())
     }
+}
+
+fn create_metadata_sheet(
+    worksheet: &mut Worksheet,
+    package: &EvidencePackage,
+) -> Result<(), Box<dyn std::error::Error>> {
+    log::debug!("Creating excel sheet for metadata");
+    worksheet.set_name(package.metadata().title())?;
+    worksheet.set_screen_gridlines(false);
+    worksheet.set_column_width(0, 3)?; // To appear tidy
+
+    let mut row = 1;
+
+    let title = Format::new().set_bold().set_font_size(14);
+    let italic = Format::new().set_italic();
+
+    // Write title and execution timestamp
+    worksheet.write_string_with_format(row, 1, package.metadata().title(), &title)?;
+    row += 1;
+
+    for author in package.metadata().authors() {
+        row += 1;
+        worksheet.write_string_with_format(row, 1, format!("{author}"), &italic)?;
+    }
+
+    Ok(())
 }
 
 fn create_test_case_sheet(
