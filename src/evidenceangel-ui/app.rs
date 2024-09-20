@@ -372,6 +372,7 @@ impl Component for AppModel {
                                                     #[name = "test_execution"]
                                                     adw::ActionRow {
                                                         set_title: &lang::lookup("test-execution"),
+                                                        add_css_class: "property",
                                                     }
                                                 },
 
@@ -386,8 +387,8 @@ impl Component for AppModel {
                                                 gtk::Box {
                                                     set_orientation: gtk::Orientation::Horizontal,
                                                     set_margin_top: 8,
-                                                    set_spacing: 4,
                                                     set_halign: gtk::Align::Center,
+                                                    add_css_class: "linked",
 
                                                     gtk::Button {
                                                         connect_clicked => AppInput::AddTextEvidence,
@@ -508,6 +509,9 @@ impl Component for AppModel {
         let authors_list = model.authors_factory.widget();
         let evidence_list = model.test_evidence_factory.widget();
         let widgets = view_output!();
+        if cfg!(debug_assertions) {
+            root.add_css_class("devel");
+        }
 
         let sender_c = sender.clone();
         let new_action: RelmAction<NewAction> = RelmAction::new_stateless(move |_| {
