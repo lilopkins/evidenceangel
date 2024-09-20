@@ -33,7 +33,6 @@ relm4::new_action_group!(MenuActionGroup, "menu");
 relm4::new_stateless_action!(NewAction, MenuActionGroup, "new");
 relm4::new_stateless_action!(OpenAction, MenuActionGroup, "open");
 relm4::new_stateless_action!(SaveAction, MenuActionGroup, "save");
-relm4::new_stateless_action!(SaveAsAction, MenuActionGroup, "save-as");
 relm4::new_stateless_action!(CloseAction, MenuActionGroup, "close");
 relm4::new_stateless_action!(AboutAction, MenuActionGroup, "about");
 relm4::new_stateless_action!(ExportPackageAction, MenuActionGroup, "export-package");
@@ -43,9 +42,9 @@ pub struct AppModel {
     open_package: Option<Arc<RwLock<EvidencePackage>>>,
     open_path: Option<PathBuf>,
     open_case: OpenCase,
+    needs_saving: bool,
 
     action_save: RelmAction<SaveAction>,
-    action_save_as: RelmAction<SaveAsAction>,
     action_close: RelmAction<CloseAction>,
     action_export_package: RelmAction<ExportPackageAction>,
     action_export_test_case: RelmAction<ExportTestCaseAction>,
@@ -76,8 +75,8 @@ impl AppModel {
         )?;
         log::debug!("Package opened: {pkg:?}");
         self.open_package = Some(Arc::new(RwLock::new(pkg)));
+        self.needs_saving = false;
         self.action_save.set_enabled(true);
-        self.action_save_as.set_enabled(true);
         self.action_close.set_enabled(true);
         self.action_export_package.set_enabled(true);
         self.update_nav_menu()?;
@@ -88,9 +87,9 @@ impl AppModel {
         let pkg = EvidencePackage::open(path.clone())?;
         log::debug!("Package opened: {pkg:?}");
         self.open_package = Some(Arc::new(RwLock::new(pkg)));
+        self.needs_saving = false;
         self.open_path = Some(path);
         self.action_save.set_enabled(true);
-        self.action_save_as.set_enabled(true);
         self.action_close.set_enabled(true);
         self.action_export_package.set_enabled(true);
         self.update_nav_menu()?;
@@ -100,8 +99,8 @@ impl AppModel {
     fn close(&mut self) {
         self.open_package = None;
         self.open_path = None;
+        self.needs_saving = false;
         self.action_save.set_enabled(false);
-        self.action_save_as.set_enabled(false);
         self.action_close.set_enabled(false);
         self.action_export_package.set_enabled(false);
         log::debug!("Package closed.");
@@ -132,24 +131,49 @@ impl AppModel {
         Ok(())
     }
 
+    fn create_needs_saving_dialog(
+        &self,
+        transient_for: &impl IsA<gtk::Window>,
+    ) -> adw::MessageDialog {
+        let dialog = adw::MessageDialog::builder()
+            .transient_for(transient_for)
+            .title(lang::lookup("needs-saving-title"))
+            .heading(lang::lookup("needs-saving-title"))
+            .body(lang::lookup("needs-saving-message"))
+            .modal(true)
+            .build();
+        dialog.add_response("cancel", &lang::lookup("cancel"));
+        dialog.add_response("no", &lang::lookup("needs-saving-no"));
+        dialog.add_response("yes", &lang::lookup("needs-saving-yes"));
+        dialog.set_default_response(Some("cancel"));
+        dialog.set_close_response("cancel");
+        dialog.set_response_appearance("no", adw::ResponseAppearance::Destructive);
+        dialog.set_response_appearance("yes", adw::ResponseAppearance::Suggested);
+
+        dialog
+    }
+
     fn get_package(&self) -> Option<Arc<RwLock<EvidencePackage>>> {
         self.open_package.as_ref().map(|pkg| pkg.clone())
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum AppInput {
+    Exit,
+    NoOp,
     // Menu options
     NewFile,
     _NewFile,
+    __NewFile,
     OpenFile,
-    _OpenFile(PathBuf),
-    SaveFile,
-    SaveAsFile,
-    CloseFile,
+    _OpenFile,
+    __OpenFile(PathBuf),
+    SaveFileThen(Box<AppInput>),
     OpenAboutDialog,
 
     CloseFileIfOpenThen(Box<AppInput>),
+    _CloseFileIfOpenThen(Box<AppInput>, bool),
     _SetPathThen(PathBuf, Box<AppInput>),
 
     #[allow(private_interfaces)]
@@ -197,6 +221,11 @@ impl Component for AppModel {
         adw::ApplicationWindow {
             set_width_request: 800,
             set_height_request: 600,
+
+            connect_close_request[sender] => move |_| {
+                sender.input(AppInput::CloseFileIfOpenThen(Box::new(AppInput::Exit)));
+                gtk::glib::Propagation::Stop
+            },
 
             #[name = "split_view"]
             adw::NavigationSplitView {
@@ -285,11 +314,15 @@ impl Component for AppModel {
                             #[wrap(Some)]
                             set_title_widget = &adw::WindowTitle {
                                 #[watch]
-                                set_title: &if let Some(pkg) = model.open_package.as_ref() {
+                                set_title: &format!("{}{}", if model.needs_saving {
+                                    "• ".to_string()
+                                } else {
+                                    String::new()
+                                }, if let Some(pkg) = model.open_package.as_ref() {
                                     pkg.read().unwrap().metadata().title().clone()
                                 } else {
                                     lang::lookup("title-no-package")
-                                },
+                                }),
                                 #[watch]
                                 set_subtitle: &match model.open_case {
                                     OpenCase::Nothing => lang::lookup("title-no-case"),
@@ -521,7 +554,6 @@ impl Component for AppModel {
             &lang::lookup("header-new") => NewAction,
             &lang::lookup("header-open") => OpenAction,
             &lang::lookup("header-save") => SaveAction,
-            &lang::lookup("header-save-as") => SaveAsAction,
             &lang::lookup("header-close") => CloseAction,
             section! {
                 &lang::lookup("header-export-package") => ExportPackageAction,
@@ -552,22 +584,14 @@ impl Component for AppModel {
 
         let sender_c = sender.clone();
         let action_save: RelmAction<SaveAction> = RelmAction::new_stateless(move |_| {
-            sender_c.input(AppInput::SaveFile);
+            sender_c.input(AppInput::SaveFileThen(Box::new(AppInput::NoOp)));
         });
         action_save.set_enabled(false);
         relm4::main_application().set_accelerators_for_action::<SaveAction>(&["<primary>S"]);
 
         let sender_c = sender.clone();
-        let action_save_as: RelmAction<SaveAsAction> = RelmAction::new_stateless(move |_| {
-            sender_c.input(AppInput::SaveAsFile);
-        });
-        action_save_as.set_enabled(false);
-        relm4::main_application()
-            .set_accelerators_for_action::<SaveAsAction>(&["<primary><shift>S"]);
-
-        let sender_c = sender.clone();
         let action_close: RelmAction<CloseAction> = RelmAction::new_stateless(move |_| {
-            sender_c.input(AppInput::CloseFile);
+            sender_c.input(AppInput::CloseFileIfOpenThen(Box::new(AppInput::NoOp)));
         });
         action_close.set_enabled(false);
         relm4::main_application().set_accelerators_for_action::<CloseAction>(&["<primary>W"]);
@@ -600,7 +624,6 @@ impl Component for AppModel {
         group.add_action(action_new);
         group.add_action(action_open);
         group.add_action(action_save.clone());
-        group.add_action(action_save_as.clone());
         group.add_action(action_close.clone());
         group.add_action(action_about);
         group.add_action(action_export_package.clone());
@@ -611,9 +634,9 @@ impl Component for AppModel {
             open_package: None,
             open_path: None,
             open_case: OpenCase::Nothing,
+            needs_saving: false,
 
             action_save,
-            action_save_as,
             action_export_package,
             action_export_test_case,
             action_close,
@@ -653,7 +676,7 @@ impl Component for AppModel {
         }
 
         if let Some(file) = init {
-            sender.input(AppInput::_OpenFile(file));
+            sender.input(AppInput::__OpenFile(file));
             root.set_visible(true);
         }
 
@@ -669,8 +692,14 @@ impl Component for AppModel {
     ) {
         log::debug!("Handling event: {message:?}");
         match message {
+            AppInput::Exit => {
+                relm4::main_application().quit();
+            }
+            AppInput::NoOp => (),
             AppInput::NewFile => {
-                // TODO Propose to save if needed
+                sender.input(AppInput::CloseFileIfOpenThen(Box::new(AppInput::_NewFile)));
+            }
+            AppInput::_NewFile => {
                 // Show file selection dialog
                 let dialog = gtk::FileDialog::builder()
                     .modal(true)
@@ -696,7 +725,7 @@ impl Component for AppModel {
                     },
                 );
             }
-            AppInput::_NewFile => {
+            AppInput::__NewFile => {
                 // Set default name, author, execution date and path.
                 sender.input(AppInput::NavigateTo(OpenCase::Nothing));
                 if let Err(e) = self.open_new() {
@@ -715,7 +744,9 @@ impl Component for AppModel {
                 }
             }
             AppInput::OpenFile => {
-                // TODO Propose to save if needed
+                sender.input(AppInput::CloseFileIfOpenThen(Box::new(AppInput::_OpenFile)));
+            }
+            AppInput::_OpenFile => {
                 // Show file selection dialog
                 let dialog = gtk::FileDialog::builder()
                     .modal(true)
@@ -732,12 +763,12 @@ impl Component for AppModel {
                         if let Ok(file) = res {
                             let path = file.path().unwrap();
                             // Open this package
-                            sender_c.input(AppInput::_OpenFile(path));
+                            sender_c.input(AppInput::__OpenFile(path));
                         }
                     },
                 );
             }
-            AppInput::_OpenFile(path) => {
+            AppInput::__OpenFile(path) => {
                 if let Err(e) = self.open(path) {
                     let error_dlg = ErrorDialogModel::builder()
                         .launch(ErrorDialogInit {
@@ -753,7 +784,7 @@ impl Component for AppModel {
                     self.latest_error_dlg = Some(error_dlg);
                 }
             }
-            AppInput::SaveFile => {
+            AppInput::SaveFileThen(then) => {
                 if let Some(package) = self.get_package() {
                     if let Err(e) = package.write().unwrap().save() {
                         // Show error dialog
@@ -773,24 +804,44 @@ impl Component for AppModel {
                         let toast = adw::Toast::new(&lang::lookup("toast-saved"));
                         toast.set_timeout(3);
                         widgets.toast_target.add_toast(toast);
+                        self.needs_saving = false;
+                        sender.input(*then);
                     }
                 }
             }
-            AppInput::SaveAsFile => {
-                // TODO Propose a new file location
-                // Then save
-                sender.input(AppInput::SaveFile);
-            }
             AppInput::CloseFileIfOpenThen(then) => {
-                // TODO Propose to save if needed
-                sender.input(AppInput::NavigateTo(OpenCase::Nothing));
-                self.close();
-                sender.input(*then);
+                // Propose to save if needed
+                if self.needs_saving {
+                    // Show dialog
+                    let dlg = self.create_needs_saving_dialog(root);
+                    let sender_c = sender.clone();
+                    dlg.connect_response(None, move |dlg, res| {
+                        if res == "no" {
+                            // discard
+                            sender_c.input(AppInput::_CloseFileIfOpenThen(then.clone(), false));
+                        } else if res == "yes" {
+                            // save
+                            sender_c.input(AppInput::_CloseFileIfOpenThen(then.clone(), true));
+                        }
+                        dlg.close();
+                    });
+                    dlg.set_visible(true);
+                } else {
+                    sender.input(AppInput::NavigateTo(OpenCase::Nothing));
+                    self.close();
+                    sender.input(*then);
+                }
             }
-            AppInput::CloseFile => {
-                // TODO Propose to save if needed
-                sender.input(AppInput::NavigateTo(OpenCase::Nothing));
-                self.close();
+            AppInput::_CloseFileIfOpenThen(then, save) => {
+                if save {
+                    sender.input(AppInput::SaveFileThen(Box::new(
+                        AppInput::_CloseFileIfOpenThen(then, false),
+                    )));
+                } else {
+                    sender.input(AppInput::NavigateTo(OpenCase::Nothing));
+                    self.close();
+                    sender.input(*then);
+                }
             }
             AppInput::OpenAboutDialog => {
                 // Open about dialog
@@ -908,6 +959,7 @@ impl Component for AppModel {
 
                 // Add case to navigation
                 self.update_nav_menu().unwrap(); // doesn't fail
+                self.needs_saving = true;
 
                 // Switch to case
                 sender.input(AppInput::NavigateTo(OpenCase::Case {
@@ -928,6 +980,7 @@ impl Component for AppModel {
                         widgets.metadata_title_error_popover.set_visible(false);
                         if let Some(pkg) = self.get_package() {
                             pkg.write().unwrap().metadata_mut().set_title(new_title);
+                            self.needs_saving = true;
                         }
                     } else {
                         widgets.metadata_title.add_css_class("error");
@@ -965,6 +1018,7 @@ impl Component for AppModel {
                     }
                     self.update_nav_menu().unwrap(); // doesn't fail
                     sender.input(AppInput::NavigateTo(OpenCase::Metadata));
+                    self.needs_saving = true;
                 }
             }
             AppInput::CreateAuthor => {
@@ -984,6 +1038,7 @@ impl Component for AppModel {
                         .metadata_mut()
                         .authors_mut()
                         .push(author);
+                    self.needs_saving = true;
                     sender.input(AppInput::NavigateTo(OpenCase::Metadata)); // to refresh author list
                 }
             }
@@ -1002,6 +1057,7 @@ impl Component for AppModel {
                         .metadata_mut()
                         .authors_mut()
                         .remove(idx);
+                    self.needs_saving = true;
                     sender.input(AppInput::NavigateTo(OpenCase::Metadata)); // to refresh author list
                 }
             }
@@ -1016,6 +1072,7 @@ impl Component for AppModel {
                                     pkg.write().unwrap().test_case_mut(*id).ok().flatten()
                                 {
                                     tc.metadata_mut().set_title(new_title.clone());
+                                    self.needs_saving = true;
                                     self.test_case_nav_factory
                                         .send(*index, NavFactoryInput::UpdateTitle(new_title));
                                 }
@@ -1050,6 +1107,7 @@ impl Component for AppModel {
                                     pkg.write().unwrap().test_case_mut(*id).ok().flatten()
                                 {
                                     tc.metadata_mut().set_execution_datetime(dtl);
+                                    self.needs_saving = true;
                                 }
                             }
                         }
@@ -1165,6 +1223,7 @@ impl Component for AppModel {
                             .unwrap()
                             .evidence_mut()
                             .push(ev);
+                        self.needs_saving = true;
                         // to refresh evidence
                         sender.input(AppInput::NavigateTo(self.open_case));
                     }

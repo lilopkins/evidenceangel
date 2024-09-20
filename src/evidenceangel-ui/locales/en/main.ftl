@@ -8,7 +8,6 @@ date-time = %d/%m/%Y %H:%M:%S
 header-new = New
 header-open = Open
 header-save = Save
-header-save-as = Save as...
 header-close = Close
 header-about = About { app-name }
 header-menu = Menu
@@ -92,3 +91,8 @@ evidence-file = File
 delete-case-title = Delete { $name }?
 delete-case-message = Do you really want to irreversible delete test case { $name }?
 delete-case-affirm = Delete
+
+needs-saving-title = Save changes?
+needs-saving-message = The open package contains unsaved changes. Changes which are not saved will be permanently lost.
+needs-saving-yes = Save
+needs-saving-no = Discard

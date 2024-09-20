@@ -8,7 +8,6 @@ date-time = %Y-%m-%d %H:%M:%S
 header-new = Ny
 header-open = Öppna
 header-save = Spara
-header-save-as = Spara som...
 header-close = Stäng
 header-about = Om { app-name }
 header-menu = Meny
@@ -92,3 +91,8 @@ evidence-file = Fil
 delete-case-title = Radera { $name }?
 delete-case-message = Vill du verkligen oåterkalleligt radera testfallet { $name }?
 delete-case-affirm = Radera
+
+needs-saving-title = Spara ändringar?
+needs-saving-message = Det öppna paketet innehåller osparade ändringar. Ändringar som inte sparas ska förlora permanent.
+needs-saving-yes = Spara
+needs-saving-no = Kasta ut
