@@ -36,6 +36,14 @@ pub enum Error {
     #[error("Media is missing from the package with hash {0}")]
     MediaMissing(String),
 
+    /// Validation against the manifest schema failed.
+    #[error("Manifest schema validation failed")]
+    ManifestSchemaValidationFailed,
+
+    /// Validation against the test case schema failed.
+    #[error("Test case schema validation failed")]
+    TestCaseSchemaValidationFailed,
+
     /// An otherwise unhandled error occured during export.
     #[error("Export failed: {0}")]
     OtherExportError(Box<dyn std::error::Error>),

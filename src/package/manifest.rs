@@ -21,6 +21,7 @@ pub struct Author {
     /// The author's name.
     name: String,
     /// The author's email address.
+    #[serde(skip_serializing_if = "Option::is_none")]
     email: Option<String>,
 }
 

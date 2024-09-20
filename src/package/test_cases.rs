@@ -7,9 +7,16 @@ use serde::{
 };
 use uuid::Uuid;
 
+const TESTCASE_SCHEMA_LOCATION: &str =
+    "https://evidenceangel-schemas.hpkns.uk/manifest.1.schema.json";
+pub(crate) const TESTCASE_SCHEMA: &str = include_str!("../../schemas/testcase.1.schema.json");
+
 /// A test case stored within an [`EvidencePackage`](super::EvidencePackage).
 #[derive(Clone, Debug, Serialize, Deserialize, Getters, MutGetters, Setters)]
 pub struct TestCase {
+    #[serde(rename = "$schema")]
+    schema: String,
+
     /// The internal ID of this test case.
     #[serde(skip)]
     #[getset(get = "pub", set = "pub(super)")]
@@ -27,6 +34,7 @@ pub struct TestCase {
 impl TestCase {
     pub(super) fn new(id: Uuid, title: String, execution_datetime: DateTime<Local>) -> Self {
         Self {
+            schema: TESTCASE_SCHEMA_LOCATION.to_string(),
             id,
             metadata: TestCaseMetadata {
                 title,
@@ -60,6 +68,7 @@ pub struct Evidence {
 
     /// A text caption associated with this piece of evidence.
     #[getset(get_mut = "pub", set = "pub")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     caption: Option<String>,
 }
 

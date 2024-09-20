@@ -11,6 +11,7 @@ use std::{
 use chrono::{DateTime, Local};
 use getset::{Getters, MutGetters};
 use serde::{Deserialize, Serialize};
+use test_cases::TESTCASE_SCHEMA;
 use uuid::Uuid;
 use zip::{result::ZipError, write::SimpleFileOptions};
 
@@ -25,6 +26,10 @@ pub use media::MediaFile;
 mod test_cases;
 pub use test_cases::{Evidence, EvidenceData, EvidenceKind, TestCase, TestCaseMetadata};
 
+const MANIFEST_SCHEMA_LOCATION: &str =
+    "https://evidenceangel-schemas.hpkns.uk/manifest.1.schema.json";
+const MANIFEST_SCHEMA: &str = include_str!("../schemas/manifest.1.schema.json");
+
 /// An Evidence Package.
 #[derive(Serialize, Deserialize, Getters, MutGetters)]
 pub struct EvidencePackage {
@@ -36,6 +41,8 @@ pub struct EvidencePackage {
     #[serde(skip)]
     test_case_data: HashMap<Uuid, TestCase>,
 
+    #[serde(rename = "$schema")]
+    schema: String,
     /// The metadata for the package.
     #[getset(get = "pub", get_mut = "pub")]
     metadata: Metadata,
@@ -50,6 +57,7 @@ impl Clone for EvidencePackage {
             media_data: HashMap::new(),
             test_case_data: self.test_case_data.clone(),
 
+            schema: MANIFEST_SCHEMA_LOCATION.to_string(),
             metadata: self.metadata.clone(),
             media: self.media.clone(),
             test_cases: self.test_cases.clone(),
@@ -76,6 +84,7 @@ impl EvidencePackage {
             media_data: HashMap::new(),
             test_case_data: HashMap::new(),
 
+            schema: MANIFEST_SCHEMA_LOCATION.to_string(),
             media: vec![],
             test_cases: vec![],
             metadata: Metadata { title, authors },
@@ -92,6 +101,12 @@ impl EvidencePackage {
 
         let manifest_data =
             serde_json::to_string(&manifest_clone).map_err(Error::FailedToCreatePackage)?;
+        if !jsonschema::is_valid(
+            &serde_json::from_str(MANIFEST_SCHEMA).expect("Schema is validated statically"),
+            &serde_json::from_str(&manifest_data).expect("JSON just generated, shouldn't fail"),
+        ) {
+            return Err(Error::ManifestSchemaValidationFailed);
+        }
 
         // Write ZIP file.
         zip.start_file("manifest.json", options)?;
@@ -133,6 +148,12 @@ impl EvidencePackage {
 
                 let data = serde_json::to_string(data)
                     .map_err(crate::result::Error::FailedToSaveTestCase)?;
+                if !jsonschema::is_valid(
+                    &serde_json::from_str(TESTCASE_SCHEMA).expect("Schema is validated statically"),
+                    &serde_json::from_str(&data).expect("JSON just generated, shouldn't fail"),
+                ) {
+                    return Err(Error::TestCaseSchemaValidationFailed);
+                }
                 zip.start_file(format!("testcases/{id}.json"), options)?;
                 zip.write_all(data.as_bytes())?;
             }
@@ -188,6 +209,12 @@ impl EvidencePackage {
 
         // Write manifest. This has to be done last to ensure media is scrubbed as needed.
         let manifest_data = serde_json::to_string(&clone).map_err(Error::FailedToCreatePackage)?;
+        if !jsonschema::is_valid(
+            &serde_json::from_str(MANIFEST_SCHEMA).expect("Schema is validated statically"),
+            &serde_json::from_str(&manifest_data).expect("JSON just generated, shouldn't fail"),
+        ) {
+            return Err(Error::TestCaseSchemaValidationFailed);
+        }
         zip.start_file("manifest.json", options)?;
         zip.write_all(manifest_data.as_bytes())?;
         self.zip.conclude_write()?;
@@ -204,11 +231,25 @@ impl EvidencePackage {
         let manifest_entry = zip
             .by_name("manifest.json")
             .map_err(|_| Error::CorruptEvidencePackage("missing manifest".to_string()))?;
-        let buf_manifest = BufReader::new(manifest_entry);
+        let manifest_data = {
+            let mut buf_manifest = BufReader::new(manifest_entry);
+            let mut manifest_data = String::new();
+            buf_manifest.read_to_string(&mut manifest_data)?;
+            manifest_data
+        };
+
+        // Validate manifest
+        if !jsonschema::is_valid(
+            &serde_json::from_str(MANIFEST_SCHEMA).expect("Schema is validated statically"),
+            &serde_json::from_str(&manifest_data)
+                .map_err(|_| Error::ManifestSchemaValidationFailed)?,
+        ) {
+            return Err(Error::TestCaseSchemaValidationFailed);
+        }
 
         // Parse manifest
         let mut evidence_package: EvidencePackage =
-            serde_json::from_reader(buf_manifest).map_err(Error::InvalidManifest)?;
+            serde_json::from_str(&manifest_data).map_err(Error::InvalidManifest)?;
 
         // Read test cases
         for test_case in &evidence_package.test_cases {
@@ -216,7 +257,23 @@ impl EvidencePackage {
             let data = zip
                 .by_name(&format!("testcases/{id}.json"))
                 .map_err(|_| Error::CorruptEvidencePackage(format!("missing test case {id}")))?;
-            let mut test_case: TestCase = serde_json::from_reader(BufReader::new(data))
+            let test_case_data = {
+                let mut buf_test_case = BufReader::new(data);
+                let mut test_case_data = String::new();
+                buf_test_case.read_to_string(&mut test_case_data)?;
+                test_case_data
+            };
+
+            // Validate test case against schema
+            if !jsonschema::is_valid(
+                &serde_json::from_str(TESTCASE_SCHEMA).expect("Schema is validated statically"),
+                &serde_json::from_str(&test_case_data)
+                    .map_err(|_| Error::ManifestSchemaValidationFailed)?,
+            ) {
+                return Err(Error::TestCaseSchemaValidationFailed);
+            }
+
+            let mut test_case: TestCase = serde_json::from_str(&test_case_data)
                 .map_err(|e| Error::InvalidTestCase(e, *id))?;
             test_case.set_id(*id);
             evidence_package.test_case_data.insert(*id, test_case);
@@ -233,6 +290,7 @@ impl EvidencePackage {
             media_data: HashMap::new(),
             test_case_data: HashMap::new(),
 
+            schema: MANIFEST_SCHEMA_LOCATION.to_string(),
             metadata: self.metadata.clone(),
             media: self.media.clone(),
             test_cases: self.test_cases.clone(),
