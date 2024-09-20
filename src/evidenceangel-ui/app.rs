@@ -208,6 +208,7 @@ impl Component for AppModel {
                         },
 
                         // Content
+                        #[name = "nav_scrolled_window"]
                         gtk::ScrolledWindow {
                             set_hscrollbar_policy: gtk::PolicyType::Never,
 
@@ -868,6 +869,11 @@ impl Component for AppModel {
                     index: 0,
                     id: case_id,
                 }));
+
+                // Move to top of list
+                let adj = widgets.nav_scrolled_window.vadjustment();
+                adj.set_value(adj.lower());
+                widgets.nav_scrolled_window.set_vadjustment(Some(&adj));
             }
             AppInput::SetMetadataTitle(new_title) => {
                 if !new_title.trim().is_empty() {
