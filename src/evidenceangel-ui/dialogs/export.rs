@@ -10,6 +10,7 @@ use relm4::{
 use crate::lang;
 
 const EXPORT_FORMATS: &[&str] = &["HTML", "Excel"];
+const EXPORT_EXTENSIONS: &[&str] = &["html", "xlsx"];
 
 #[derive(Debug)]
 pub enum ExportInput {
@@ -131,12 +132,14 @@ impl Component for ExportDialogModel {
                     .build();
 
                 let sender_c = sender.clone();
-                dialog.open(
+                let extension = EXPORT_EXTENSIONS[widgets.format_row.selected() as usize];
+                dialog.save(
                     Some(&root.toplevel_window().unwrap()),
                     Some(&relm4::gtk::gio::Cancellable::new()),
                     move |res| {
                         if let Ok(file) = res {
-                            let path = file.path().unwrap();
+                            let mut path = file.path().unwrap();
+                            path.set_extension(extension);
                             // Open this package
                             sender_c.input(ExportInput::_FileSelected(path));
                         }

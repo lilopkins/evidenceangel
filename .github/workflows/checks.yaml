@@ -4,27 +4,23 @@ on:
   push:
 
 jobs:
-  check-fmt:
-    name: Check Formatting
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Install latest Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          components: rustfmt
-
-      - name: Check formatting
-        run: cargo fmt --check
-
-  check-clippy:
-    name: Check Clippy Suggestions
+  check:
+    name: Check ${{ matrix.checks.name }}
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/gtk-rs/gtk4-rs/gtk4:latest
+    strategy:
+      fail-fast: false
+      matrix:
+        checks:
+          - name: Code
+            command: check --locked
+          - name: Formatting
+            component: rustfmt
+            command: fmt --check
+          - name: Clippy Suggestions
+            component: clippy
+            command: clippy --all-features
 
     steps:
       - name: Checkout
@@ -33,7 +29,7 @@ jobs:
       - name: Install latest Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
-          components: clippy
+          components: ${{ matrix.checks.component }}
 
-      - name: Check clippy
-        run: cargo clippy --all-features
+      - name: Check formatting
+        run: cargo ${{ matrix.checks.command }}

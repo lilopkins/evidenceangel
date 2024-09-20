@@ -753,18 +753,21 @@ impl Component for AppModel {
                     }
                     OpenCase::Case { id, .. } => {
                         // Determine own index
-                        let pkg = self.open_package.as_ref().unwrap();
-                        let pkg = pkg.read().unwrap();
                         let mut ordered_cases = vec![];
-                        for case in pkg.test_case_iter().unwrap() {
-                            ordered_cases.push((case.metadata().execution_datetime(), *case.id()));
-                        }
-                        // Sort
-                        ordered_cases.sort_by(|(a, _), (b, _)| b.cmp(a));
-                        let index = ordered_cases
-                            .iter()
-                            .position(|(_dt, ocid)| *ocid == id)
-                            .unwrap();
+                        let index = {
+                            let pkg = self.open_package.as_ref().unwrap();
+                            let pkg = pkg.read().unwrap();
+                            for case in pkg.test_case_iter().unwrap() {
+                                ordered_cases
+                                    .push((case.metadata().execution_datetime(), *case.id()));
+                            }
+                            // Sort
+                            ordered_cases.sort_by(|(a, _), (b, _)| b.cmp(a));
+                            ordered_cases
+                                .iter()
+                                .position(|(_dt, ocid)| *ocid == id)
+                                .unwrap()
+                        };
                         self.open_case = OpenCase::Case { index, id };
 
                         self.test_case_nav_factory
@@ -970,6 +973,9 @@ impl Component for AppModel {
                 self.latest_error_dlg = Some(error_dlg);
             }
             AppInput::ExportPackage => {
+                if self.open_package.is_none() {
+                    return;
+                }
                 let export_dlg = ExportDialogModel::builder()
                     .launch(ExportDialogInit {
                         test_case_name: None,
@@ -983,17 +989,29 @@ impl Component for AppModel {
                 self.latest_export_dlg = Some(export_dlg);
             }
             AppInput::ExportTestCase => {
-                let export_dlg = ExportDialogModel::builder()
-                    .launch(ExportDialogInit {
-                        test_case_name: None,
-                    })
-                    .forward(sender.input_sender(), |msg| match msg {
-                        ExportOutput::Export { format, path } => {
-                            AppInput::_ExportTestCase(format, path)
-                        }
-                    });
-                export_dlg.emit(ExportInput::Present(root.clone()));
-                self.latest_export_dlg = Some(export_dlg);
+                if self.open_package.is_none() {
+                    return;
+                }
+                if let OpenCase::Case { id, .. } = &self.open_case {
+                    let pkg = self.open_package.as_ref().unwrap().read().unwrap();
+                    let case_name = pkg
+                        .test_case(*id)
+                        .map(|r| r.map(|c| c.metadata().title().clone()))
+                        .ok()
+                        .flatten()
+                        .unwrap_or_default();
+                    let export_dlg = ExportDialogModel::builder()
+                        .launch(ExportDialogInit {
+                            test_case_name: Some(case_name),
+                        })
+                        .forward(sender.input_sender(), |msg| match msg {
+                            ExportOutput::Export { format, path } => {
+                                AppInput::_ExportTestCase(format, path)
+                            }
+                        });
+                    export_dlg.emit(ExportInput::Present(root.clone()));
+                    self.latest_export_dlg = Some(export_dlg);
+                }
             }
             AppInput::_ExportPackage(format, path) => {
                 if let Some(pkg) = &self.open_package {

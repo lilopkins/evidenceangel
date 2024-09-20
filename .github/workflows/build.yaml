@@ -6,7 +6,9 @@ on:
       - main
 
 env:
-  CARGO_NAME: "evidenceangel-ui"
+  EXECUTABLE_NAME: evidenceangel-ui
+  CARGO_KEEP_CONSOLE_ON_WINDOWS_FEATURE: windows-keep-console-window
+  CARGO_EXTRA_BUILD_PARAMS: --features ui --bin evidenceangel-ui
 
 jobs:
   create-release:
@@ -96,67 +98,34 @@ jobs:
             target/${{ matrix.platform.target }}/release/${{ matrix.platform.bin }}
             target/${{ matrix.platform.target }}/release/${{ matrix.platform.bin }}.sha256
 
-  build-linux:
-    name: Build and Publish (Linux)
-    runs-on: ubuntu-latest
+  build-gtk:
+    name: Build and Publish (${{ matrix.platform.os_name }})
+    runs-on: ${{ matrix.platform.os }}
     container:
-      image: ghcr.io/gtk-rs/gtk4-rs/gtk4:latest
+      image: ${{ matrix.platform.container }}
     permissions: write-all
     needs: create-release
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Restore Cargo cache
-        uses: actions/cache/restore@v3
-        with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Build
-        run: |
-          cargo build --release --features ui --bin evidenceangel-ui
-          strip target/release/${{ env.CARGO_NAME }}
-          mv target/release/${{ env.CARGO_NAME }} target/release/${{ env.CARGO_NAME }}-linux-x86_64
-
-      - name: Save Cargo cache
-        uses: actions/cache/save@v3
-        with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-
-      - name: Publish release
-        uses: softprops/action-gh-release@v1
-        with:
-          files: target/release/${{ env.CARGO_NAME }}-linux-x86_64
-          tag_name: ${{ needs.create-release.outputs.CARGO_PKG_VERSION }}
-          prerelease: ${{ needs.create-release.outputs.CARGO_PKG_PRERELEASE }}
-
-  build-windows:
-    name: Build and Publish (Windows)
-    runs-on: windows-latest
-    permissions: write-all
-    needs: create-release
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - os_name: Linux
+            os: ubuntu-latest
+            container: ghcr.io/gtk-rs/gtk4-rs/gtk4:latest
+            file_suffix: linux-x86_64
+          - os_name: Windows
+            os: windows-latest
+            file_suffix: windows-x86_64
+          - os_name: Mac
+            os: macos-latest
+            file_suffix: mac-x86_64
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Restore GTK4
+        if: matrix.platform.os_name == 'Windows'
         id: cache-gtk4
         uses: actions/cache/restore@v3
         with:
@@ -165,11 +134,13 @@ jobs:
             C:\gtk-build
 
       - name: Move git binary
+        if: matrix.platform.os_name == 'Windows'
         run: |
           Move-Item "C:\Program Files\Git\usr\bin" "C:\Program Files\Git\usr\notbin"
           Move-Item "C:\Program Files\Git\bin" "C:\Program Files\Git\notbin"
 
       - name: Build GTK4
+        if: matrix.platform.os_name == 'Windows'
         continue-on-error: true
         id: build-gtk4-fallible
         run: |
@@ -179,7 +150,7 @@ jobs:
           gvsbuild build gtk4 libadwaita librsvg --ninja-opts -j2
 
       - name: Build GTK4 with known good gvsbuild (${{ vars.GVSBUILD_KNOWN_GOOD_VERSION }})
-        if: steps.build-gtk4-fallible.outcome == 'failure'
+        if: steps.build-gtk4-fallible.outcome == 'failure' && matrix.platform.os_name == 'Windows'
         run: |
           python -m pip install --user pipx
           python -m pipx ensurepath
@@ -187,11 +158,13 @@ jobs:
           gvsbuild build gtk4 libadwaita librsvg --ninja-opts -j2
 
       - name: Restore git binary
+        if: matrix.platform.os_name == 'Windows'
         run: |
           Move-Item "C:\Program Files\Git\usr\notbin" "C:\Program Files\Git\usr\bin"
           Move-Item "C:\Program Files\Git\notbin" "C:\Program Files\Git\bin"
 
       - name: Save GTK4
+        if: matrix.platform.os_name == 'Windows'
         uses: actions/cache/save@v3
         with:
           key: ${{ steps.cache-gtk4.outputs.cache-primary-key }}
@@ -199,7 +172,12 @@ jobs:
             C:\gtk-build
 
       - name: Tree GTK release
+        if: matrix.platform.os_name == 'Windows'
         run: tree C:\gtk-build\gtk\x64\
+
+      - name: Install Mac dependencies
+        if: matrix.platform.os_name == 'Mac'
+        run: brew install gtk4 libadwaita
 
       - name: Restore Cargo cache
         uses: actions/cache/restore@v3
@@ -216,6 +194,14 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
 
       - name: Build
+        if: matrix.platform.os_name != 'Windows'
+        run: |
+          cargo build --release ${{ env.CARGO_EXTRA_BUILD_PARAMS }}
+          strip target/release/${{ env.EXECUTABLE_NAME }}
+          mv target/release/${{ env.EXECUTABLE_NAME }} target/release/${{ env.EXECUTABLE_NAME }}-${{ matrix.platform.file_suffix }}
+
+      - name: Build
+        if: matrix.platform.os_name == 'Windows'
         shell: pwsh
         run: |
           $env:PATH="C:\gtk-build\gtk\x64\release\bin;" + $env:PATH
@@ -224,13 +210,14 @@ jobs:
           $env:PKG_CONFIG_PATH="C:\gtk-build\gtk\x64\release\lib\pkgconfig;" + $env:PKG_CONFIG_PATH
 
           mkdir -p bundle
-          cargo build --release --features ui --bin evidenceangel-ui
-          mv target/release/${{ env.CARGO_NAME }}.exe bundle/${{ env.CARGO_NAME }}-windows-x86_64.exe
-          cargo build --release --features ui,windows-keep-console-window --bin evidenceangel-ui
-          mv target/release/${{ env.CARGO_NAME }}.exe bundle/${{ env.CARGO_NAME }}-windows-console-x86_64.exe
+          cargo build --release ${{ env.CARGO_EXTRA_BUILD_PARAMS }}
+          mv target/release/${{ env.EXECUTABLE_NAME }}.exe bundle/${{ env.EXECUTABLE_NAME }}-${{ matrix.platform.file_suffix }}.exe
+          cargo build --release --features ${{ env.CARGO_KEEP_CONSOLE_ON_WINDOWS_FEATURE }} ${{ env.CARGO_EXTRA_BUILD_PARAMS }}
+          mv target/release/${{ env.EXECUTABLE_NAME }}.exe bundle/${{ env.EXECUTABLE_NAME }}-console-${{ matrix.platform.file_suffix }}.exe
           cp C:\gtk-build\gtk\x64\release\bin\*.dll bundle/
 
-          # GSchemas for FileChooser
+          # GSchemas
+          glib-compile-schemas C:\gtk-build\gtk\x64\release\share\glib-2.0\schemas\
           mkdir -p bundle/share/glib-2.0/schemas
           copy C:\gtk-build\gtk\x64\release\share\glib-2.0\schemas\gschemas.compiled bundle/share/glib-2.0/schemas/
 
@@ -251,66 +238,19 @@ jobs:
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Archive release
+        if: matrix.platform.os_name == 'Windows'
         uses: thedoctor0/zip-release@0.7.1
         with:
           type: zip
           path: bundle
-          filename: ${{ env.CARGO_NAME }}-windows-x86_64.zip
+          filename: ${{ env.EXECUTABLE_NAME }}-${{ matrix.platform.file_suffix }}.zip
 
       - name: Publish release
         uses: softprops/action-gh-release@v1
         with:
-          files: ${{ env.CARGO_NAME }}-windows-x86_64.zip
-          tag_name: ${{ needs.create-release.outputs.CARGO_PKG_VERSION }}
-          prerelease: ${{ needs.create-release.outputs.CARGO_PKG_PRERELEASE }}
-
-  build-mac:
-    name: Build and Publish (Mac)
-    runs-on: macos-latest
-    permissions: write-all
-    needs: create-release
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Restore Cargo cache
-        uses: actions/cache/restore@v3
-        with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Install dependencies
-        run: brew install gtk4 libadwaita
-
-      - name: Build
-        run: |
-          cargo build --release --features ui --bin evidenceangel-ui
-          strip target/release/${{ env.CARGO_NAME }}
-          mv target/release/${{ env.CARGO_NAME }} target/release/${{ env.CARGO_NAME }}-macos-x86_64
-
-      - name: Save Cargo cache
-        uses: actions/cache/save@v3
-        with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-
-      - name: Publish release
-        uses: softprops/action-gh-release@v1
-        with:
-          files: target/release/${{ env.CARGO_NAME }}-macos-x86_64
+          files: |
+            target/release/${{ env.EXECUTABLE_NAME }}-${{ matrix.platform.file_suffix }}
+            ${{ env.EXECUTABLE_NAME }}-${{ matrix.platform.file_suffix }}.zip
+          fail_on_unmatched_files: false
           tag_name: ${{ needs.create-release.outputs.CARGO_PKG_VERSION }}
           prerelease: ${{ needs.create-release.outputs.CARGO_PKG_PRERELEASE }}

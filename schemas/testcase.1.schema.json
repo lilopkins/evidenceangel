@@ -1,0 +1,47 @@
+{
+  "$id": "https://evidenceangel-schemas.hpkns.uk/testcase.1.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "description": "A test case file `testcases/<UUID>.json` as part of an evidence package.",
+  "properties": {
+    "metadata": {
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string",
+          "description": "The title of the test case"
+        },
+        "execution_datetime": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The date and time of the execution of this test case starting."
+        }
+      },
+      "required": ["title", "execution_datetime"]
+    },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "A piece of evidence as part of this test case.",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": ["Text", "Image", "Http", "File"]
+          },
+          "value": {
+            "type": "string",
+            "description": "Either `plain:` followed by plain text, `media:` followed by a media SHA256 hash, or `base64:` followed by a base64 string of data.",
+            "pattern": "^(plain:.*)|(media:[0-9a-f]{64})|(base64:[A-z0-9+/]*)$"
+          },
+          "caption": {
+            "type": "string",
+            "description": "An optional caption for this piece of evidence."
+          }
+        },
+        "required": ["kind", "value"]
+      }
+    }
+  },
+  "required": ["metadata", "evidence"]
+}
