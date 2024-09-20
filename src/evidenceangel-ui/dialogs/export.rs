@@ -23,6 +23,7 @@ pub enum ExportInput {
 #[derive(Debug)]
 pub enum ExportOutput {
     Export { format: String, path: PathBuf },
+    Error { title: String, message: String },
 }
 
 #[derive(Debug)]
@@ -117,10 +118,21 @@ impl Component for ExportDialogModel {
             }
             ExportInput::_Export => {
                 let path = widgets.file_row.text().to_string();
-                let path = PathBuf::from(path);
-                let format = EXPORT_FORMATS[widgets.format_row.selected() as usize].to_lowercase();
-                let _ = sender.output(ExportOutput::Export { format, path });
-                root.close();
+                if let Ok(mut path) = PathBuf::try_from(path) {
+                    // Update extension
+                    let extension = EXPORT_EXTENSIONS[widgets.format_row.selected() as usize];
+                    path.set_extension(extension);
+
+                    let format =
+                        EXPORT_FORMATS[widgets.format_row.selected() as usize].to_lowercase();
+                    let _ = sender.output(ExportOutput::Export { format, path });
+                    root.close();
+                } else {
+                    let _ = sender.output(ExportOutput::Error {
+                        title: lang::lookup("export-error-invalid-path-title"),
+                        message: lang::lookup("export-error-invalid-path-message"),
+                    });
+                }
             }
             ExportInput::_SelectFile => {
                 // Open file selector

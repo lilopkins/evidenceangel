@@ -984,6 +984,9 @@ impl Component for AppModel {
                         ExportOutput::Export { format, path } => {
                             AppInput::_ExportPackage(format, path)
                         }
+                        ExportOutput::Error { title, message } => {
+                            AppInput::ShowError { title, message }
+                        }
                     });
                 export_dlg.emit(ExportInput::Present(root.clone()));
                 self.latest_export_dlg = Some(export_dlg);
@@ -1007,6 +1010,9 @@ impl Component for AppModel {
                         .forward(sender.input_sender(), |msg| match msg {
                             ExportOutput::Export { format, path } => {
                                 AppInput::_ExportTestCase(format, path)
+                            }
+                            ExportOutput::Error { title, message } => {
+                                AppInput::ShowError { title, message }
                             }
                         });
                     export_dlg.emit(ExportInput::Present(root.clone()));

@@ -80,3 +80,5 @@ export-error-nothing-open-title = Nothing Open to Export
 export-error-nothing-open-message = Nothing is open to export.
 export-error-failed-title = Failed to Export
 export-error-failed-message = Failed to export: { $error }
+export-error-invalid-path-title = Invalid Export Path
+export-error-invalid-path-message = Invalid path specified for export.
