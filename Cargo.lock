@@ -570,6 +570,7 @@ dependencies = [
  "jsonschema",
  "log",
  "once_cell",
+ "parse_datetime",
  "pretty_env_logger",
  "relm4",
  "relm4-icons",
@@ -1749,6 +1750,17 @@ dependencies = [
  "redox_syscall",
  "smallvec",
  "windows-targets",
+]
+
+[[package]]
+name = "parse_datetime"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a8720474e3dd4af20cea8716703498b9f3b690f318fa9d9d9e2e38eaf44b96d0"
+dependencies = [
+ "chrono",
+ "nom",
+ "regex",
 ]
 
 [[package]]

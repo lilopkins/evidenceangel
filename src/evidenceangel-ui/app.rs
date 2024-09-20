@@ -146,6 +146,7 @@ pub enum AppInput {
     DeleteAuthor(Author),
 
     SetTestCaseTitle(String),
+    TrySetExecutionDateTime(String),
     DeleteSelectedCase,
     _DeleteSelectedCase,
     AddTextEvidence,
@@ -395,10 +396,24 @@ impl Component for AppModel {
                                                     },
 
                                                     #[name = "test_execution"]
-                                                    adw::ActionRow {
+                                                    adw::EntryRow {
                                                         set_title: &lang::lookup("test-execution"),
-                                                        add_css_class: "property",
-                                                    }
+
+                                                        connect_changed[sender] => move |entry| {
+                                                            sender.input(AppInput::TrySetExecutionDateTime(entry.text().to_string()));
+                                                        }
+                                                    },
+
+                                                    #[name = "test_execution_error_popover"]
+                                                    gtk::Popover {
+                                                        set_autohide: false,
+        
+                                                        #[name = "test_execution_error_popover_label"]
+                                                        gtk::Label {
+                                                            set_text: &lang::lookup("toast-name-too-long"),
+                                                            add_css_class: "error",
+                                                        }
+                                                    },
                                                 },
 
                                                 // Test Case Screen
@@ -819,7 +834,7 @@ impl Component for AppModel {
                             if let Some(tc) = pkg.read().unwrap().test_case(id).ok().flatten() {
                                 // Update test case metadata on screen
                                 widgets.test_title.set_text(tc.metadata().title());
-                                widgets.test_execution.set_subtitle(&format!(
+                                widgets.test_execution.set_text(&format!(
                                     "{}",
                                     tc.metadata()
                                         .execution_datetime()
@@ -980,6 +995,31 @@ impl Component for AppModel {
                     widgets.test_title.add_css_class("error");
                     widgets.test_title_error_popover_label.set_text(&lang::lookup("toast-name-cant-be-empty"));
                     widgets.test_title_error_popover.set_visible(true);
+                }
+            }
+            AppInput::TrySetExecutionDateTime(new_exec_time) => {
+                match parse_datetime::parse_datetime_at_date(chrono::Local::now(), new_exec_time) {
+                    Ok(dt) => {
+                        widgets.test_execution.remove_css_class("error");
+                        widgets.test_execution_error_popover.set_visible(false);
+                        let dtl = dt.with_timezone(&chrono::Local);
+                        log::debug!("Setting exec date time {dtl}");
+
+                        if let OpenCase::Case { id, .. } = &self.open_case {
+                            if let Some(pkg) = self.get_package() {
+                                if let Some(tc) =
+                                    pkg.write().unwrap().test_case_mut(*id).ok().flatten()
+                                {
+                                    tc.metadata_mut().set_execution_datetime(dtl);
+                                }
+                            }
+                        }
+                    },
+                    Err(e) => {
+                        widgets.test_execution.add_css_class("error");
+                        widgets.test_execution_error_popover_label.set_text(&e.to_string());
+                        widgets.test_execution_error_popover.set_visible(true);
+                    }
                 }
             }
             AppInput::DeleteSelectedCase => {
