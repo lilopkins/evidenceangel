@@ -753,18 +753,21 @@ impl Component for AppModel {
                     }
                     OpenCase::Case { id, .. } => {
                         // Determine own index
-                        let pkg = self.open_package.as_ref().unwrap();
-                        let pkg = pkg.read().unwrap();
                         let mut ordered_cases = vec![];
-                        for case in pkg.test_case_iter().unwrap() {
-                            ordered_cases.push((case.metadata().execution_datetime(), *case.id()));
-                        }
-                        // Sort
-                        ordered_cases.sort_by(|(a, _), (b, _)| b.cmp(a));
-                        let index = ordered_cases
-                            .iter()
-                            .position(|(_dt, ocid)| *ocid == id)
-                            .unwrap();
+                        let index = {
+                            let pkg = self.open_package.as_ref().unwrap();
+                            let pkg = pkg.read().unwrap();
+                            for case in pkg.test_case_iter().unwrap() {
+                                ordered_cases
+                                    .push((case.metadata().execution_datetime(), *case.id()));
+                            }
+                            // Sort
+                            ordered_cases.sort_by(|(a, _), (b, _)| b.cmp(a));
+                            ordered_cases
+                                .iter()
+                                .position(|(_dt, ocid)| *ocid == id)
+                                .unwrap()
+                        };
                         self.open_case = OpenCase::Case { index, id };
 
                         self.test_case_nav_factory

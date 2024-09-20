@@ -40,12 +40,16 @@ impl EvidenceFactoryModel {
     }
 
     fn get_data_as_string(&self) -> String {
+        log::debug!("Converting media to string...");
         String::from_utf8(self.get_data()).unwrap_or(lang::lookup("invalid-data"))
     }
 
     fn get_data_as_texture(&self) -> Option<gtk::gdk::Texture> {
+        log::debug!("Converting media to texture...");
         let glib_bytes = gtk::glib::Bytes::from_owned(self.get_data().clone());
-        gtk::gdk::Texture::from_bytes(&glib_bytes).ok()
+        let r = gtk::gdk::Texture::from_bytes(&glib_bytes).ok();
+        log::debug!("Resultant texture: {r:?}");
+        r
     }
 }
 
