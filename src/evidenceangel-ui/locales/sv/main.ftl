@@ -57,7 +57,7 @@ metadata-authors = Paketets Författare
 author-create-title = Lägg till Författare
 author-create-name = Författarens Namn
 author-create-email = Författarens E-postadress
-author-create-submit = Lägg till Författare
+author-create-submit = Lägg till
 
 test-group-title = Testfallsmetadata
 test-title = Testfallstitel

@@ -41,27 +41,35 @@ impl Component for AddTextEvidenceDialogModel {
         #[root]
         adw::Dialog {
             #[wrap(Some)]
-            set_child = &gtk::Box {
-                set_orientation: gtk::Orientation::Vertical,
+            set_child = &adw::ToolbarView {
+                add_top_bar = &adw::HeaderBar {
+                    #[wrap(Some)]
+                    set_title_widget = &adw::WindowTitle {
+                        set_title: &lang::lookup("add-evidence-title"),
+                    }
+                },
+                set_width_request: 400,
 
-                adw::PreferencesGroup {
-                    set_title: &lang::lookup("add-evidence-title"),
+                gtk::Box {
+                    set_orientation: gtk::Orientation::Vertical,
+                    set_spacing: 8,
                     set_margin_all: 16,
 
-                    #[name = "text_entry"]
-                    adw::EntryRow {
-                        set_title: &lang::lookup("add-evidence-text-label"),
-                        connect_entry_activated => AddEvidenceInput::_AddEvidence,
+                    adw::PreferencesGroup {
+                        #[name = "text_entry"]
+                        adw::EntryRow {
+                            set_title: &lang::lookup("add-evidence-text-label"),
+                            connect_entry_activated => AddEvidenceInput::_AddEvidence,
+                        },
                     },
-                },
-                gtk::Separator {
-                    set_orientation: gtk::Orientation::Horizontal,
-                },
-                gtk::Button {
-                    set_label: &lang::lookup("add-evidence-submit"),
-                    add_css_class: "flat",
+                    gtk::Button {
+                        set_label: &lang::lookup("add-evidence-submit"),
+                        add_css_class: "pill",
+                        add_css_class: "suggested-action",
+                        set_halign: gtk::Align::Center,
 
-                    connect_clicked => AddEvidenceInput::_AddEvidence,
+                        connect_clicked => AddEvidenceInput::_AddEvidence,
+                    }
                 }
             }
         }
@@ -113,11 +121,18 @@ impl Component for AddHttpEvidenceDialogModel {
         #[root]
         adw::Dialog {
             #[wrap(Some)]
-            set_child = &gtk::Box {
-                set_orientation: gtk::Orientation::Vertical,
+            set_child = &adw::ToolbarView {
+                add_top_bar = &adw::HeaderBar {
+                    #[wrap(Some)]
+                    set_title_widget = &adw::WindowTitle {
+                        set_title: &lang::lookup("add-evidence-title"),
+                    }
+                },
+                set_width_request: 400,
 
-                adw::PreferencesGroup {
-                    set_title: &lang::lookup("add-evidence-title"),
+                gtk::Box {
+                    set_orientation: gtk::Orientation::Vertical,
+                    set_spacing: 8,
                     set_margin_all: 16,
 
                     gtk::Box {
@@ -148,20 +163,21 @@ impl Component for AddHttpEvidenceDialogModel {
                             },
                         },
                     },
-                },
-                #[name = "caption_entry"]
-                adw::EntryRow {
-                    set_title: &lang::lookup("add-evidence-http-caption-label"),
-                    connect_entry_activated => AddEvidenceInput::_AddEvidence,
-                },
-                gtk::Separator {
-                    set_orientation: gtk::Orientation::Horizontal,
-                },
-                gtk::Button {
-                    set_label: &lang::lookup("add-evidence-submit"),
-                    add_css_class: "flat",
+                    adw::PreferencesGroup {
+                        #[name = "caption_entry"]
+                        adw::EntryRow {
+                            set_title: &lang::lookup("add-evidence-http-caption-label"),
+                            connect_entry_activated => AddEvidenceInput::_AddEvidence,
+                        },
+                    },
+                    gtk::Button {
+                        set_label: &lang::lookup("add-evidence-submit"),
+                        add_css_class: "pill",
+                        add_css_class: "suggested-action",
+                        set_halign: gtk::Align::Center,
 
-                    connect_clicked => AddEvidenceInput::_AddEvidence,
+                        connect_clicked => AddEvidenceInput::_AddEvidence,
+                    }
                 }
             }
         }
@@ -227,38 +243,45 @@ impl Component for AddImageEvidenceDialogModel {
         #[root]
         adw::Dialog {
             #[wrap(Some)]
-            set_child = &gtk::Box {
-                set_orientation: gtk::Orientation::Vertical,
+            set_child = &adw::ToolbarView {
+                add_top_bar = &adw::HeaderBar {
+                    #[wrap(Some)]
+                    set_title_widget = &adw::WindowTitle {
+                        set_title: &lang::lookup("add-evidence-title"),
+                    }
+                },
                 set_width_request: 400,
 
-                adw::PreferencesGroup {
-                    set_title: &lang::lookup("add-evidence-title"),
+                gtk::Box {
+                    set_orientation: gtk::Orientation::Vertical,
+                    set_spacing: 8,
                     set_margin_all: 16,
 
-                    #[name = "file_row"]
-                    adw::EntryRow {
-                        set_title: &lang::lookup("add-evidence-image-label"),
-                        add_suffix = &gtk::Button {
-                            set_icon_name: relm4_icons::icon_names::FOLDER_OPEN_FILLED,
-                            add_css_class: "flat",
-                            connect_clicked => AddEvidenceInput::_SelectFile,
+                    adw::PreferencesGroup {
+                        #[name = "file_row"]
+                        adw::EntryRow {
+                            set_title: &lang::lookup("add-evidence-image-label"),
+                            add_suffix = &gtk::Button {
+                                set_icon_name: relm4_icons::icon_names::FOLDER_OPEN_FILLED,
+                                add_css_class: "flat",
+                                connect_clicked => AddEvidenceInput::_SelectFile,
+                            },
+                            connect_entry_activated => AddEvidenceInput::_AddEvidence,
                         },
-                        connect_entry_activated => AddEvidenceInput::_AddEvidence,
+                        #[name = "caption_entry"]
+                        adw::EntryRow {
+                            set_title: &lang::lookup("add-evidence-image-caption-label"),
+                            connect_entry_activated => AddEvidenceInput::_AddEvidence,
+                        },
                     },
-                    #[name = "caption_entry"]
-                    adw::EntryRow {
-                        set_title: &lang::lookup("add-evidence-image-caption-label"),
-                        connect_entry_activated => AddEvidenceInput::_AddEvidence,
-                    },
-                },
-                gtk::Separator {
-                    set_orientation: gtk::Orientation::Horizontal,
-                },
-                gtk::Button {
-                    set_label: &lang::lookup("add-evidence-submit"),
-                    add_css_class: "flat",
+                    gtk::Button {
+                        set_label: &lang::lookup("add-evidence-submit"),
+                        add_css_class: "pill",
+                        add_css_class: "suggested-action",
+                        set_halign: gtk::Align::Center,
 
-                    connect_clicked => AddEvidenceInput::_AddEvidence,
+                        connect_clicked => AddEvidenceInput::_AddEvidence,
+                    }
                 }
             }
         }

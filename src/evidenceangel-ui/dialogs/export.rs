@@ -47,50 +47,57 @@ impl Component for ExportDialogModel {
         #[root]
         adw::Dialog {
             #[wrap(Some)]
-            set_child = &gtk::Box {
-                set_orientation: gtk::Orientation::Vertical,
+            set_child = &adw::ToolbarView {
+                add_top_bar = &adw::HeaderBar {
+                    #[wrap(Some)]
+                    set_title_widget = &adw::WindowTitle {
+                        set_title: &if let Some(name) = &model.test_case_name {
+                            lang::lookup_with_args("export-title", {
+                                let mut map = HashMap::new();
+                                map.insert("target", name.clone().into());
+                                map
+                            })
+                        } else {
+                            lang::lookup_with_args("export-title", {
+                                let mut map = HashMap::new();
+                                map.insert("target", lang::lookup("export-target-package").into());
+                                map
+                            })
+                        }
+                    }
+                },
                 set_width_request: 400,
 
-                adw::PreferencesGroup {
-                    set_title: &if let Some(name) = &model.test_case_name {
-                        lang::lookup_with_args("export-title", {
-                            let mut map = HashMap::new();
-                            map.insert("target", name.clone().into());
-                            map
-                        })
-                    } else {
-                        lang::lookup_with_args("export-title", {
-                            let mut map = HashMap::new();
-                            map.insert("target", lang::lookup("export-target-package").into());
-                            map
-                        })
-                    },
+                gtk::Box {
+                    set_orientation: gtk::Orientation::Vertical,
+                    set_spacing: 8,
                     set_margin_all: 16,
 
-                    #[name = "format_row"]
-                    adw::ComboRow {
-                        set_title: &lang::lookup("export-format-label"),
-                        set_model: Some(&StringList::new(EXPORT_FORMATS)),
-                    },
-                    #[name = "file_row"]
-                    adw::EntryRow {
-                        set_title: &lang::lookup("export-file-label"),
-                        add_suffix = &gtk::Button {
-                            set_icon_name: relm4_icons::icon_names::FOLDER_OPEN_FILLED,
-                            add_css_class: "flat",
-                            connect_clicked => ExportInput::_SelectFile,
+                    adw::PreferencesGroup {
+                        #[name = "format_row"]
+                        adw::ComboRow {
+                            set_title: &lang::lookup("export-format-label"),
+                            set_model: Some(&StringList::new(EXPORT_FORMATS)),
                         },
-                        connect_entry_activated => ExportInput::_Export,
+                        #[name = "file_row"]
+                        adw::EntryRow {
+                            set_title: &lang::lookup("export-file-label"),
+                            add_suffix = &gtk::Button {
+                                set_icon_name: relm4_icons::icon_names::FOLDER_OPEN_FILLED,
+                                add_css_class: "flat",
+                                connect_clicked => ExportInput::_SelectFile,
+                            },
+                            connect_entry_activated => ExportInput::_Export,
+                        },
                     },
-                },
-                gtk::Separator {
-                    set_orientation: gtk::Orientation::Horizontal,
-                },
-                gtk::Button {
-                    set_label: &lang::lookup("export-submit"),
-                    add_css_class: "flat",
+                    gtk::Button {
+                        set_label: &lang::lookup("export-submit"),
+                        add_css_class: "pill",
+                        add_css_class: "suggested-action",
+                        set_halign: gtk::Align::Center,
 
-                    connect_clicked => ExportInput::_Export,
+                        connect_clicked => ExportInput::_Export,
+                    }
                 }
             }
         }
