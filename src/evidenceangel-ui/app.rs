@@ -1415,8 +1415,8 @@ impl Component for AppModel {
                     log::debug!("Clipboard MIME types: {mime_types:?}");
                     let mut matched_kind = false;
                     'mime_loop: for mime in mime_types {
-                        match mime.as_str() {
-                            "text/plain" | "text/plain;charset=UTF-8" => {
+                        match mime.as_str().to_lowercase().as_str() {
+                            "text/plain" | "text/plain;charset=utf-8" => {
                                 // Paste as text
                                 let sender_c = sender.clone();
                                 clipboard.read_text_async(Some(&Cancellable::new()), move |cb| {
