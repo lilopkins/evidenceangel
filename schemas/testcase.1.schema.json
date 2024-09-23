@@ -29,12 +29,13 @@
         "properties": {
           "kind": {
             "type": "string",
+            "description": "The type of data stored. Note that where `Http` is used, a Record Separator character (0x1e) can be used to split the request and response portion.",
             "enum": ["Text", "Image", "Http", "File"]
           },
           "value": {
             "type": "string",
             "description": "Either `plain:` followed by plain text, `media:` followed by a media SHA256 hash, or `base64:` followed by a base64 string of data.",
-            "pattern": "^(plain:.*)|(media:[0-9a-f]{64})|(base64:[A-z0-9+/]*)$"
+            "pattern": "^(plain:.*)|(media:[0-9a-f]{64})|(base64:[A-z0-9+/]*=*)$"
           },
           "caption": {
             "type": "string",
