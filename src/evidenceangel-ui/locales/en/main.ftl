@@ -10,8 +10,12 @@ header-save = Save
 header-close = Close
 header-about = About { app-name }
 header-menu = Menu
+header-paste-evidence = Paste Evidence
 header-export-package = Export Package...
 header-export-test-case = Export Test Case...
+
+paste-evidence-failed = Failed to paste.
+paste-evidence-wrong-type = Cannot paste this type of data.
 
 filetype-package = Evidence Package
 filetype-images = Images
