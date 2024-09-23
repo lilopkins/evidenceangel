@@ -24,6 +24,7 @@ impl Exporter for ExcelExporter {
         path: std::path::PathBuf,
     ) -> crate::Result<()> {
         let mut workbook = Workbook::new();
+        workbook.read_only_recommended();
 
         // Create metadata sheet
         create_metadata_sheet(workbook.add_worksheet(), package)
