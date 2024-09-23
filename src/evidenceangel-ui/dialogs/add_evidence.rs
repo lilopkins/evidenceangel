@@ -214,7 +214,12 @@ impl Component for AddHttpEvidenceDialogModel {
                     .text(&res_buffer.start_iter(), &res_buffer.end_iter(), false)
                     .to_string();
                 let content = format!("{req_content}\n\n\x1e{res_content}");
-                let mut ev = Evidence::new(EvidenceKind::Http, EvidenceData::Text { content });
+                let mut ev = Evidence::new(
+                    EvidenceKind::Http,
+                    EvidenceData::Base64 {
+                        data: content.into_bytes(),
+                    },
+                );
                 let caption_text = widgets.caption_entry.text().to_string();
                 if !caption_text.trim().is_empty() {
                     ev.set_caption(Some(caption_text.trim().to_string()));

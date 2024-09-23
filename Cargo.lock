@@ -555,7 +555,7 @@ checksum = "5443807d6dff69373d433ab9ef5378ad8df50ca6298caf15de6e52e24aaf54d5"
 
 [[package]]
 name = "evidenceangel"
-version = "0.2.5"
+version = "0.2.6"
 dependencies = [
  "base64",
  "chrono",
@@ -670,9 +670,9 @@ dependencies = [
 
 [[package]]
 name = "fluent-template-macros"
-version = "0.10.1"
+version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b86ebacac709a063f57ee83d37c451d60dc873554f9bd828531fd1ec43209c80"
+checksum = "007d176e568a4f73ad4225df02aa29ccfecffd8eda31ce78da0bc8b4b310f20a"
 dependencies = [
  "flume",
  "ignore",
@@ -685,9 +685,9 @@ dependencies = [
 
 [[package]]
 name = "fluent-templates"
-version = "0.10.1"
+version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f339cc149c01ba2f7b0feba2acde6dd6e4a48472daffe2ddfdd6073e564c60b3"
+checksum = "74f22f61b2c8551163ea13c16a381484e5360b089401c6e47c4bfcf6b62bb7ac"
 dependencies = [
  "fluent-bundle",
  "fluent-langneg",
