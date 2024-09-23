@@ -3,7 +3,6 @@ ok = Ok
 cancel = Avbryt
 invalid-data = Ogiltiga data
 select = Välj
-date-time = %Y-%m-%d %H:%M:%S
 
 header-new = Ny
 header-open = Öppna

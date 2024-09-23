@@ -920,7 +920,7 @@ impl Component for AppModel {
                                     "{}",
                                     tc.metadata()
                                         .execution_datetime()
-                                        .format(&lang::lookup("date-time"))
+                                        .format("%Y-%m-%d %H:%M:%S")
                                 ));
 
                                 for ev in tc.evidence() {

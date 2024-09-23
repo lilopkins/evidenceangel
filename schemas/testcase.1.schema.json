@@ -34,8 +34,8 @@
           },
           "value": {
             "type": "string",
-            "description": "Either `plain:` followed by plain text, `media:` followed by a media SHA256 hash, or `base64:` followed by a base64 string of data.",
-            "pattern": "^(plain:.*)|(media:[0-9a-f]{64})|(base64:[A-z0-9+/]*=*)$"
+            "description": "Either `plain:` followed by plain text, `media:` followed by a media SHA256 hash, or `base64:` followed by a base64 string of data without padding.",
+            "pattern": "^(plain:.*)|(media:[0-9a-f]{64})|(base64:[A-z0-9+/]*)$"
           },
           "caption": {
             "type": "string",
