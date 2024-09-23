@@ -7,7 +7,7 @@ use std::{
 use adw::prelude::*;
 use evidenceangel::{
     exporters::{excel::ExcelExporter, html::HtmlExporter, Exporter},
-    Author, Evidence, EvidencePackage,
+    Author, Evidence, EvidenceKind, EvidencePackage, MediaFile,
 };
 #[allow(unused)]
 use gtk::prelude::*;
@@ -15,7 +15,7 @@ use relm4::{
     actions::{AccelsPlus, RelmAction, RelmActionGroup},
     adw,
     factory::FactoryVecDeque,
-    gtk,
+    gtk::{self, gio::Cancellable},
     prelude::*,
     Component, ComponentParts, ComponentSender,
 };
@@ -35,6 +35,7 @@ relm4::new_stateless_action!(OpenAction, MenuActionGroup, "open");
 relm4::new_stateless_action!(SaveAction, MenuActionGroup, "save");
 relm4::new_stateless_action!(CloseAction, MenuActionGroup, "close");
 relm4::new_stateless_action!(AboutAction, MenuActionGroup, "about");
+relm4::new_stateless_action!(PasteEvidenceAction, MenuActionGroup, "paste-evidence");
 relm4::new_stateless_action!(ExportPackageAction, MenuActionGroup, "export-package");
 relm4::new_stateless_action!(ExportTestCaseAction, MenuActionGroup, "export-test-case");
 
@@ -48,6 +49,7 @@ pub struct AppModel {
     action_close: RelmAction<CloseAction>,
     action_export_package: RelmAction<ExportPackageAction>,
     action_export_test_case: RelmAction<ExportTestCaseAction>,
+    action_paste_evidence: RelmAction<PasteEvidenceAction>,
 
     latest_new_author_dlg: Option<Controller<NewAuthorDialogModel>>,
     latest_add_evidence_text_dlg: Option<Controller<AddTextEvidenceDialogModel>>,
@@ -197,6 +199,7 @@ pub enum AppInput {
     #[allow(dead_code)]
     AddFileEvidence,
     _AddEvidence(Evidence),
+    _AddMedia(MediaFile),
     /// Show an error dialog.
     ShowError {
         title: String,
@@ -207,6 +210,8 @@ pub enum AppInput {
     _ExportPackage(String, PathBuf),
     ExportTestCase,
     _ExportTestCase(String, PathBuf),
+    PasteEvidence,
+    ShowToast(String),
 }
 
 #[relm4::component(pub)]
@@ -556,6 +561,9 @@ impl Component for AppModel {
             &lang::lookup("header-save") => SaveAction,
             &lang::lookup("header-close") => CloseAction,
             section! {
+                &lang::lookup("header-paste-evidence") => PasteEvidenceAction,
+            },
+            section! {
                 &lang::lookup("header-export-package") => ExportPackageAction,
                 &lang::lookup("header-export-test-case") => ExportTestCaseAction,
             },
@@ -597,6 +605,15 @@ impl Component for AppModel {
         relm4::main_application().set_accelerators_for_action::<CloseAction>(&["<primary>W"]);
 
         let sender_c = sender.clone();
+        let action_paste_evidence: RelmAction<PasteEvidenceAction> =
+            RelmAction::new_stateless(move |_| {
+                sender_c.input(AppInput::PasteEvidence);
+            });
+        action_paste_evidence.set_enabled(false);
+        relm4::main_application()
+            .set_accelerators_for_action::<PasteEvidenceAction>(&["<primary>V"]);
+
+        let sender_c = sender.clone();
         let action_export_package: RelmAction<ExportPackageAction> =
             RelmAction::new_stateless(move |_| {
                 sender_c.input(AppInput::ExportPackage);
@@ -626,6 +643,7 @@ impl Component for AppModel {
         group.add_action(action_save.clone());
         group.add_action(action_close.clone());
         group.add_action(action_about);
+        group.add_action(action_paste_evidence.clone());
         group.add_action(action_export_package.clone());
         group.add_action(action_export_test_case.clone());
         group.register_for_widget(&root);
@@ -640,6 +658,7 @@ impl Component for AppModel {
             action_export_package,
             action_export_test_case,
             action_close,
+            action_paste_evidence,
 
             latest_error_dlg: None,
             latest_new_author_dlg: None,
@@ -719,7 +738,7 @@ impl Component for AppModel {
                             // Open this package
                             sender_c.input(AppInput::_SetPathThen(
                                 path.with_extension("evp"),
-                                Box::new(AppInput::_NewFile),
+                                Box::new(AppInput::__NewFile),
                             ));
                         }
                     },
@@ -864,6 +883,7 @@ impl Component for AppModel {
                 self.test_case_nav_factory
                     .broadcast(NavFactoryInput::ShowAsSelected(false));
                 self.action_export_test_case.set_enabled(false);
+                self.action_paste_evidence.set_enabled(false);
 
                 // Then select the new case
                 match target {
@@ -907,6 +927,7 @@ impl Component for AppModel {
                         };
                         self.open_case = OpenCase::Case { index, id };
                         self.action_export_test_case.set_enabled(true);
+                        self.action_paste_evidence.set_enabled(true);
 
                         self.test_case_nav_factory
                             .send(index, NavFactoryInput::ShowAsSelected(true));
@@ -1229,6 +1250,12 @@ impl Component for AppModel {
                     }
                 }
             }
+            AppInput::_AddMedia(media) => {
+                if let Some(pkg) = self.get_package() {
+                    // unwraps here cannot fail
+                    pkg.write().unwrap().add_media(media).unwrap();
+                }
+            }
             AppInput::ShowError { title, message } => {
                 let error_dlg = ErrorDialogModel::builder()
                     .launch(ErrorDialogInit {
@@ -1380,6 +1407,79 @@ impl Component for AppModel {
                     error_dlg.emit(ErrorDialogInput::Present(root.clone()));
                     self.latest_error_dlg = Some(error_dlg);
                 }
+            }
+            AppInput::PasteEvidence => {
+                if let Some(disp) = gtk::gdk::Display::default() {
+                    let clipboard = disp.clipboard();
+                    let mime_types = clipboard.formats().mime_types();
+                    log::debug!("Clipboard MIME types: {mime_types:?}");
+                    let mut matched_kind = false;
+                    'mime_loop: for mime in mime_types {
+                        match mime.as_str() {
+                            "text/plain" | "text/plain;charset=UTF-8" => {
+                                // Paste as text
+                                let sender_c = sender.clone();
+                                clipboard.read_text_async(Some(&Cancellable::new()), move |cb| {
+                                    if let Some(data) = cb.ok().flatten() {
+                                        let evidence = Evidence::new(
+                                            EvidenceKind::Text,
+                                            evidenceangel::EvidenceData::Text {
+                                                content: data.to_string(),
+                                            },
+                                        );
+                                        sender_c.input(AppInput::_AddEvidence(evidence));
+                                    } else {
+                                        sender_c.input(AppInput::ShowToast(lang::lookup(
+                                            "paste-evidence-failed",
+                                        )));
+                                    }
+                                });
+                                matched_kind = true;
+                                break 'mime_loop;
+                            }
+                            "image/png" | "image/jpeg" => {
+                                // Paste as image
+                                let sender_c = sender.clone();
+                                clipboard.read_texture_async(
+                                    Some(&Cancellable::new()),
+                                    move |cb| {
+                                        if let Some(data) = cb.ok().flatten() {
+                                            let media =
+                                                MediaFile::from(data.save_to_png_bytes().to_vec());
+                                            let evidence = Evidence::new(
+                                                EvidenceKind::Image,
+                                                evidenceangel::EvidenceData::Media {
+                                                    hash: media.hash(),
+                                                },
+                                            );
+                                            sender_c.input(AppInput::_AddMedia(media));
+                                            sender_c.input(AppInput::_AddEvidence(evidence));
+                                        } else {
+                                            sender_c.input(AppInput::ShowToast(lang::lookup(
+                                                "paste-evidence-failed",
+                                            )));
+                                        }
+                                    },
+                                );
+                                matched_kind = true;
+                                break 'mime_loop;
+                            }
+                            _ => (),
+                        }
+                    }
+                    if !matched_kind {
+                        sender.input(AppInput::ShowToast(lang::lookup(
+                            "paste-evidence-wrong-type",
+                        )));
+                    }
+                } else {
+                    log::warn!("No default display! Cannot get clipboard!");
+                }
+            }
+            AppInput::ShowToast(msg) => {
+                let toast = adw::Toast::new(&msg);
+                toast.set_timeout(3);
+                widgets.toast_target.add_toast(toast);
             }
         }
         self.update_view(widgets, sender)

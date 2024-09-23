@@ -10,6 +10,7 @@ header-save = Spara
 header-close = Stäng
 header-about = Om { app-name }
 header-menu = Meny
+header-paste-evidence = Klistra in bevis
 header-export-package = Exportera Paket...
 header-export-test-case = Exportera Testfall...
 

@@ -2,7 +2,7 @@ use getset::Getters;
 use std::fmt;
 
 /// A media file stored within an [`EvidencePackage`](super::EvidencePackage).
-#[derive(Getters)]
+#[derive(Clone, Getters)]
 pub struct MediaFile {
     /// The raw data of this media file.
     #[getset(get = "pub")]

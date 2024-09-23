@@ -169,6 +169,7 @@ impl FactoryComponent for EvidenceFactoryModel {
         };
 
         let box_widget = gtk::Box::new(gtk::Orientation::Vertical, 8);
+        box_widget.set_hexpand(true);
 
         // Append separator
         box_widget.append(&gtk::Separator::default());
