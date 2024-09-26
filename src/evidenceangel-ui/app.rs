@@ -24,7 +24,7 @@ use uuid::Uuid;
 use crate::{
     author_factory::{AuthorFactoryModel, AuthorFactoryOutput},
     dialogs::{add_evidence::*, error::*, export::*, new_author::*},
-    evidence_factory::{EvidenceFactoryInit, EvidenceFactoryModel},
+    evidence_factory::{EvidenceFactoryInit, EvidenceFactoryModel, EvidenceFactoryOutput},
     filter, lang,
     nav_factory::{NavFactoryInit, NavFactoryInput, NavFactoryModel, NavFactoryOutput},
 };
@@ -199,6 +199,8 @@ pub enum AppInput {
     #[allow(dead_code)]
     AddFileEvidence,
     _AddEvidence(Evidence),
+    ReplaceEvidenceAt(DynamicIndex, Evidence),
+    DeleteEvidenceAt(DynamicIndex),
     _AddMedia(MediaFile),
     /// Show an error dialog.
     ShowError {
@@ -683,7 +685,10 @@ impl Component for AppModel {
             ),
             test_evidence_factory: FactoryVecDeque::builder()
                 .launch_default()
-                .forward(sender.input_sender(), |msg| match msg {}),
+                .forward(sender.input_sender(), |msg| match msg {
+                    EvidenceFactoryOutput::UpdateEvidence(at, new_ev) => AppInput::ReplaceEvidenceAt(at, new_ev),
+                    EvidenceFactoryOutput::DeleteEvidence(at) => AppInput::DeleteEvidenceAt(at),
+                }),
         };
 
         let test_case_list = model.test_case_nav_factory.widget();
@@ -1244,6 +1249,41 @@ impl Component for AppModel {
                             .unwrap()
                             .evidence_mut()
                             .push(ev);
+                        self.needs_saving = true;
+                        // to refresh evidence
+                        sender.input(AppInput::NavigateTo(self.open_case));
+                    }
+                }
+            }
+            AppInput::ReplaceEvidenceAt(at, new_ev) => {
+                if let Some(pkg) = self.get_package() {
+                    if let OpenCase::Case { id, .. } = &self.open_case {
+                        let mut pkg = pkg.write().unwrap();
+                        let evidence = pkg
+                            .test_case_mut(*id)
+                            .ok()
+                            .flatten()
+                            .unwrap()
+                            .evidence_mut();
+                        if let Some(ev) = evidence.get_mut(at.current_index()) {
+                            *ev = new_ev;
+                        }
+                        self.needs_saving = true;
+                        // No need to update here as this is only triggered by things that visually change anyway
+                    }
+                }
+            }
+            AppInput::DeleteEvidenceAt(at) => {
+                if let Some(pkg) = self.get_package() {
+                    if let OpenCase::Case { id, .. } = &self.open_case {
+                        let mut pkg = pkg.write().unwrap();
+                        let evidence = pkg
+                            .test_case_mut(*id)
+                            .ok()
+                            .flatten()
+                            .unwrap()
+                            .evidence_mut();
+                        evidence.remove(at.current_index());
                         self.needs_saving = true;
                         // to refresh evidence
                         sender.input(AppInput::NavigateTo(self.open_case));

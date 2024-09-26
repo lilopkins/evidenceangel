@@ -61,7 +61,9 @@ author-create-submit = Lägg till
 test-group-title = Testfallsmetadata
 test-title = Testfallstitel
 test-execution = Tidpunkt för Testfallet
+test-evidence-caption = Rubrik
 
+evidence-delete = Ta bort det här bevis
 add-evidence-title = Lägg till Bevis
 add-evidence-submit = Lägg till
 add-evidence-text-label = Textbevis

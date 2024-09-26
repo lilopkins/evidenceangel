@@ -14,6 +14,7 @@ use crate::lang;
 const EVIDENCE_HEIGHT_REQUEST: i32 = 300;
 
 pub struct EvidenceFactoryModel {
+    index: DynamicIndex,
     evidence: Evidence,
     package: Arc<RwLock<EvidencePackage>>,
 }
@@ -54,10 +55,19 @@ impl EvidenceFactoryModel {
 }
 
 #[derive(Debug)]
-pub enum EvidenceFactoryInput {}
+pub enum EvidenceFactoryInput {
+    /// Set the text for a text evidence object. If not text evidence, panic.
+    TextSetText(String),
+    /// Set the caption for this evidence.
+    SetCaption(String),
+    Delete,
+}
 
 #[derive(Debug)]
-pub enum EvidenceFactoryOutput {}
+pub enum EvidenceFactoryOutput {
+    UpdateEvidence(DynamicIndex, Evidence),
+    DeleteEvidence(DynamicIndex),
+}
 
 pub struct EvidenceFactoryInit {
     pub evidence: Evidence,
@@ -77,27 +87,32 @@ impl FactoryComponent for EvidenceFactoryModel {
         gtk::Box {}
     }
 
-    fn init_model(init: Self::Init, _index: &DynamicIndex, _sender: FactorySender<Self>) -> Self {
+    fn init_model(init: Self::Init, index: &DynamicIndex, _sender: FactorySender<Self>) -> Self {
         let EvidenceFactoryInit { evidence, package } = init;
-        Self { evidence, package }
+        Self { index: index.clone(), evidence, package }
     }
 
     fn init_widgets(
         &mut self,
-        _index: &DynamicIndex,
+        index: &DynamicIndex,
         root: Self::Root,
         _returned_widget: &<Self::ParentWidget as FactoryView>::ReturnedWidget,
-        _sender: FactorySender<Self>,
+        sender: FactorySender<Self>,
     ) -> Self::Widgets {
         let widgets = view_output!();
+        self.index = index.clone();
 
         let main_widget = match self.evidence.kind() {
             EvidenceKind::Text => {
                 let ui_box = gtk::Box::default();
-                let label = gtk::Label::new(Some(&self.get_data_as_string()));
-                label.set_ellipsize(gtk::pango::EllipsizeMode::End);
-                label.set_selectable(true);
-                ui_box.append(&label);
+                let ml = gtk::TextView::new();
+                ml.buffer().set_text(&self.get_data_as_string());
+                let sender_c = sender.clone();
+                ml.buffer().connect_changed(move |buf| {
+                    sender_c.input(EvidenceFactoryInput::TextSetText(buf.text(&buf.start_iter(), &buf.end_iter(), false).to_string()));
+                });
+                ml.set_hexpand(true);
+                ui_box.append(&ml);
                 ui_box
             }
             EvidenceKind::Image => {
@@ -174,14 +189,33 @@ impl FactoryComponent for EvidenceFactoryModel {
         // Append separator
         box_widget.append(&gtk::Separator::default());
 
-        // Append caption (if set)
+        let row_box = gtk::Box::new(gtk::Orientation::Horizontal, 8);
+        // Append caption
+        let caption_txt = gtk::Entry::new();
+        caption_txt.set_placeholder_text(Some(&lang::lookup("test-evidence-caption")));
+        caption_txt.set_hexpand(true);
         if let Some(caption) = self.evidence.caption() {
-            let caption_lbl = gtk::Label::default();
-            caption_lbl.set_text(caption);
-            caption_lbl.set_selectable(true);
-            box_widget.append(&caption_lbl);
+            caption_txt.set_text(caption);
         }
+        let sender_c = sender.clone();
+        caption_txt.connect_changed(move |entry| {
+            sender_c.input(EvidenceFactoryInput::SetCaption(entry.text().to_string()));
+        });
+        row_box.append(&caption_txt);
 
+        // Append delete button
+        let btn_delete = gtk::Button::new();
+        btn_delete.set_icon_name(relm4_icons::icon_names::DELETE_FILLED);
+        btn_delete.set_tooltip(&lang::lookup("evidence-delete"));
+        btn_delete.add_css_class("circle");
+        btn_delete.add_css_class("destructive-action");
+        let sender_c = sender.clone();
+        btn_delete.connect_clicked(move |_| {
+            sender_c.input(EvidenceFactoryInput::Delete);
+        });
+        row_box.append(&btn_delete);
+
+        box_widget.append(&row_box);
         box_widget.append(&main_widget);
 
         root.append(&box_widget);
@@ -189,7 +223,21 @@ impl FactoryComponent for EvidenceFactoryModel {
         widgets
     }
 
-    fn update(&mut self, message: Self::Input, _sender: FactorySender<Self>) {
-        match message {}
+    fn update(&mut self, message: Self::Input, sender: FactorySender<Self>) {
+        match message {
+            EvidenceFactoryInput::SetCaption(new_caption) => {
+                self.evidence.caption_mut().replace(new_caption);
+                sender.output(EvidenceFactoryOutput::UpdateEvidence(self.index.clone(), self.evidence.clone())).unwrap();
+            }
+            EvidenceFactoryInput::TextSetText(new_text) => {
+                if let EvidenceData::Text { content } = self.evidence.value_mut() {
+                    *content = new_text;
+                }
+                sender.output(EvidenceFactoryOutput::UpdateEvidence(self.index.clone(), self.evidence.clone())).unwrap();
+            }
+            EvidenceFactoryInput::Delete => {
+                sender.output(EvidenceFactoryOutput::DeleteEvidence(self.index.clone())).unwrap();
+            }
+        }
     }
 }

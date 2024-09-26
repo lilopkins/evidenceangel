@@ -64,6 +64,7 @@ author-create-submit = Add
 test-group-title = Test Case Metadata
 test-title = Test Case Title
 test-execution = Test Case Execution Time
+test-evidence-caption = Caption
 
 add-evidence-title = Add Evidence
 add-evidence-submit = Add
@@ -86,6 +87,7 @@ export-error-nothing-open-message = Nothing is open to export.
 export-error-failed-title = Failed to Export
 export-error-failed-message = Failed to export: { $error }
 
+evidence-delete = Delete this Evidence
 evidence-text = Text
 evidence-http = HTTP Request
 evidence-image = Image
