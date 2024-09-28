@@ -138,7 +138,7 @@ impl FactoryComponent for EvidenceFactoryModel {
                     set_spacing: 8,
 
                     gtk::Image {
-                        set_icon_name: Some(&relm4_icons::icon_names::CHEVRON_UP_DOWN_REGULAR),
+                        set_icon_name: Some(relm4_icons::icon_names::CHEVRON_UP_DOWN_REGULAR),
                     },
                     gtk::Entry {
                         set_placeholder_text: Some(&lang::lookup("test-evidence-caption")),
