@@ -27,6 +27,7 @@ use crate::{
     evidence_factory::{EvidenceFactoryInit, EvidenceFactoryModel, EvidenceFactoryOutput},
     filter, lang,
     nav_factory::{NavFactoryInit, NavFactoryInput, NavFactoryModel, NavFactoryOutput},
+    util::BoxedEvidenceJson,
 };
 
 relm4::new_action_group!(MenuActionGroup, "menu");
@@ -199,6 +200,8 @@ pub enum AppInput {
     #[allow(dead_code)]
     AddFileEvidence,
     _AddEvidence(Evidence),
+    /// `InsertEvidenceAt` MUST NOT update the interface.
+    InsertEvidenceAt(usize, Evidence),
     ReplaceEvidenceAt(DynamicIndex, Evidence),
     DeleteEvidenceAt(DynamicIndex),
     _AddMedia(MediaFile),
@@ -489,6 +492,22 @@ impl Component for AppModel {
                                                     //set_spacing: 8,
                                                     add_css_class: "linked",
 
+                                                    add_controller = gtk::DropTarget {
+                                                        set_actions: gtk::gdk::DragAction::MOVE,
+                                                        set_types: &[BoxedEvidenceJson::static_type()],
+
+                                                        connect_drop[sender] => move |_slf, val, _x, _y| {
+                                                            log::debug!("Dropped type: {:?}", val.type_());
+                                                            if let Ok(data) = val.get::<BoxedEvidenceJson>() {
+                                                                let ev = data.inner();
+                                                                log::debug!("Dropped data: {ev:?}");
+                                                                sender.input(AppInput::_AddEvidence(ev));
+                                                                return true;
+                                                            }
+                                                            false
+                                                        },
+                                                    },
+
                                                     gtk::Button {
                                                         connect_clicked => AppInput::AddTextEvidence,
                                                         add_css_class: "pill",
@@ -683,12 +702,18 @@ impl Component for AppModel {
                     AuthorFactoryOutput::DeleteAuthor(author) => AppInput::DeleteAuthor(author),
                 },
             ),
-            test_evidence_factory: FactoryVecDeque::builder()
-                .launch_default()
-                .forward(sender.input_sender(), |msg| match msg {
-                    EvidenceFactoryOutput::UpdateEvidence(at, new_ev) => AppInput::ReplaceEvidenceAt(at, new_ev),
+            test_evidence_factory: FactoryVecDeque::builder().launch_default().forward(
+                sender.input_sender(),
+                |msg| match msg {
+                    EvidenceFactoryOutput::UpdateEvidence(at, new_ev) => {
+                        AppInput::ReplaceEvidenceAt(at, new_ev)
+                    }
+                    EvidenceFactoryOutput::InsertEvidenceBefore(index, ev) => {
+                        AppInput::InsertEvidenceAt(index.current_index(), ev)
+                    }
                     EvidenceFactoryOutput::DeleteEvidence(at) => AppInput::DeleteEvidenceAt(at),
-                }),
+                },
+            ),
         };
 
         let test_case_list = model.test_case_nav_factory.widget();
@@ -1252,6 +1277,31 @@ impl Component for AppModel {
                         self.needs_saving = true;
                         // to refresh evidence
                         sender.input(AppInput::NavigateTo(self.open_case));
+                    }
+                }
+            }
+            AppInput::InsertEvidenceAt(at, ev) => {
+                if let Some(pkg) = self.get_package() {
+                    if let OpenCase::Case { id, .. } = &self.open_case {
+                        pkg.write()
+                            .unwrap()
+                            .test_case_mut(*id)
+                            .ok()
+                            .flatten()
+                            .unwrap()
+                            .evidence_mut()
+                            .insert(at, ev.clone());
+                        self.needs_saving = true;
+                        // MUST NOT refresh interface -- cannot lose DynamicIndex references
+                        // add dummy entry to list to update DynamicIndex position correctly
+                        let mut tef = self.test_evidence_factory.guard();
+                        tef.insert(
+                            at,
+                            EvidenceFactoryInit {
+                                package: pkg.clone(),
+                                evidence: ev,
+                            },
+                        );
                     }
                 }
             }

@@ -23,6 +23,7 @@ mod evidence_factory;
 mod filter;
 mod lang;
 mod nav_factory;
+mod util;
 
 #[derive(Parser)]
 #[command(version, about, long_about = None)]

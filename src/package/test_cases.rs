@@ -56,7 +56,7 @@ pub struct TestCaseMetadata {
 }
 
 /// Evidence in a [`TestCase`].
-#[derive(Clone, Debug, Serialize, Deserialize, Getters, MutGetters, Setters)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Getters, MutGetters, Setters)]
 #[getset(get = "pub")]
 pub struct Evidence {
     /// The kind of this evidence.
@@ -84,7 +84,7 @@ impl Evidence {
 }
 
 /// Kinds of [`Evidence`].
-#[derive(Copy, Clone, Debug, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum EvidenceKind {
     /// A text entry.
     Text,
@@ -97,7 +97,7 @@ pub enum EvidenceKind {
 }
 
 /// Data in a piece of [`Evidence`].
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum EvidenceData {
     /// Text based data.
     Text {

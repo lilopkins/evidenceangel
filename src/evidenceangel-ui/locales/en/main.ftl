@@ -87,6 +87,9 @@ export-error-nothing-open-message = Nothing is open to export.
 export-error-failed-title = Failed to Export
 export-error-failed-message = Failed to export: { $error }
 
+evidence-menu = Evidence Actions
+evidence-move-up = Move this Up
+evidence-move-down = Move this Down
 evidence-delete = Delete this Evidence
 evidence-text = Text
 evidence-http = HTTP Request

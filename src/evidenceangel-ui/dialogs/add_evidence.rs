@@ -148,6 +148,10 @@ impl Component for AddHttpEvidenceDialogModel {
                                 #[name = "req_entry"]
                                 gtk::TextView {
                                     set_monospace: true,
+                                    set_top_margin: 4,
+                                    set_left_margin: 4,
+                                    set_right_margin: 4,
+                                    set_bottom_margin: 4,
                                 },
                             },
                         },
@@ -159,6 +163,10 @@ impl Component for AddHttpEvidenceDialogModel {
                                 #[name = "res_entry"]
                                 gtk::TextView {
                                     set_monospace: true,
+                                    set_top_margin: 4,
+                                    set_left_margin: 4,
+                                    set_right_margin: 4,
+                                    set_bottom_margin: 4,
                                 },
                             },
                         },
