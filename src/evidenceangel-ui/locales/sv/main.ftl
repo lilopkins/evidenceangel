@@ -61,6 +61,7 @@ author-create-submit = Lägg till
 test-group-title = Testfallsmetadata
 test-title = Testfallstitel
 test-execution = Tidpunkt för Testfallet
+test-evidence-caption = Rubrik
 
 add-evidence-title = Lägg till Bevis
 add-evidence-submit = Lägg till
@@ -83,6 +84,10 @@ export-error-nothing-open-message = Inget är öppet att exportera.
 export-error-failed-title = Misslyckades att Exportera
 export-error-failed-message = Misslyckades att exportera: { $error }
 
+evidence-menu = Bevisåtgärder
+evidence-move-up = Flytta det här Upp
+evidence-move-down = Flytta det här Ner
+evidence-delete = Ta bort det här bevis
 evidence-text = Text
 evidence-http = HTTP-begäran
 evidence-image = Bild

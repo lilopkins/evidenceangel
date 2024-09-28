@@ -4,5 +4,13 @@ base_resource_path = "/uk/hpkns/EvidenceAngel/"
 
 # List of icon names you found (shipped with this crate)
 # Note: the file ending `-symbolic.svg` isn't part of the icon name.
-icons = ["menu", "plus", "lightbulb", "cross-large", "folder-open-filled", "delete-filled"]
+icons = [
+    "chevron-up-down-regular",
+    "cross-large",
+    "delete-filled",
+    "folder-open-filled",
+    "lightbulb",
+    "menu",
+    "plus",
+]
 icon_folder = "icons"
