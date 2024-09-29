@@ -709,12 +709,14 @@ impl Component for AppModel {
                         AppInput::ReplaceEvidenceAt(at, new_ev)
                     }
                     EvidenceFactoryOutput::InsertEvidenceAt(index, offset, ev) => {
-                        let idx_with_offset = if offset > 0 {
-                            index.current_index().saturating_add(offset as usize)
-                        } else if offset < 0 {
-                            index.current_index().saturating_sub((-offset) as usize)
-                        } else {
-                            index.current_index()
+                        let idx_with_offset = match offset.cmp(&0isize) {
+                            std::cmp::Ordering::Greater => {
+                                index.current_index().saturating_add(offset as usize)
+                            }
+                            std::cmp::Ordering::Less => {
+                                index.current_index().saturating_sub((-offset) as usize)
+                            }
+                            std::cmp::Ordering::Equal => index.current_index(),
                         };
                         AppInput::InsertEvidenceAt(idx_with_offset, ev)
                     }
