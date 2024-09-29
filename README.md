@@ -22,18 +22,15 @@ EvidenceAngel should allow a single evidence package to contain:
     - Case Execution Date and Time
     - Case Evidence
 
-EvidenceAngel should allow users to:
+EvidenceAngel allows users to:
 
-- [x] Create a new package
-- [x] Create a new test case
-- [x] Add evidence to a test case
-- [ ] (GUI only) Edit evidence in a test case
-- [x] Delete evidence from a test case
-- [ ] (GUI only) Annotate evidence
-    - [ ] Highlighting parts of images and files
-    - [ ] Writing comments
+- Create a new package
+- Create a new test case
+- Add evidence to a test case
+- (GUI only) Edit evidence in a test case
+- Delete evidence from a test case
 
-EvidenceAngel should allow data to be exported into a variety of interchange formats:
+EvidenceAngel allows data to be exported into a variety of interchange formats:
 
-- [x] HTML document
-- [x] Excel file (with sheets per test case)
+- HTML document
+- Excel file (with sheets per test case)

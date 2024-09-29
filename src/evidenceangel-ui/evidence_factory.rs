@@ -64,6 +64,8 @@ pub enum EvidenceFactoryInput {
     TextSetText(String),
     /// Set the caption for this evidence.
     SetCaption(String),
+    MoveUp,
+    MoveDown,
     Delete,
 }
 
@@ -73,9 +75,9 @@ pub enum EvidenceFactoryOutput {
     UpdateEvidence(DynamicIndex, Evidence),
     /// Delete evidence at the given position. This MUST trigger an update to the interface.
     DeleteEvidence(DynamicIndex),
-    /// `InsertEvidenceBefore` MUST be followed by a `DeleteEvidence` call as it is only triggered by a data move.
+    /// `InsertEvidenceAt` MUST be followed by a `DeleteEvidence` call as it is only triggered by a data move.
     /// As such, it MUST NOT trigger an update to the interface.
-    InsertEvidenceBefore(DynamicIndex, Evidence),
+    InsertEvidenceAt(DynamicIndex, isize, Evidence),
 }
 
 pub struct EvidenceFactoryInit {
@@ -119,7 +121,7 @@ impl FactoryComponent for EvidenceFactoryModel {
                     if let Ok(data) = val.get::<BoxedEvidenceJson>() {
                         let ev = data.inner();
                         log::debug!("Dropped data: {ev:?}");
-                        sender.output(EvidenceFactoryOutput::InsertEvidenceBefore(index.clone(), ev)).unwrap();
+                        sender.output(EvidenceFactoryOutput::InsertEvidenceAt(index.clone(), 0, ev)).unwrap();
                         return true;
                     }
                     false
@@ -162,13 +164,13 @@ impl FactoryComponent for EvidenceFactoryModel {
                                     set_label: &lang::lookup("evidence-move-up"),
                                     add_css_class: "flat",
 
-                                    // TODO connect_clicked => EvidenceFactoryInput::MoveUp,
+                                    connect_clicked => EvidenceFactoryInput::MoveUp,
                                 },
                                 gtk::Button {
                                     set_label: &lang::lookup("evidence-move-down"),
                                     add_css_class: "flat",
 
-                                    // TODO connect_clicked => EvidenceFactoryInput::MoveDown,
+                                    connect_clicked => EvidenceFactoryInput::MoveDown,
                                 },
                                 gtk::Button {
                                     set_label: &lang::lookup("evidence-delete"),
@@ -322,6 +324,30 @@ impl FactoryComponent for EvidenceFactoryModel {
                     .unwrap();
             }
             EvidenceFactoryInput::Delete => {
+                sender
+                    .output(EvidenceFactoryOutput::DeleteEvidence(self.index.clone()))
+                    .unwrap();
+            }
+            EvidenceFactoryInput::MoveUp => {
+                sender
+                    .output(EvidenceFactoryOutput::InsertEvidenceAt(
+                        self.index.clone(),
+                        -1,
+                        self.evidence.read().unwrap().clone(),
+                    ))
+                    .unwrap();
+                sender
+                    .output(EvidenceFactoryOutput::DeleteEvidence(self.index.clone()))
+                    .unwrap();
+            }
+            EvidenceFactoryInput::MoveDown => {
+                sender
+                    .output(EvidenceFactoryOutput::InsertEvidenceAt(
+                        self.index.clone(),
+                        2, // insert after self, which hasn't yet been deleted
+                        self.evidence.read().unwrap().clone(),
+                    ))
+                    .unwrap();
                 sender
                     .output(EvidenceFactoryOutput::DeleteEvidence(self.index.clone()))
                     .unwrap();

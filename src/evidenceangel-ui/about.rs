@@ -25,7 +25,6 @@ impl SimpleComponent for AppAbout {
 
             add_acknowledgement_section: (Some(&lang::lookup("acknowledgements-testing-title")), &["John Chander", "Eden Turner"]),
             add_acknowledgement_section: (Some(&lang::lookup("acknowledgements-translations-title")), &["Lily Hopkins"]),
-            // TODO Update licenses
             add_legal_section: ("GTK",               None, gtk::License::Gpl20Only, None),
             add_legal_section: ("Adwaita",           None, gtk::License::Gpl20Only, None),
             add_legal_section: ("base64",            None, gtk::License::MitX11,    None),
