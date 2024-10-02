@@ -1536,7 +1536,7 @@ impl Component for AppModel {
                                 matched_kind = true;
                                 break 'mime_loop;
                             }
-                            "image/png" | "image/jpeg" => {
+                            "image/png" | "image/jpeg" | "image/bmp" => {
                                 // Paste as image
                                 let sender_c = sender.clone();
                                 clipboard.read_texture_async(
