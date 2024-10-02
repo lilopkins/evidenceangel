@@ -1481,7 +1481,7 @@ impl Component for AppModel {
                             self.latest_error_dlg = Some(error_dlg);
                         } else {
                             let toast = adw::Toast::new(&lang::lookup("toast-export-complete"));
-                            toast.set_timeout(1);
+                            toast.set_timeout(3);
                             widgets.toast_target.add_toast(toast);
                         }
                     } else {
