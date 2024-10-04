@@ -425,6 +425,7 @@ impl Component for AppModel {
                                         }
                                     },
                                     OpenCase::Case { .. } => gtk::Box {
+                                        #[name = "test_case_scrolled"]
                                         gtk::ScrolledWindow {
                                             set_hscrollbar_policy: gtk::PolicyType::Never,
                                             set_vexpand: true,
@@ -486,11 +487,10 @@ impl Component for AppModel {
                                                 },
 
                                                 gtk::Box {
-                                                    set_orientation: gtk::Orientation::Horizontal,
-                                                    set_margin_top: 8,
-                                                    set_halign: gtk::Align::Center,
-                                                    //set_spacing: 8,
-                                                    add_css_class: "linked",
+                                                    set_orientation: gtk::Orientation::Vertical,
+                                                    set_hexpand: true,
+                                                    set_halign: gtk::Align::Fill,
+                                                    set_spacing: 2,
 
                                                     add_controller = gtk::DropTarget {
                                                         set_actions: gtk::gdk::DragAction::MOVE,
@@ -508,61 +508,69 @@ impl Component for AppModel {
                                                         },
                                                     },
 
+                                                    gtk::Box {
+                                                        set_orientation: gtk::Orientation::Horizontal,
+                                                        set_margin_top: 8,
+                                                        set_halign: gtk::Align::Center,
+                                                        //set_spacing: 8,
+                                                        add_css_class: "linked",
+
+                                                        gtk::Button {
+                                                            connect_clicked => AppInput::AddTextEvidence,
+                                                            add_css_class: "pill",
+
+                                                            adw::ButtonContent {
+                                                                set_icon_name: relm4_icons::icon_names::PLUS,
+                                                                set_label: &lang::lookup("evidence-text"),
+                                                            }
+                                                        },
+                                                        gtk::Button {
+                                                            connect_clicked => AppInput::AddHttpEvidence,
+                                                            add_css_class: "pill",
+
+                                                            adw::ButtonContent {
+                                                                set_icon_name: relm4_icons::icon_names::PLUS,
+                                                                set_label: &lang::lookup("evidence-http"),
+                                                            }
+                                                        },
+                                                        gtk::Button {
+                                                            connect_clicked => AppInput::AddImageEvidence,
+                                                            add_css_class: "pill",
+
+                                                            adw::ButtonContent {
+                                                                set_icon_name: relm4_icons::icon_names::PLUS,
+                                                                set_label: &lang::lookup("evidence-image"),
+                                                            }
+                                                        },
+                                                        /* gtk::Button {
+                                                            connect_clicked => AppInput::AddFileEvidence,
+                                                            add_css_class: "pill",
+
+                                                            adw::ButtonContent {
+                                                                set_icon_name: relm4_icons::icon_names::PLUS,
+                                                                set_label: &lang::lookup("evidence-file"),
+                                                            }
+                                                        }, */
+                                                    },
+
+                                                    gtk::Separator {
+                                                        add_css_class: "spacer",
+                                                    },
+
                                                     gtk::Button {
-                                                        connect_clicked => AppInput::AddTextEvidence,
                                                         add_css_class: "pill",
+                                                        add_css_class: "destructive-action",
+                                                        set_margin_top: 8,
+                                                        set_halign: gtk::Align::Center,
+
+                                                        connect_clicked => AppInput::DeleteSelectedCase,
 
                                                         adw::ButtonContent {
-                                                            set_icon_name: relm4_icons::icon_names::PLUS,
-                                                            set_label: &lang::lookup("evidence-text"),
+                                                            set_icon_name: relm4_icons::icon_names::DELETE_FILLED,
+                                                            set_label: &lang::lookup("nav-delete-case"),
                                                         }
                                                     },
-                                                    gtk::Button {
-                                                        connect_clicked => AppInput::AddHttpEvidence,
-                                                        add_css_class: "pill",
-
-                                                        adw::ButtonContent {
-                                                            set_icon_name: relm4_icons::icon_names::PLUS,
-                                                            set_label: &lang::lookup("evidence-http"),
-                                                        }
-                                                    },
-                                                    gtk::Button {
-                                                        connect_clicked => AppInput::AddImageEvidence,
-                                                        add_css_class: "pill",
-
-                                                        adw::ButtonContent {
-                                                            set_icon_name: relm4_icons::icon_names::PLUS,
-                                                            set_label: &lang::lookup("evidence-image"),
-                                                        }
-                                                    },
-                                                    /* gtk::Button {
-                                                        connect_clicked => AppInput::AddFileEvidence,
-                                                        add_css_class: "pill",
-
-                                                        adw::ButtonContent {
-                                                            set_icon_name: relm4_icons::icon_names::PLUS,
-                                                            set_label: &lang::lookup("evidence-file"),
-                                                        }
-                                                    }, */
-                                                },
-
-                                                gtk::Separator {
-                                                    add_css_class: "spacer",
-                                                },
-
-                                                gtk::Button {
-                                                    add_css_class: "pill",
-                                                    add_css_class: "destructive-action",
-                                                    set_margin_top: 8,
-                                                    set_halign: gtk::Align::Center,
-
-                                                    connect_clicked => AppInput::DeleteSelectedCase,
-
-                                                    adw::ButtonContent {
-                                                        set_icon_name: relm4_icons::icon_names::DELETE_FILLED,
-                                                        set_label: &lang::lookup("nav-delete-case"),
-                                                    }
-                                                },
+                                                }
                                             }
                                         }
                                     },
@@ -1294,6 +1302,10 @@ impl Component for AppModel {
                             evidence: ev,
                             package: pkg.clone(),
                         });
+                        // scroll to the bottom
+                        let adj = widgets.test_case_scrolled.vadjustment();
+                        adj.set_value(adj.upper());
+                        widgets.test_case_scrolled.set_vadjustment(Some(&adj));
                     }
                 }
             }
