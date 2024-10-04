@@ -1430,8 +1430,8 @@ impl Component for AppModel {
                 if let Some(pkg) = &self.open_package {
                     let mut pkg = pkg.write().unwrap();
                     if let Err(e) = match format.as_str() {
-                        "html document" => HtmlExporter.export_package(&mut pkg, path),
-                        "excel workbook" => ExcelExporter.export_package(&mut pkg, path),
+                        "html document" => HtmlExporter.export_package(&mut pkg, path.clone()),
+                        "excel workbook" => ExcelExporter.export_package(&mut pkg, path.clone()),
                         _ => {
                             log::error!("Invalid format specified.");
                             Ok(())
@@ -1455,7 +1455,11 @@ impl Component for AppModel {
                         self.latest_error_dlg = Some(error_dlg);
                     } else {
                         let toast = adw::Toast::new(&lang::lookup("toast-export-complete"));
-                        toast.set_timeout(3);
+                        toast.set_timeout(5);
+                        toast.set_button_label(Some(&lang::lookup("header-open")));
+                        toast.connect_button_clicked(move |_| {
+                            let _ = open::that(path.clone());
+                        });
                         widgets.toast_target.add_toast(toast);
                     }
                 } else {
@@ -1476,8 +1480,12 @@ impl Component for AppModel {
 
                     if let OpenCase::Case { id, .. } = &self.open_case {
                         if let Err(e) = match format.as_str() {
-                            "html document" => HtmlExporter.export_case(&mut pkg, *id, path),
-                            "excel workbook" => ExcelExporter.export_case(&mut pkg, *id, path),
+                            "html document" => {
+                                HtmlExporter.export_case(&mut pkg, *id, path.clone())
+                            }
+                            "excel workbook" => {
+                                ExcelExporter.export_case(&mut pkg, *id, path.clone())
+                            }
                             _ => {
                                 log::error!("Invalid format specified.");
                                 Ok(())
@@ -1501,7 +1509,11 @@ impl Component for AppModel {
                             self.latest_error_dlg = Some(error_dlg);
                         } else {
                             let toast = adw::Toast::new(&lang::lookup("toast-export-complete"));
-                            toast.set_timeout(3);
+                            toast.set_timeout(5);
+                            toast.set_button_label(Some(&lang::lookup("header-open")));
+                            toast.connect_button_clicked(move |_| {
+                                let _ = open::that(path.clone());
+                            });
                             widgets.toast_target.add_toast(toast);
                         }
                     } else {
