@@ -126,7 +126,6 @@ impl Component for ExportDialogModel {
         match message {
             ExportInput::Present(window) => {
                 root.present(Some(&window));
-                sender.input(ExportInput::_CheckPathValidity);
             }
             ExportInput::_CheckPathValidity => {
                 let path = widgets.file_row.text().to_string();
@@ -138,6 +137,7 @@ impl Component for ExportDialogModel {
             }
             ExportInput::_Export => {
                 let path = widgets.file_row.text().to_string();
+                sender.input(ExportInput::_CheckPathValidity);
                 if path.trim().is_empty() {
                     return;
                 }
