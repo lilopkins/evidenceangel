@@ -1097,9 +1097,11 @@ impl Component for AppModel {
                         .unwrap()
                         .metadata_mut()
                         .authors_mut()
-                        .push(author);
+                        .push(author.clone());
                     self.needs_saving = true;
-                    sender.input(AppInput::NavigateTo(OpenCase::Metadata)); // to refresh author list
+                    // Add to author list
+                    let mut authors = self.authors_factory.guard();
+                    authors.push_back(author);
                 }
             }
             AppInput::DeleteAuthor(author) => {
@@ -1118,7 +1120,9 @@ impl Component for AppModel {
                         .authors_mut()
                         .remove(idx);
                     self.needs_saving = true;
-                    sender.input(AppInput::NavigateTo(OpenCase::Metadata)); // to refresh author list
+                    // refresh author list
+                    let mut authors = self.authors_factory.guard();
+                    authors.remove(idx);
                 }
             }
             AppInput::SetTestCaseTitle(new_title) => {
@@ -1282,10 +1286,14 @@ impl Component for AppModel {
                             .flatten()
                             .unwrap()
                             .evidence_mut()
-                            .push(ev);
+                            .push(ev.clone());
                         self.needs_saving = true;
-                        // to refresh evidence
-                        sender.input(AppInput::NavigateTo(self.open_case));
+                        // update evidence
+                        let mut evidence = self.test_evidence_factory.guard();
+                        evidence.push_back(EvidenceFactoryInit {
+                            evidence: ev,
+                            package: pkg.clone(),
+                        });
                     }
                 }
             }
@@ -1301,8 +1309,7 @@ impl Component for AppModel {
                             .evidence_mut()
                             .insert(at, ev.clone());
                         self.needs_saving = true;
-                        // MUST NOT refresh interface -- cannot lose DynamicIndex references
-                        // add dummy entry to list to update DynamicIndex position correctly
+                        // update evidence
                         let mut tef = self.test_evidence_factory.guard();
                         tef.insert(
                             at,
@@ -1344,8 +1351,9 @@ impl Component for AppModel {
                             .evidence_mut();
                         evidence.remove(at.current_index());
                         self.needs_saving = true;
-                        // to refresh evidence
-                        sender.input(AppInput::NavigateTo(self.open_case));
+                        // update evidence
+                        let mut tef = self.test_evidence_factory.guard();
+                        tef.remove(at.current_index());
                     }
                 }
             }
