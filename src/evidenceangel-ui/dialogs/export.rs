@@ -18,6 +18,7 @@ pub enum ExportInput {
     _Export,
     _SelectFile,
     _FileSelected(PathBuf),
+    _CheckPathValidity,
 }
 
 #[derive(Debug)]
@@ -88,6 +89,7 @@ impl Component for ExportDialogModel {
                                 connect_clicked => ExportInput::_SelectFile,
                             },
                             connect_entry_activated => ExportInput::_Export,
+                            connect_changed => ExportInput::_CheckPathValidity,
                         },
                     },
                     gtk::Button {
@@ -125,8 +127,20 @@ impl Component for ExportDialogModel {
             ExportInput::Present(window) => {
                 root.present(Some(&window));
             }
+            ExportInput::_CheckPathValidity => {
+                let path = widgets.file_row.text().to_string();
+                if path.trim().is_empty() {
+                    widgets.file_row.add_css_class("error");
+                } else {
+                    widgets.file_row.remove_css_class("error");
+                }
+            }
             ExportInput::_Export => {
                 let path = widgets.file_row.text().to_string();
+                sender.input(ExportInput::_CheckPathValidity);
+                if path.trim().is_empty() {
+                    return;
+                }
                 let mut path = PathBuf::from(path);
                 // Update extension
                 let extension = EXPORT_EXTENSIONS[widgets.format_row.selected() as usize];

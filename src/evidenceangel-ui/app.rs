@@ -217,6 +217,7 @@ pub enum AppInput {
     _ExportTestCase(String, PathBuf),
     PasteEvidence,
     ShowToast(String),
+    ReinstatePaste,
 }
 
 #[relm4::component(pub)]
@@ -425,6 +426,7 @@ impl Component for AppModel {
                                         }
                                     },
                                     OpenCase::Case { .. } => gtk::Box {
+                                        #[name = "test_case_scrolled"]
                                         gtk::ScrolledWindow {
                                             set_hscrollbar_policy: gtk::PolicyType::Never,
                                             set_vexpand: true,
@@ -486,11 +488,10 @@ impl Component for AppModel {
                                                 },
 
                                                 gtk::Box {
-                                                    set_orientation: gtk::Orientation::Horizontal,
-                                                    set_margin_top: 8,
-                                                    set_halign: gtk::Align::Center,
-                                                    //set_spacing: 8,
-                                                    add_css_class: "linked",
+                                                    set_orientation: gtk::Orientation::Vertical,
+                                                    set_hexpand: true,
+                                                    set_halign: gtk::Align::Fill,
+                                                    set_spacing: 2,
 
                                                     add_controller = gtk::DropTarget {
                                                         set_actions: gtk::gdk::DragAction::MOVE,
@@ -508,61 +509,69 @@ impl Component for AppModel {
                                                         },
                                                     },
 
+                                                    gtk::Box {
+                                                        set_orientation: gtk::Orientation::Horizontal,
+                                                        set_margin_top: 8,
+                                                        set_halign: gtk::Align::Center,
+                                                        //set_spacing: 8,
+                                                        add_css_class: "linked",
+
+                                                        gtk::Button {
+                                                            connect_clicked => AppInput::AddTextEvidence,
+                                                            add_css_class: "pill",
+
+                                                            adw::ButtonContent {
+                                                                set_icon_name: relm4_icons::icon_names::PLUS,
+                                                                set_label: &lang::lookup("evidence-text"),
+                                                            }
+                                                        },
+                                                        gtk::Button {
+                                                            connect_clicked => AppInput::AddHttpEvidence,
+                                                            add_css_class: "pill",
+
+                                                            adw::ButtonContent {
+                                                                set_icon_name: relm4_icons::icon_names::PLUS,
+                                                                set_label: &lang::lookup("evidence-http"),
+                                                            }
+                                                        },
+                                                        gtk::Button {
+                                                            connect_clicked => AppInput::AddImageEvidence,
+                                                            add_css_class: "pill",
+
+                                                            adw::ButtonContent {
+                                                                set_icon_name: relm4_icons::icon_names::PLUS,
+                                                                set_label: &lang::lookup("evidence-image"),
+                                                            }
+                                                        },
+                                                        /* gtk::Button {
+                                                            connect_clicked => AppInput::AddFileEvidence,
+                                                            add_css_class: "pill",
+
+                                                            adw::ButtonContent {
+                                                                set_icon_name: relm4_icons::icon_names::PLUS,
+                                                                set_label: &lang::lookup("evidence-file"),
+                                                            }
+                                                        }, */
+                                                    },
+
+                                                    gtk::Separator {
+                                                        add_css_class: "spacer",
+                                                    },
+
                                                     gtk::Button {
-                                                        connect_clicked => AppInput::AddTextEvidence,
                                                         add_css_class: "pill",
+                                                        add_css_class: "destructive-action",
+                                                        set_margin_top: 8,
+                                                        set_halign: gtk::Align::Center,
+
+                                                        connect_clicked => AppInput::DeleteSelectedCase,
 
                                                         adw::ButtonContent {
-                                                            set_icon_name: relm4_icons::icon_names::PLUS,
-                                                            set_label: &lang::lookup("evidence-text"),
+                                                            set_icon_name: relm4_icons::icon_names::DELETE_FILLED,
+                                                            set_label: &lang::lookup("nav-delete-case"),
                                                         }
                                                     },
-                                                    gtk::Button {
-                                                        connect_clicked => AppInput::AddHttpEvidence,
-                                                        add_css_class: "pill",
-
-                                                        adw::ButtonContent {
-                                                            set_icon_name: relm4_icons::icon_names::PLUS,
-                                                            set_label: &lang::lookup("evidence-http"),
-                                                        }
-                                                    },
-                                                    gtk::Button {
-                                                        connect_clicked => AppInput::AddImageEvidence,
-                                                        add_css_class: "pill",
-
-                                                        adw::ButtonContent {
-                                                            set_icon_name: relm4_icons::icon_names::PLUS,
-                                                            set_label: &lang::lookup("evidence-image"),
-                                                        }
-                                                    },
-                                                    /* gtk::Button {
-                                                        connect_clicked => AppInput::AddFileEvidence,
-                                                        add_css_class: "pill",
-
-                                                        adw::ButtonContent {
-                                                            set_icon_name: relm4_icons::icon_names::PLUS,
-                                                            set_label: &lang::lookup("evidence-file"),
-                                                        }
-                                                    }, */
-                                                },
-
-                                                gtk::Separator {
-                                                    add_css_class: "spacer",
-                                                },
-
-                                                gtk::Button {
-                                                    add_css_class: "pill",
-                                                    add_css_class: "destructive-action",
-                                                    set_margin_top: 8,
-                                                    set_halign: gtk::Align::Center,
-
-                                                    connect_clicked => AppInput::DeleteSelectedCase,
-
-                                                    adw::ButtonContent {
-                                                        set_icon_name: relm4_icons::icon_names::DELETE_FILLED,
-                                                        set_label: &lang::lookup("nav-delete-case"),
-                                                    }
-                                                },
+                                                }
                                             }
                                         }
                                     },
@@ -1097,9 +1106,11 @@ impl Component for AppModel {
                         .unwrap()
                         .metadata_mut()
                         .authors_mut()
-                        .push(author);
+                        .push(author.clone());
                     self.needs_saving = true;
-                    sender.input(AppInput::NavigateTo(OpenCase::Metadata)); // to refresh author list
+                    // Add to author list
+                    let mut authors = self.authors_factory.guard();
+                    authors.push_back(author);
                 }
             }
             AppInput::DeleteAuthor(author) => {
@@ -1118,7 +1129,9 @@ impl Component for AppModel {
                         .authors_mut()
                         .remove(idx);
                     self.needs_saving = true;
-                    sender.input(AppInput::NavigateTo(OpenCase::Metadata)); // to refresh author list
+                    // refresh author list
+                    let mut authors = self.authors_factory.guard();
+                    authors.remove(idx);
                 }
             }
             AppInput::SetTestCaseTitle(new_title) => {
@@ -1243,9 +1256,11 @@ impl Component for AppModel {
                         AddEvidenceOutput::Error { title, message } => {
                             AppInput::ShowError { title, message }
                         }
+                        AddEvidenceOutput::Closed => AppInput::ReinstatePaste,
                     });
                 add_evidence_text_dlg.emit(AddEvidenceInput::Present(root.clone()));
                 self.latest_add_evidence_text_dlg = Some(add_evidence_text_dlg);
+                self.action_paste_evidence.set_enabled(false);
             }
             AppInput::AddHttpEvidence => {
                 let add_evidence_http_dlg = AddHttpEvidenceDialogModel::builder()
@@ -1255,9 +1270,11 @@ impl Component for AppModel {
                         AddEvidenceOutput::Error { title, message } => {
                             AppInput::ShowError { title, message }
                         }
+                        AddEvidenceOutput::Closed => AppInput::ReinstatePaste,
                     });
                 add_evidence_http_dlg.emit(AddEvidenceInput::Present(root.clone()));
                 self.latest_add_evidence_http_dlg = Some(add_evidence_http_dlg);
+                self.action_paste_evidence.set_enabled(false);
             }
             AppInput::AddImageEvidence => {
                 let add_evidence_image_dlg = AddImageEvidenceDialogModel::builder()
@@ -1267,11 +1284,14 @@ impl Component for AppModel {
                         AddEvidenceOutput::Error { title, message } => {
                             AppInput::ShowError { title, message }
                         }
+                        AddEvidenceOutput::Closed => AppInput::ReinstatePaste,
                     });
                 add_evidence_image_dlg.emit(AddEvidenceInput::Present(root.clone()));
                 self.latest_add_evidence_image_dlg = Some(add_evidence_image_dlg);
+                self.action_paste_evidence.set_enabled(false);
             }
             AppInput::AddFileEvidence => (),
+            AppInput::ReinstatePaste => self.action_paste_evidence.set_enabled(true),
             AppInput::_AddEvidence(ev) => {
                 if let Some(pkg) = self.get_package() {
                     if let OpenCase::Case { id, .. } = &self.open_case {
@@ -1282,10 +1302,18 @@ impl Component for AppModel {
                             .flatten()
                             .unwrap()
                             .evidence_mut()
-                            .push(ev);
+                            .push(ev.clone());
                         self.needs_saving = true;
-                        // to refresh evidence
-                        sender.input(AppInput::NavigateTo(self.open_case));
+                        // update evidence
+                        let mut evidence = self.test_evidence_factory.guard();
+                        evidence.push_back(EvidenceFactoryInit {
+                            evidence: ev,
+                            package: pkg.clone(),
+                        });
+                        // scroll to the bottom
+                        let adj = widgets.test_case_scrolled.vadjustment();
+                        adj.set_value(adj.upper());
+                        widgets.test_case_scrolled.set_vadjustment(Some(&adj));
                     }
                 }
             }
@@ -1301,8 +1329,7 @@ impl Component for AppModel {
                             .evidence_mut()
                             .insert(at, ev.clone());
                         self.needs_saving = true;
-                        // MUST NOT refresh interface -- cannot lose DynamicIndex references
-                        // add dummy entry to list to update DynamicIndex position correctly
+                        // update evidence
                         let mut tef = self.test_evidence_factory.guard();
                         tef.insert(
                             at,
@@ -1344,8 +1371,9 @@ impl Component for AppModel {
                             .evidence_mut();
                         evidence.remove(at.current_index());
                         self.needs_saving = true;
-                        // to refresh evidence
-                        sender.input(AppInput::NavigateTo(self.open_case));
+                        // update evidence
+                        let mut tef = self.test_evidence_factory.guard();
+                        tef.remove(at.current_index());
                     }
                 }
             }
@@ -1410,8 +1438,8 @@ impl Component for AppModel {
                 if let Some(pkg) = &self.open_package {
                     let mut pkg = pkg.write().unwrap();
                     if let Err(e) = match format.as_str() {
-                        "html document" => HtmlExporter.export_package(&mut pkg, path),
-                        "excel workbook" => ExcelExporter.export_package(&mut pkg, path),
+                        "html document" => HtmlExporter.export_package(&mut pkg, path.clone()),
+                        "excel workbook" => ExcelExporter.export_package(&mut pkg, path.clone()),
                         _ => {
                             log::error!("Invalid format specified.");
                             Ok(())
@@ -1435,7 +1463,11 @@ impl Component for AppModel {
                         self.latest_error_dlg = Some(error_dlg);
                     } else {
                         let toast = adw::Toast::new(&lang::lookup("toast-export-complete"));
-                        toast.set_timeout(1);
+                        toast.set_timeout(5);
+                        toast.set_button_label(Some(&lang::lookup("header-open")));
+                        toast.connect_button_clicked(move |_| {
+                            let _ = open::that(path.clone());
+                        });
                         widgets.toast_target.add_toast(toast);
                     }
                 } else {
@@ -1456,8 +1488,12 @@ impl Component for AppModel {
 
                     if let OpenCase::Case { id, .. } = &self.open_case {
                         if let Err(e) = match format.as_str() {
-                            "html document" => HtmlExporter.export_case(&mut pkg, *id, path),
-                            "excel workbook" => ExcelExporter.export_case(&mut pkg, *id, path),
+                            "html document" => {
+                                HtmlExporter.export_case(&mut pkg, *id, path.clone())
+                            }
+                            "excel workbook" => {
+                                ExcelExporter.export_case(&mut pkg, *id, path.clone())
+                            }
                             _ => {
                                 log::error!("Invalid format specified.");
                                 Ok(())
@@ -1481,7 +1517,11 @@ impl Component for AppModel {
                             self.latest_error_dlg = Some(error_dlg);
                         } else {
                             let toast = adw::Toast::new(&lang::lookup("toast-export-complete"));
-                            toast.set_timeout(1);
+                            toast.set_timeout(5);
+                            toast.set_button_label(Some(&lang::lookup("header-open")));
+                            toast.connect_button_clicked(move |_| {
+                                let _ = open::that(path.clone());
+                            });
                             widgets.toast_target.add_toast(toast);
                         }
                     } else {
@@ -1536,7 +1576,7 @@ impl Component for AppModel {
                                 matched_kind = true;
                                 break 'mime_loop;
                             }
-                            "image/png" | "image/jpeg" => {
+                            "image/png" | "image/jpeg" | "image/bmp" => {
                                 // Paste as image
                                 let sender_c = sender.clone();
                                 clipboard.read_texture_async(
