@@ -26,6 +26,7 @@ pub enum AddEvidenceInput {
 pub enum AddEvidenceOutput {
     AddEvidence(Evidence),
     Error { title: String, message: String },
+    Closed,
 }
 
 pub struct AddTextEvidenceDialogModel {}
@@ -40,6 +41,10 @@ impl Component for AddTextEvidenceDialogModel {
     view! {
         #[root]
         adw::Dialog {
+            connect_closed[sender] => move |_dlg| {
+                let _ = sender.output(AddEvidenceOutput::Closed);
+            },
+
             #[wrap(Some)]
             set_child = &adw::ToolbarView {
                 add_top_bar = &adw::HeaderBar {
@@ -120,6 +125,10 @@ impl Component for AddHttpEvidenceDialogModel {
     view! {
         #[root]
         adw::Dialog {
+            connect_closed[sender] => move |_dlg| {
+                let _ = sender.output(AddEvidenceOutput::Closed);
+            },
+
             #[wrap(Some)]
             set_child = &adw::ToolbarView {
                 add_top_bar = &adw::HeaderBar {
@@ -255,6 +264,10 @@ impl Component for AddImageEvidenceDialogModel {
     view! {
         #[root]
         adw::Dialog {
+            connect_closed[sender] => move |_dlg| {
+                let _ = sender.output(AddEvidenceOutput::Closed);
+            },
+
             #[wrap(Some)]
             set_child = &adw::ToolbarView {
                 add_top_bar = &adw::HeaderBar {

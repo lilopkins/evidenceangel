@@ -217,6 +217,7 @@ pub enum AppInput {
     _ExportTestCase(String, PathBuf),
     PasteEvidence,
     ShowToast(String),
+    ReinstatePaste,
 }
 
 #[relm4::component(pub)]
@@ -1255,9 +1256,11 @@ impl Component for AppModel {
                         AddEvidenceOutput::Error { title, message } => {
                             AppInput::ShowError { title, message }
                         }
+                        AddEvidenceOutput::Closed => AppInput::ReinstatePaste,
                     });
                 add_evidence_text_dlg.emit(AddEvidenceInput::Present(root.clone()));
                 self.latest_add_evidence_text_dlg = Some(add_evidence_text_dlg);
+                self.action_paste_evidence.set_enabled(false);
             }
             AppInput::AddHttpEvidence => {
                 let add_evidence_http_dlg = AddHttpEvidenceDialogModel::builder()
@@ -1267,9 +1270,11 @@ impl Component for AppModel {
                         AddEvidenceOutput::Error { title, message } => {
                             AppInput::ShowError { title, message }
                         }
+                        AddEvidenceOutput::Closed => AppInput::ReinstatePaste,
                     });
                 add_evidence_http_dlg.emit(AddEvidenceInput::Present(root.clone()));
                 self.latest_add_evidence_http_dlg = Some(add_evidence_http_dlg);
+                self.action_paste_evidence.set_enabled(false);
             }
             AppInput::AddImageEvidence => {
                 let add_evidence_image_dlg = AddImageEvidenceDialogModel::builder()
@@ -1279,11 +1284,14 @@ impl Component for AppModel {
                         AddEvidenceOutput::Error { title, message } => {
                             AppInput::ShowError { title, message }
                         }
+                        AddEvidenceOutput::Closed => AppInput::ReinstatePaste,
                     });
                 add_evidence_image_dlg.emit(AddEvidenceInput::Present(root.clone()));
                 self.latest_add_evidence_image_dlg = Some(add_evidence_image_dlg);
+                self.action_paste_evidence.set_enabled(false);
             }
             AppInput::AddFileEvidence => (),
+            AppInput::ReinstatePaste => self.action_paste_evidence.set_enabled(true),
             AppInput::_AddEvidence(ev) => {
                 if let Some(pkg) = self.get_package() {
                     if let OpenCase::Case { id, .. } = &self.open_case {
