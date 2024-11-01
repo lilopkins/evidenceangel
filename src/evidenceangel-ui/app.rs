@@ -1320,14 +1320,19 @@ impl Component for AppModel {
             AppInput::InsertEvidenceAt(at, ev) => {
                 if let Some(pkg) = self.get_package() {
                     if let OpenCase::Case { id, .. } = &self.open_case {
-                        pkg.write()
-                            .unwrap()
-                            .test_case_mut(*id)
-                            .ok()
-                            .flatten()
-                            .unwrap()
-                            .evidence_mut()
-                            .insert(at, ev.clone());
+                        let at = {
+                            // This block prevents a panic when only one item is present
+                            let mut pkg_w = pkg.write().unwrap();
+                            let evidence = pkg_w
+                                .test_case_mut(*id)
+                                .ok()
+                                .flatten()
+                                .unwrap()
+                                .evidence_mut();
+                            let at = at.min(evidence.len());
+                            evidence.insert(at, ev.clone());
+                            at
+                        };
                         self.needs_saving = true;
                         // update evidence
                         let mut tef = self.test_evidence_factory.guard();
