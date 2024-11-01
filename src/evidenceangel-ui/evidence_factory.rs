@@ -16,6 +16,7 @@ use crate::lang;
 use crate::util::BoxedEvidenceJson;
 
 const EVIDENCE_HEIGHT_REQUEST: i32 = 300;
+const HTTP_SEPARATOR: char = '\x1e';
 
 pub struct EvidenceFactoryModel {
     index: DynamicIndex,
@@ -60,8 +61,12 @@ impl EvidenceFactoryModel {
 
 #[derive(Debug)]
 pub enum EvidenceFactoryInput {
-    /// Set the text for a text evidence object. If not text evidence, panic.
+    /// Set the text for a text evidence object. If not text evidence, ignore.
     TextSetText(String),
+    /// Set the HTTP request text. If not HTTP evidence, ignore.
+    HttpSetRequest(String),
+    /// Set the HTTP response text. If not HTTP evidence, ignore.
+    HttpSetResponse(String),
     /// Set the caption for this evidence.
     SetCaption(String),
     MoveUp,
@@ -242,7 +247,7 @@ impl FactoryComponent for EvidenceFactoryModel {
             EvidenceKind::Http => {
                 let data = self.get_data_as_string();
                 let data_parts = data
-                    .split("\x1e")
+                    .split(HTTP_SEPARATOR)
                     .map(|s| s.to_string())
                     .collect::<Vec<_>>();
                 let request = data_parts.first().cloned().unwrap_or_default();
@@ -252,19 +257,23 @@ impl FactoryComponent for EvidenceFactoryModel {
                 frame.set_height_request(EVIDENCE_HEIGHT_REQUEST);
                 let scrolled = gtk::ScrolledWindow::new();
                 scrolled.set_hexpand(true);
-                let label = gtk::Label::default();
-                label.set_markup(&format!(
-                    "<tt>{}</tt>",
-                    request
-                        .replace("&", "&amp;")
-                        .replace("<", "&lt;")
-                        .replace(">", "&gt;")
-                ));
-                label.set_margin_all(8);
-                label.set_selectable(true);
-                label.set_halign(gtk::Align::Start);
-                label.set_valign(gtk::Align::Start);
-                scrolled.set_child(Some(&label));
+                let txt_request = gtk::TextView::default();
+                txt_request.add_css_class("monospace");
+                txt_request.buffer().set_text(&request);
+                txt_request.set_top_margin(8);
+                txt_request.set_bottom_margin(8);
+                txt_request.set_left_margin(8);
+                txt_request.set_right_margin(8);
+                txt_request.set_halign(gtk::Align::Fill);
+                txt_request.set_valign(gtk::Align::Fill);
+                let sender_c = sender.clone();
+                txt_request.buffer().connect_changed(move |buf| {
+                    sender_c.input(EvidenceFactoryInput::HttpSetRequest(
+                        buf.text(&buf.start_iter(), &buf.end_iter(), false)
+                            .to_string(),
+                    ));
+                });
+                scrolled.set_child(Some(&txt_request));
                 frame.set_child(Some(&scrolled));
 
                 widgets.evidence_child.set_spacing(8);
@@ -274,19 +283,23 @@ impl FactoryComponent for EvidenceFactoryModel {
                 frame.set_height_request(EVIDENCE_HEIGHT_REQUEST);
                 let scrolled = gtk::ScrolledWindow::new();
                 scrolled.set_hexpand(true);
-                let label = gtk::Label::default();
-                label.set_markup(&format!(
-                    "<tt>{}</tt>",
-                    response
-                        .replace("&", "&amp;")
-                        .replace("<", "&lt;")
-                        .replace(">", "&gt;")
-                ));
-                label.set_margin_all(8);
-                label.set_selectable(true);
-                label.set_halign(gtk::Align::Start);
-                label.set_valign(gtk::Align::Start);
-                scrolled.set_child(Some(&label));
+                let txt_response = gtk::TextView::default();
+                txt_response.add_css_class("monospace");
+                txt_response.buffer().set_text(&response);
+                txt_response.set_top_margin(8);
+                txt_response.set_bottom_margin(8);
+                txt_response.set_left_margin(8);
+                txt_response.set_right_margin(8);
+                txt_response.set_halign(gtk::Align::Fill);
+                txt_response.set_valign(gtk::Align::Fill);
+                let sender_c = sender.clone();
+                txt_response.buffer().connect_changed(move |buf| {
+                    sender_c.input(EvidenceFactoryInput::HttpSetResponse(
+                        buf.text(&buf.start_iter(), &buf.end_iter(), false)
+                            .to_string(),
+                    ));
+                });
+                scrolled.set_child(Some(&txt_response));
                 frame.set_child(Some(&scrolled));
                 widgets.evidence_child.append(&frame);
             }
@@ -312,8 +325,89 @@ impl FactoryComponent for EvidenceFactoryModel {
                     .unwrap();
             }
             EvidenceFactoryInput::TextSetText(new_text) => {
-                if let EvidenceData::Text { content } = self.evidence.write().unwrap().value_mut() {
-                    *content = new_text;
+                if *self.evidence.read().unwrap().kind() != EvidenceKind::Text {
+                    return;
+                }
+                match self.evidence.write().unwrap().value_mut() {
+                    EvidenceData::Text { content } => {
+                        *content = new_text;
+                    }
+                    EvidenceData::Base64 { data } => {
+                        *data = new_text.into_bytes();
+                    }
+                    _ => panic!("cannot handle text of media type")
+                }
+                sender
+                    .output(EvidenceFactoryOutput::UpdateEvidence(
+                        self.index.clone(),
+                        self.evidence.read().unwrap().clone(),
+                    ))
+                    .unwrap();
+            }
+            EvidenceFactoryInput::HttpSetRequest(mut new_req) => {
+                if *self.evidence.read().unwrap().kind() != EvidenceKind::Http {
+                    return;
+                }
+                match self.evidence.write().unwrap().value_mut() {
+                    EvidenceData::Text { content } => {
+                        let data_parts = content
+                            .split(HTTP_SEPARATOR)
+                            .map(|s| s.to_string())
+                            .collect::<Vec<_>>();
+                        let response = data_parts.get(1).cloned().unwrap_or_default();
+
+                        new_req.push(HTTP_SEPARATOR);
+                        new_req.push_str(&response);
+                        *content = new_req;
+                    }
+                    EvidenceData::Base64 { data } => {
+                        let data_parts = String::from_utf8_lossy(data)
+                            .split(HTTP_SEPARATOR)
+                            .map(|s| s.to_string())
+                            .collect::<Vec<_>>();
+                        let response = data_parts.get(1).cloned().unwrap_or_default();
+
+                        new_req.push(HTTP_SEPARATOR);
+                        new_req.push_str(&response);
+                        *data = new_req.into_bytes();
+                    }
+                    _ => panic!("cannot handle text of media type")
+                }
+                sender
+                    .output(EvidenceFactoryOutput::UpdateEvidence(
+                        self.index.clone(),
+                        self.evidence.read().unwrap().clone(),
+                    ))
+                    .unwrap();
+            }
+            EvidenceFactoryInput::HttpSetResponse(new_res) => {
+                if *self.evidence.read().unwrap().kind() != EvidenceKind::Http {
+                    return;
+                }
+                match self.evidence.write().unwrap().value_mut() {
+                    EvidenceData::Text { content } => {
+                        let data_parts = content
+                            .split(HTTP_SEPARATOR)
+                            .map(|s| s.to_string())
+                            .collect::<Vec<_>>();
+                        let mut request = data_parts.first().cloned().unwrap_or_default();
+
+                        request.push(HTTP_SEPARATOR);
+                        request.push_str(&new_res);
+                        *content = request;
+                    }
+                    EvidenceData::Base64 { data } => {
+                        let data_parts = String::from_utf8_lossy(data)
+                            .split(HTTP_SEPARATOR)
+                            .map(|s| s.to_string())
+                            .collect::<Vec<_>>();
+                        let mut request = data_parts.first().cloned().unwrap_or_default();
+
+                        request.push(HTTP_SEPARATOR);
+                        request.push_str(&new_res);
+                        *data = request.into_bytes();
+                    }
+                    _ => panic!("cannot handle text of media type")
                 }
                 sender
                     .output(EvidenceFactoryOutput::UpdateEvidence(
