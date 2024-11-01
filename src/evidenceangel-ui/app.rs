@@ -1322,8 +1322,7 @@ impl Component for AppModel {
                     if let OpenCase::Case { id, .. } = &self.open_case {
                         let at = {
                             // This block prevents a panic when only one item is present
-                            let mut pkg_w = pkg.write()
-                                .unwrap();
+                            let mut pkg_w = pkg.write().unwrap();
                             let evidence = pkg_w
                                 .test_case_mut(*id)
                                 .ok()

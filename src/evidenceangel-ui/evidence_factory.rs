@@ -335,7 +335,7 @@ impl FactoryComponent for EvidenceFactoryModel {
                     EvidenceData::Base64 { data } => {
                         *data = new_text.into_bytes();
                     }
-                    _ => panic!("cannot handle text of media type")
+                    _ => panic!("cannot handle text of media type"),
                 }
                 sender
                     .output(EvidenceFactoryOutput::UpdateEvidence(
@@ -371,7 +371,7 @@ impl FactoryComponent for EvidenceFactoryModel {
                         new_req.push_str(&response);
                         *data = new_req.into_bytes();
                     }
-                    _ => panic!("cannot handle text of media type")
+                    _ => panic!("cannot handle text of media type"),
                 }
                 sender
                     .output(EvidenceFactoryOutput::UpdateEvidence(
@@ -407,7 +407,7 @@ impl FactoryComponent for EvidenceFactoryModel {
                         request.push_str(&new_res);
                         *data = request.into_bytes();
                     }
-                    _ => panic!("cannot handle text of media type")
+                    _ => panic!("cannot handle text of media type"),
                 }
                 sender
                     .output(EvidenceFactoryOutput::UpdateEvidence(
