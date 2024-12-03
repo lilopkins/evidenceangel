@@ -8,7 +8,7 @@ use std::{
     path::PathBuf,
 };
 
-use chrono::{DateTime, Local};
+use chrono::{DateTime, FixedOffset, Local};
 use getset::{Getters, MutGetters};
 use serde::{Deserialize, Serialize};
 use test_cases::TESTCASE_SCHEMA;
@@ -314,11 +314,11 @@ impl EvidencePackage {
     where
         S: Into<String>,
     {
-        self.create_test_case_at(title, Local::now())
+        self.create_test_case_at(title, Local::now().fixed_offset())
     }
 
     /// Create a new test case at a specified time.
-    pub fn create_test_case_at<S>(&mut self, title: S, at: DateTime<Local>) -> Result<&mut TestCase>
+    pub fn create_test_case_at<S>(&mut self, title: S, at: DateTime<FixedOffset>) -> Result<&mut TestCase>
     where
         S: Into<String>,
     {

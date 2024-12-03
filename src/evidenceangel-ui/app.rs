@@ -1171,15 +1171,14 @@ impl Component for AppModel {
                     Ok(dt) => {
                         widgets.test_execution.remove_css_class("error");
                         widgets.test_execution_error_popover.set_visible(false);
-                        let dtl = dt.with_timezone(&chrono::Local);
-                        log::debug!("Setting exec date time {dtl}");
+                        log::debug!("Setting exec date time {dt}");
 
                         if let OpenCase::Case { id, .. } = &self.open_case {
                             if let Some(pkg) = self.get_package() {
                                 if let Some(tc) =
                                     pkg.write().unwrap().test_case_mut(*id).ok().flatten()
                                 {
-                                    tc.metadata_mut().set_execution_datetime(dtl);
+                                    tc.metadata_mut().set_execution_datetime(dt);
                                     self.needs_saving = true;
                                 }
                             }
