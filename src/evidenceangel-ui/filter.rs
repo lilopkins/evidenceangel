@@ -28,6 +28,8 @@ pub fn images() -> FileFilter {
     filter.add_suffix("bmp");
     filter.add_suffix("png");
     filter.add_suffix("jpg");
+    filter.add_suffix("jpeg");
+    filter.add_suffix("gif");
     filter
 }
 
