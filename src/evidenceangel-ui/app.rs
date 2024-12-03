@@ -984,17 +984,25 @@ impl Component for AppModel {
                         if let Some(pkg) = self.get_package() {
                             if let Some(tc) = pkg.read().unwrap().test_case(id).ok().flatten() {
                                 // Update test case metadata on screen
-                                widgets.test_title.block_signal(&widgets.test_title_changed_handler);
+                                widgets
+                                    .test_title
+                                    .block_signal(&widgets.test_title_changed_handler);
                                 widgets.test_title.set_text(tc.metadata().title());
-                                widgets.test_title.unblock_signal(&widgets.test_title_changed_handler);
-                                widgets.test_execution.block_signal(&widgets.execution_time_changed_handler);
+                                widgets
+                                    .test_title
+                                    .unblock_signal(&widgets.test_title_changed_handler);
+                                widgets
+                                    .test_execution
+                                    .block_signal(&widgets.execution_time_changed_handler);
                                 widgets.test_execution.set_text(&format!(
                                     "{}",
                                     tc.metadata()
                                         .execution_datetime()
                                         .format("%Y-%m-%d %H:%M:%S")
                                 ));
-                                widgets.test_execution.unblock_signal(&widgets.execution_time_changed_handler);
+                                widgets
+                                    .test_execution
+                                    .unblock_signal(&widgets.execution_time_changed_handler);
 
                                 for ev in tc.evidence() {
                                     new_evidence.push(EvidenceFactoryInit {
