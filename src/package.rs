@@ -318,7 +318,11 @@ impl EvidencePackage {
     }
 
     /// Create a new test case at a specified time.
-    pub fn create_test_case_at<S>(&mut self, title: S, at: DateTime<FixedOffset>) -> Result<&mut TestCase>
+    pub fn create_test_case_at<S>(
+        &mut self,
+        title: S,
+        at: DateTime<FixedOffset>,
+    ) -> Result<&mut TestCase>
     where
         S: Into<String>,
     {
