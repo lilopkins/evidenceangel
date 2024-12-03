@@ -444,7 +444,7 @@ impl Component for AppModel {
 
                                                         connect_changed[sender] => move |entry| {
                                                             sender.input(AppInput::SetTestCaseTitle(entry.text().to_string()));
-                                                        }
+                                                        } @test_title_changed_handler
                                                     },
 
                                                     #[name = "test_title_error_popover"]
@@ -464,7 +464,7 @@ impl Component for AppModel {
 
                                                         connect_changed[sender] => move |entry| {
                                                             sender.input(AppInput::TrySetExecutionDateTime(entry.text().to_string()));
-                                                        }
+                                                        } @execution_time_changed_handler
                                                     },
 
                                                     #[name = "test_execution_error_popover"]
@@ -984,13 +984,17 @@ impl Component for AppModel {
                         if let Some(pkg) = self.get_package() {
                             if let Some(tc) = pkg.read().unwrap().test_case(id).ok().flatten() {
                                 // Update test case metadata on screen
+                                widgets.test_title.block_signal(&widgets.test_title_changed_handler);
                                 widgets.test_title.set_text(tc.metadata().title());
+                                widgets.test_title.unblock_signal(&widgets.test_title_changed_handler);
+                                widgets.test_execution.block_signal(&widgets.execution_time_changed_handler);
                                 widgets.test_execution.set_text(&format!(
                                     "{}",
                                     tc.metadata()
                                         .execution_datetime()
                                         .format("%Y-%m-%d %H:%M:%S")
                                 ));
+                                widgets.test_execution.unblock_signal(&widgets.execution_time_changed_handler);
 
                                 for ev in tc.evidence() {
                                     new_evidence.push(EvidenceFactoryInit {
@@ -1181,6 +1185,9 @@ impl Component for AppModel {
                                     tc.metadata_mut().set_execution_datetime(dt);
                                     self.needs_saving = true;
                                 }
+
+                                // Fix for #59, before reordable TCs are implemented as part of #47.
+                                self.update_nav_menu().unwrap(); // doesn't fail
                             }
                         }
                     }
