@@ -937,7 +937,9 @@ impl Component for AppModel {
                 match target {
                     OpenCase::Metadata => {
                         // Update fields
-                        widgets.metadata_title.block_signal(&widgets.metadata_title_changed);
+                        widgets
+                            .metadata_title
+                            .block_signal(&widgets.metadata_title_changed);
                         widgets.metadata_title.set_text(
                             &self
                                 .open_package
@@ -945,7 +947,9 @@ impl Component for AppModel {
                                 .map(|pkg| pkg.read().unwrap().metadata().title().clone())
                                 .expect("Cannot navigate to metadata when no package is open"),
                         );
-                        widgets.metadata_title.unblock_signal(&widgets.metadata_title_changed);
+                        widgets
+                            .metadata_title
+                            .unblock_signal(&widgets.metadata_title_changed);
                         let mut authors = self.authors_factory.guard();
                         authors.clear();
                         let pkg_authors = self
