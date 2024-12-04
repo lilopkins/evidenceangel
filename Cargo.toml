@@ -4,6 +4,10 @@ description = "Library and executables to work with EvidenceAngel evidence packa
 version = "1.0.0-rc.5"
 edition = "2021"
 license = "GPL-3.0-or-later"
+authors = [
+    "Lily Hopkins <lily@hpkns.uk>",
+    "Eden Turner <somebirb7190@gmail.com>",
+]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [[bin]]

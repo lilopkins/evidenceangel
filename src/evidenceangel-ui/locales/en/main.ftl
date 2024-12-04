@@ -38,6 +38,7 @@ error-failed-new-body = Failed to create new evidence package: { $error }
 error-failed-delete-case-title = Failed to Delete Test Case
 error-failed-delete-case-body = Failed to delete test case from package: { $error }
 
+acknowledgements-code-title = Code
 acknowledgements-testing-title = Testing
 acknowledgements-translations-title = Translations
 
