@@ -98,7 +98,7 @@ evidence-image = Image
 evidence-file = File
 
 delete-case-title = Delete { $name }?
-delete-case-message = Do you really want to irreversible delete test case { $name }?
+delete-case-message = Do you really want to irreversibly delete test case { $name }?
 delete-case-affirm = Delete
 
 needs-saving-title = Save changes?
