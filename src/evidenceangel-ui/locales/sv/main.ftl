@@ -35,6 +35,7 @@ error-failed-new-body = Misslyckades att skapa nytt bevispaket: { $error }
 error-failed-delete-case-title = Misslyckades att Radera Testfall
 error-failed-delete-case-body = Misslyckades att radera testfallet från paketet: { $error }
 
+acknowledgements-code-title = Kod
 acknowledgements-testing-title = Testning
 acknowledgements-translations-title = Översättningar
 

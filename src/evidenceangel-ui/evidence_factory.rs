@@ -180,6 +180,7 @@ impl FactoryComponent for EvidenceFactoryModel {
                                 gtk::Button {
                                     set_label: &lang::lookup("evidence-delete"),
                                     add_css_class: "flat",
+                                    add_css_class: "destructive-action",
 
                                     connect_clicked => EvidenceFactoryInput::Delete,
                                 },

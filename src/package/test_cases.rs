@@ -133,7 +133,7 @@ impl EvidenceData {
 
 struct EvidenceDataVisitor;
 
-impl<'de> Visitor<'de> for EvidenceDataVisitor {
+impl Visitor<'_> for EvidenceDataVisitor {
     type Value = EvidenceData;
 
     fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {

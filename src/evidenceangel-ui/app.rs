@@ -392,7 +392,7 @@ impl Component for AppModel {
 
                                                 connect_changed[sender] => move |entry| {
                                                     sender.input(AppInput::SetMetadataTitle(entry.text().to_string()));
-                                                }
+                                                } @metadata_title_changed
                                             },
 
                                             #[name = "metadata_title_error_popover"]
@@ -641,7 +641,7 @@ impl Component for AppModel {
             });
         action_paste_evidence.set_enabled(false);
         relm4::main_application()
-            .set_accelerators_for_action::<PasteEvidenceAction>(&["<primary>V"]);
+            .set_accelerators_for_action::<PasteEvidenceAction>(&["<primary><shift>V"]);
 
         let sender_c = sender.clone();
         let action_export_package: RelmAction<ExportPackageAction> =
@@ -937,6 +937,9 @@ impl Component for AppModel {
                 match target {
                     OpenCase::Metadata => {
                         // Update fields
+                        widgets
+                            .metadata_title
+                            .block_signal(&widgets.metadata_title_changed);
                         widgets.metadata_title.set_text(
                             &self
                                 .open_package
@@ -944,6 +947,9 @@ impl Component for AppModel {
                                 .map(|pkg| pkg.read().unwrap().metadata().title().clone())
                                 .expect("Cannot navigate to metadata when no package is open"),
                         );
+                        widgets
+                            .metadata_title
+                            .unblock_signal(&widgets.metadata_title_changed);
                         let mut authors = self.authors_factory.guard();
                         authors.clear();
                         let pkg_authors = self
@@ -1167,7 +1173,7 @@ impl Component for AppModel {
                         widgets.test_title.add_css_class("error");
                         widgets
                             .test_title_error_popover_label
-                            .set_text(&lang::lookup("toast-name-cant-be-empty"));
+                            .set_text(&lang::lookup("toast-name-too-long"));
                         widgets.test_title_error_popover.set_visible(true);
                     }
                 } else {
