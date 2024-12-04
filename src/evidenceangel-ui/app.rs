@@ -641,7 +641,7 @@ impl Component for AppModel {
             });
         action_paste_evidence.set_enabled(false);
         relm4::main_application()
-            .set_accelerators_for_action::<PasteEvidenceAction>(&["<primary>V"]);
+            .set_accelerators_for_action::<PasteEvidenceAction>(&["<primary><shift>V"]);
 
         let sender_c = sender.clone();
         let action_export_package: RelmAction<ExportPackageAction> =
