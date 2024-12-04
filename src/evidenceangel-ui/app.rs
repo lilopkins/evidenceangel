@@ -1173,7 +1173,7 @@ impl Component for AppModel {
                         widgets.test_title.add_css_class("error");
                         widgets
                             .test_title_error_popover_label
-                            .set_text(&lang::lookup("toast-name-cant-be-empty"));
+                            .set_text(&lang::lookup("toast-name-too-long"));
                         widgets.test_title_error_popover.set_visible(true);
                     }
                 } else {
