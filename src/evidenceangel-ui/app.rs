@@ -192,6 +192,7 @@ pub enum AppInput {
 
     SetTestCaseTitle(String),
     TrySetExecutionDateTime(String),
+    ValidateExecutionDateTime(String),
     DeleteSelectedCase,
     _DeleteSelectedCase,
     AddTextEvidence,
@@ -464,7 +465,11 @@ impl Component for AppModel {
 
                                                         connect_changed[sender] => move |entry| {
                                                             sender.input(AppInput::TrySetExecutionDateTime(entry.text().to_string()));
-                                                        } @execution_time_changed_handler
+                                                        } @execution_time_changed_handler,
+
+                                                        connect_changed[sender] => move |entry| {
+                                                            sender.input(AppInput::ValidateExecutionDateTime(entry.text().to_string()));
+                                                        }
                                                     },
 
                                                     #[name = "test_execution_error_popover"]
@@ -1187,8 +1192,6 @@ impl Component for AppModel {
             AppInput::TrySetExecutionDateTime(new_exec_time) => {
                 match parse_datetime::parse_datetime_at_date(chrono::Local::now(), new_exec_time) {
                     Ok(dt) => {
-                        widgets.test_execution.remove_css_class("error");
-                        widgets.test_execution_error_popover.set_visible(false);
                         log::debug!("Setting exec date time {dt}");
 
                         if let OpenCase::Case { id, .. } = &self.open_case {
@@ -1204,6 +1207,17 @@ impl Component for AppModel {
                                 self.update_nav_menu().unwrap(); // doesn't fail
                             }
                         }
+                    }
+                    Err(_e) => {
+                        // Do nothing, validation is handled separately
+                    }
+                }
+            }
+            AppInput::ValidateExecutionDateTime(new_exec_time) => {
+                match parse_datetime::parse_datetime_at_date(chrono::Local::now(), new_exec_time) {
+                    Ok(_dt) => {
+                        widgets.test_execution.remove_css_class("error");
+                        widgets.test_execution_error_popover.set_visible(false);
                     }
                     Err(e) => {
                         widgets.test_execution.add_css_class("error");
