@@ -14,6 +14,9 @@ header-paste-evidence = Klistra in bevis
 header-export-package = Exportera Paket...
 header-export-test-case = Exportera Testfall...
 
+paste-evidence-failed = Det gick inte att klistra in.
+paste-evidence-wrong-type = Det går inte att klistra in den här typen av data.
+
 filetype-package = Bevispaket
 filetype-images = Bilder
 
