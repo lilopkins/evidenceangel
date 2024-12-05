@@ -1,5 +1,5 @@
 use base64::Engine;
-use chrono::{DateTime, Local};
+use chrono::{DateTime, FixedOffset};
 use getset::{Getters, MutGetters, Setters};
 use serde::{
     de::{self, Visitor},
@@ -32,7 +32,7 @@ pub struct TestCase {
 }
 
 impl TestCase {
-    pub(super) fn new(id: Uuid, title: String, execution_datetime: DateTime<Local>) -> Self {
+    pub(super) fn new(id: Uuid, title: String, execution_datetime: DateTime<FixedOffset>) -> Self {
         Self {
             schema: TESTCASE_SCHEMA_LOCATION.to_string(),
             id,
@@ -52,7 +52,7 @@ pub struct TestCaseMetadata {
     /// The title of the associated [`TestCase`].
     title: String,
     /// The time of execution of the associated [`TestCase`].
-    execution_datetime: DateTime<Local>,
+    execution_datetime: DateTime<FixedOffset>,
 }
 
 /// Evidence in a [`TestCase`].
@@ -133,7 +133,7 @@ impl EvidenceData {
 
 struct EvidenceDataVisitor;
 
-impl<'de> Visitor<'de> for EvidenceDataVisitor {
+impl Visitor<'_> for EvidenceDataVisitor {
     type Value = EvidenceData;
 
     fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {

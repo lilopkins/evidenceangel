@@ -38,6 +38,7 @@ error-failed-new-body = Failed to create new evidence package: { $error }
 error-failed-delete-case-title = Failed to Delete Test Case
 error-failed-delete-case-body = Failed to delete test case from package: { $error }
 
+acknowledgements-code-title = Code
 acknowledgements-testing-title = Testing
 acknowledgements-translations-title = Translations
 
@@ -97,7 +98,7 @@ evidence-image = Image
 evidence-file = File
 
 delete-case-title = Delete { $name }?
-delete-case-message = Do you really want to irreversible delete test case { $name }?
+delete-case-message = Do you really want to irreversibly delete test case { $name }?
 delete-case-affirm = Delete
 
 needs-saving-title = Save changes?

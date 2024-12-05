@@ -25,8 +25,11 @@ pub fn packages() -> FileFilter {
 pub fn images() -> FileFilter {
     let filter = FileFilter::new();
     filter.set_name(Some(&lang::lookup("filetype-images")));
+    filter.add_suffix("bmp");
     filter.add_suffix("png");
     filter.add_suffix("jpg");
+    filter.add_suffix("jpeg");
+    filter.add_suffix("gif");
     filter
 }
 

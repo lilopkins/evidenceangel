@@ -217,6 +217,7 @@ pub enum AppInput {
     _ExportTestCase(String, PathBuf),
     PasteEvidence,
     ShowToast(String),
+    ReinstatePaste,
 }
 
 #[relm4::component(pub)]
@@ -391,7 +392,7 @@ impl Component for AppModel {
 
                                                 connect_changed[sender] => move |entry| {
                                                     sender.input(AppInput::SetMetadataTitle(entry.text().to_string()));
-                                                }
+                                                } @metadata_title_changed
                                             },
 
                                             #[name = "metadata_title_error_popover"]
@@ -425,6 +426,7 @@ impl Component for AppModel {
                                         }
                                     },
                                     OpenCase::Case { .. } => gtk::Box {
+                                        #[name = "test_case_scrolled"]
                                         gtk::ScrolledWindow {
                                             set_hscrollbar_policy: gtk::PolicyType::Never,
                                             set_vexpand: true,
@@ -442,7 +444,7 @@ impl Component for AppModel {
 
                                                         connect_changed[sender] => move |entry| {
                                                             sender.input(AppInput::SetTestCaseTitle(entry.text().to_string()));
-                                                        }
+                                                        } @test_title_changed_handler
                                                     },
 
                                                     #[name = "test_title_error_popover"]
@@ -462,7 +464,7 @@ impl Component for AppModel {
 
                                                         connect_changed[sender] => move |entry| {
                                                             sender.input(AppInput::TrySetExecutionDateTime(entry.text().to_string()));
-                                                        }
+                                                        } @execution_time_changed_handler
                                                     },
 
                                                     #[name = "test_execution_error_popover"]
@@ -486,11 +488,10 @@ impl Component for AppModel {
                                                 },
 
                                                 gtk::Box {
-                                                    set_orientation: gtk::Orientation::Horizontal,
-                                                    set_margin_top: 8,
-                                                    set_halign: gtk::Align::Center,
-                                                    //set_spacing: 8,
-                                                    add_css_class: "linked",
+                                                    set_orientation: gtk::Orientation::Vertical,
+                                                    set_hexpand: true,
+                                                    set_halign: gtk::Align::Fill,
+                                                    set_spacing: 2,
 
                                                     add_controller = gtk::DropTarget {
                                                         set_actions: gtk::gdk::DragAction::MOVE,
@@ -508,61 +509,69 @@ impl Component for AppModel {
                                                         },
                                                     },
 
+                                                    gtk::Box {
+                                                        set_orientation: gtk::Orientation::Horizontal,
+                                                        set_margin_top: 8,
+                                                        set_halign: gtk::Align::Center,
+                                                        //set_spacing: 8,
+                                                        add_css_class: "linked",
+
+                                                        gtk::Button {
+                                                            connect_clicked => AppInput::AddTextEvidence,
+                                                            add_css_class: "pill",
+
+                                                            adw::ButtonContent {
+                                                                set_icon_name: relm4_icons::icon_names::PLUS,
+                                                                set_label: &lang::lookup("evidence-text"),
+                                                            }
+                                                        },
+                                                        gtk::Button {
+                                                            connect_clicked => AppInput::AddHttpEvidence,
+                                                            add_css_class: "pill",
+
+                                                            adw::ButtonContent {
+                                                                set_icon_name: relm4_icons::icon_names::PLUS,
+                                                                set_label: &lang::lookup("evidence-http"),
+                                                            }
+                                                        },
+                                                        gtk::Button {
+                                                            connect_clicked => AppInput::AddImageEvidence,
+                                                            add_css_class: "pill",
+
+                                                            adw::ButtonContent {
+                                                                set_icon_name: relm4_icons::icon_names::PLUS,
+                                                                set_label: &lang::lookup("evidence-image"),
+                                                            }
+                                                        },
+                                                        /* gtk::Button {
+                                                            connect_clicked => AppInput::AddFileEvidence,
+                                                            add_css_class: "pill",
+
+                                                            adw::ButtonContent {
+                                                                set_icon_name: relm4_icons::icon_names::PLUS,
+                                                                set_label: &lang::lookup("evidence-file"),
+                                                            }
+                                                        }, */
+                                                    },
+
+                                                    gtk::Separator {
+                                                        add_css_class: "spacer",
+                                                    },
+
                                                     gtk::Button {
-                                                        connect_clicked => AppInput::AddTextEvidence,
                                                         add_css_class: "pill",
+                                                        add_css_class: "destructive-action",
+                                                        set_margin_top: 8,
+                                                        set_halign: gtk::Align::Center,
+
+                                                        connect_clicked => AppInput::DeleteSelectedCase,
 
                                                         adw::ButtonContent {
-                                                            set_icon_name: relm4_icons::icon_names::PLUS,
-                                                            set_label: &lang::lookup("evidence-text"),
+                                                            set_icon_name: relm4_icons::icon_names::DELETE_FILLED,
+                                                            set_label: &lang::lookup("nav-delete-case"),
                                                         }
                                                     },
-                                                    gtk::Button {
-                                                        connect_clicked => AppInput::AddHttpEvidence,
-                                                        add_css_class: "pill",
-
-                                                        adw::ButtonContent {
-                                                            set_icon_name: relm4_icons::icon_names::PLUS,
-                                                            set_label: &lang::lookup("evidence-http"),
-                                                        }
-                                                    },
-                                                    gtk::Button {
-                                                        connect_clicked => AppInput::AddImageEvidence,
-                                                        add_css_class: "pill",
-
-                                                        adw::ButtonContent {
-                                                            set_icon_name: relm4_icons::icon_names::PLUS,
-                                                            set_label: &lang::lookup("evidence-image"),
-                                                        }
-                                                    },
-                                                    /* gtk::Button {
-                                                        connect_clicked => AppInput::AddFileEvidence,
-                                                        add_css_class: "pill",
-
-                                                        adw::ButtonContent {
-                                                            set_icon_name: relm4_icons::icon_names::PLUS,
-                                                            set_label: &lang::lookup("evidence-file"),
-                                                        }
-                                                    }, */
-                                                },
-
-                                                gtk::Separator {
-                                                    add_css_class: "spacer",
-                                                },
-
-                                                gtk::Button {
-                                                    add_css_class: "pill",
-                                                    add_css_class: "destructive-action",
-                                                    set_margin_top: 8,
-                                                    set_halign: gtk::Align::Center,
-
-                                                    connect_clicked => AppInput::DeleteSelectedCase,
-
-                                                    adw::ButtonContent {
-                                                        set_icon_name: relm4_icons::icon_names::DELETE_FILLED,
-                                                        set_label: &lang::lookup("nav-delete-case"),
-                                                    }
-                                                },
+                                                }
                                             }
                                         }
                                     },
@@ -632,7 +641,7 @@ impl Component for AppModel {
             });
         action_paste_evidence.set_enabled(false);
         relm4::main_application()
-            .set_accelerators_for_action::<PasteEvidenceAction>(&["<primary>V"]);
+            .set_accelerators_for_action::<PasteEvidenceAction>(&["<primary><shift>V"]);
 
         let sender_c = sender.clone();
         let action_export_package: RelmAction<ExportPackageAction> =
@@ -928,6 +937,9 @@ impl Component for AppModel {
                 match target {
                     OpenCase::Metadata => {
                         // Update fields
+                        widgets
+                            .metadata_title
+                            .block_signal(&widgets.metadata_title_changed);
                         widgets.metadata_title.set_text(
                             &self
                                 .open_package
@@ -935,6 +947,9 @@ impl Component for AppModel {
                                 .map(|pkg| pkg.read().unwrap().metadata().title().clone())
                                 .expect("Cannot navigate to metadata when no package is open"),
                         );
+                        widgets
+                            .metadata_title
+                            .unblock_signal(&widgets.metadata_title_changed);
                         let mut authors = self.authors_factory.guard();
                         authors.clear();
                         let pkg_authors = self
@@ -975,13 +990,25 @@ impl Component for AppModel {
                         if let Some(pkg) = self.get_package() {
                             if let Some(tc) = pkg.read().unwrap().test_case(id).ok().flatten() {
                                 // Update test case metadata on screen
+                                widgets
+                                    .test_title
+                                    .block_signal(&widgets.test_title_changed_handler);
                                 widgets.test_title.set_text(tc.metadata().title());
+                                widgets
+                                    .test_title
+                                    .unblock_signal(&widgets.test_title_changed_handler);
+                                widgets
+                                    .test_execution
+                                    .block_signal(&widgets.execution_time_changed_handler);
                                 widgets.test_execution.set_text(&format!(
                                     "{}",
                                     tc.metadata()
                                         .execution_datetime()
                                         .format("%Y-%m-%d %H:%M:%S")
                                 ));
+                                widgets
+                                    .test_execution
+                                    .unblock_signal(&widgets.execution_time_changed_handler);
 
                                 for ev in tc.evidence() {
                                     new_evidence.push(EvidenceFactoryInit {
@@ -1097,9 +1124,11 @@ impl Component for AppModel {
                         .unwrap()
                         .metadata_mut()
                         .authors_mut()
-                        .push(author);
+                        .push(author.clone());
                     self.needs_saving = true;
-                    sender.input(AppInput::NavigateTo(OpenCase::Metadata)); // to refresh author list
+                    // Add to author list
+                    let mut authors = self.authors_factory.guard();
+                    authors.push_back(author);
                 }
             }
             AppInput::DeleteAuthor(author) => {
@@ -1118,7 +1147,9 @@ impl Component for AppModel {
                         .authors_mut()
                         .remove(idx);
                     self.needs_saving = true;
-                    sender.input(AppInput::NavigateTo(OpenCase::Metadata)); // to refresh author list
+                    // refresh author list
+                    let mut authors = self.authors_factory.guard();
+                    authors.remove(idx);
                 }
             }
             AppInput::SetTestCaseTitle(new_title) => {
@@ -1142,7 +1173,7 @@ impl Component for AppModel {
                         widgets.test_title.add_css_class("error");
                         widgets
                             .test_title_error_popover_label
-                            .set_text(&lang::lookup("toast-name-cant-be-empty"));
+                            .set_text(&lang::lookup("toast-name-too-long"));
                         widgets.test_title_error_popover.set_visible(true);
                     }
                 } else {
@@ -1158,17 +1189,19 @@ impl Component for AppModel {
                     Ok(dt) => {
                         widgets.test_execution.remove_css_class("error");
                         widgets.test_execution_error_popover.set_visible(false);
-                        let dtl = dt.with_timezone(&chrono::Local);
-                        log::debug!("Setting exec date time {dtl}");
+                        log::debug!("Setting exec date time {dt}");
 
                         if let OpenCase::Case { id, .. } = &self.open_case {
                             if let Some(pkg) = self.get_package() {
                                 if let Some(tc) =
                                     pkg.write().unwrap().test_case_mut(*id).ok().flatten()
                                 {
-                                    tc.metadata_mut().set_execution_datetime(dtl);
+                                    tc.metadata_mut().set_execution_datetime(dt);
                                     self.needs_saving = true;
                                 }
+
+                                // Fix for #59, before reordable TCs are implemented as part of #47.
+                                self.update_nav_menu().unwrap(); // doesn't fail
                             }
                         }
                     }
@@ -1243,9 +1276,11 @@ impl Component for AppModel {
                         AddEvidenceOutput::Error { title, message } => {
                             AppInput::ShowError { title, message }
                         }
+                        AddEvidenceOutput::Closed => AppInput::ReinstatePaste,
                     });
                 add_evidence_text_dlg.emit(AddEvidenceInput::Present(root.clone()));
                 self.latest_add_evidence_text_dlg = Some(add_evidence_text_dlg);
+                self.action_paste_evidence.set_enabled(false);
             }
             AppInput::AddHttpEvidence => {
                 let add_evidence_http_dlg = AddHttpEvidenceDialogModel::builder()
@@ -1255,9 +1290,11 @@ impl Component for AppModel {
                         AddEvidenceOutput::Error { title, message } => {
                             AppInput::ShowError { title, message }
                         }
+                        AddEvidenceOutput::Closed => AppInput::ReinstatePaste,
                     });
                 add_evidence_http_dlg.emit(AddEvidenceInput::Present(root.clone()));
                 self.latest_add_evidence_http_dlg = Some(add_evidence_http_dlg);
+                self.action_paste_evidence.set_enabled(false);
             }
             AppInput::AddImageEvidence => {
                 let add_evidence_image_dlg = AddImageEvidenceDialogModel::builder()
@@ -1267,11 +1304,14 @@ impl Component for AppModel {
                         AddEvidenceOutput::Error { title, message } => {
                             AppInput::ShowError { title, message }
                         }
+                        AddEvidenceOutput::Closed => AppInput::ReinstatePaste,
                     });
                 add_evidence_image_dlg.emit(AddEvidenceInput::Present(root.clone()));
                 self.latest_add_evidence_image_dlg = Some(add_evidence_image_dlg);
+                self.action_paste_evidence.set_enabled(false);
             }
             AppInput::AddFileEvidence => (),
+            AppInput::ReinstatePaste => self.action_paste_evidence.set_enabled(true),
             AppInput::_AddEvidence(ev) => {
                 if let Some(pkg) = self.get_package() {
                     if let OpenCase::Case { id, .. } = &self.open_case {
@@ -1282,27 +1322,39 @@ impl Component for AppModel {
                             .flatten()
                             .unwrap()
                             .evidence_mut()
-                            .push(ev);
+                            .push(ev.clone());
                         self.needs_saving = true;
-                        // to refresh evidence
-                        sender.input(AppInput::NavigateTo(self.open_case));
+                        // update evidence
+                        let mut evidence = self.test_evidence_factory.guard();
+                        evidence.push_back(EvidenceFactoryInit {
+                            evidence: ev,
+                            package: pkg.clone(),
+                        });
+                        // scroll to the bottom
+                        let adj = widgets.test_case_scrolled.vadjustment();
+                        adj.set_value(adj.upper());
+                        widgets.test_case_scrolled.set_vadjustment(Some(&adj));
                     }
                 }
             }
             AppInput::InsertEvidenceAt(at, ev) => {
                 if let Some(pkg) = self.get_package() {
                     if let OpenCase::Case { id, .. } = &self.open_case {
-                        pkg.write()
-                            .unwrap()
-                            .test_case_mut(*id)
-                            .ok()
-                            .flatten()
-                            .unwrap()
-                            .evidence_mut()
-                            .insert(at, ev.clone());
+                        let at = {
+                            // This block prevents a panic when only one item is present
+                            let mut pkg_w = pkg.write().unwrap();
+                            let evidence = pkg_w
+                                .test_case_mut(*id)
+                                .ok()
+                                .flatten()
+                                .unwrap()
+                                .evidence_mut();
+                            let at = at.min(evidence.len());
+                            evidence.insert(at, ev.clone());
+                            at
+                        };
                         self.needs_saving = true;
-                        // MUST NOT refresh interface -- cannot lose DynamicIndex references
-                        // add dummy entry to list to update DynamicIndex position correctly
+                        // update evidence
                         let mut tef = self.test_evidence_factory.guard();
                         tef.insert(
                             at,
@@ -1344,8 +1396,9 @@ impl Component for AppModel {
                             .evidence_mut();
                         evidence.remove(at.current_index());
                         self.needs_saving = true;
-                        // to refresh evidence
-                        sender.input(AppInput::NavigateTo(self.open_case));
+                        // update evidence
+                        let mut tef = self.test_evidence_factory.guard();
+                        tef.remove(at.current_index());
                     }
                 }
             }
@@ -1410,8 +1463,8 @@ impl Component for AppModel {
                 if let Some(pkg) = &self.open_package {
                     let mut pkg = pkg.write().unwrap();
                     if let Err(e) = match format.as_str() {
-                        "html document" => HtmlExporter.export_package(&mut pkg, path),
-                        "excel workbook" => ExcelExporter.export_package(&mut pkg, path),
+                        "html document" => HtmlExporter.export_package(&mut pkg, path.clone()),
+                        "excel workbook" => ExcelExporter.export_package(&mut pkg, path.clone()),
                         _ => {
                             log::error!("Invalid format specified.");
                             Ok(())
@@ -1435,7 +1488,11 @@ impl Component for AppModel {
                         self.latest_error_dlg = Some(error_dlg);
                     } else {
                         let toast = adw::Toast::new(&lang::lookup("toast-export-complete"));
-                        toast.set_timeout(1);
+                        toast.set_timeout(5);
+                        toast.set_button_label(Some(&lang::lookup("header-open")));
+                        toast.connect_button_clicked(move |_| {
+                            let _ = open::that(path.clone());
+                        });
                         widgets.toast_target.add_toast(toast);
                     }
                 } else {
@@ -1456,8 +1513,12 @@ impl Component for AppModel {
 
                     if let OpenCase::Case { id, .. } = &self.open_case {
                         if let Err(e) = match format.as_str() {
-                            "html document" => HtmlExporter.export_case(&mut pkg, *id, path),
-                            "excel workbook" => ExcelExporter.export_case(&mut pkg, *id, path),
+                            "html document" => {
+                                HtmlExporter.export_case(&mut pkg, *id, path.clone())
+                            }
+                            "excel workbook" => {
+                                ExcelExporter.export_case(&mut pkg, *id, path.clone())
+                            }
                             _ => {
                                 log::error!("Invalid format specified.");
                                 Ok(())
@@ -1481,7 +1542,11 @@ impl Component for AppModel {
                             self.latest_error_dlg = Some(error_dlg);
                         } else {
                             let toast = adw::Toast::new(&lang::lookup("toast-export-complete"));
-                            toast.set_timeout(1);
+                            toast.set_timeout(5);
+                            toast.set_button_label(Some(&lang::lookup("header-open")));
+                            toast.connect_button_clicked(move |_| {
+                                let _ = open::that(path.clone());
+                            });
                             widgets.toast_target.add_toast(toast);
                         }
                     } else {
@@ -1536,7 +1601,7 @@ impl Component for AppModel {
                                 matched_kind = true;
                                 break 'mime_loop;
                             }
-                            "image/png" | "image/jpeg" => {
+                            "image/png" | "image/jpeg" | "image/bmp" => {
                                 // Paste as image
                                 let sender_c = sender.clone();
                                 clipboard.read_texture_async(

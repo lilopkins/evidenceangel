@@ -23,6 +23,7 @@ impl SimpleComponent for AppAbout {
             set_developer_name: "Lily Hopkins",
             set_debug_info: &log_data,
 
+            add_acknowledgement_section: (Some(&lang::lookup("acknowledgements-code-title")), &["Lily Hopkins", "Eden Turner"]),
             add_acknowledgement_section: (Some(&lang::lookup("acknowledgements-testing-title")), &["John Chander", "Eden Turner"]),
             add_acknowledgement_section: (Some(&lang::lookup("acknowledgements-translations-title")), &["Lily Hopkins"]),
             add_legal_section: ("GTK",               None, gtk::License::Gpl20Only, None),
