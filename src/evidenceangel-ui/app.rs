@@ -1413,6 +1413,9 @@ impl Component for AppModel {
                         // update evidence
                         let mut tef = self.test_evidence_factory.guard();
                         tef.remove(at.current_index());
+
+                        // Fix for #73
+                        widgets.test_case_scrolled.grab_focus();
                     }
                 }
             }
