@@ -28,11 +28,15 @@ pub enum ExportOutput {
 
 #[derive(Debug)]
 pub struct ExportDialogInit {
+    /// The name of the package
+    pub package_name: String,
     /// The name of the test case beinge exported, or None if the whole package is to be exported.
     pub test_case_name: Option<String>,
 }
 
 pub struct ExportDialogModel {
+    /// The name of the package
+    pub package_name: String,
     /// The name of the test case beinge exported, or None if the whole package is to be exported.
     test_case_name: Option<String>,
 }
@@ -110,8 +114,14 @@ impl Component for ExportDialogModel {
         root: Self::Root,
         sender: ComponentSender<Self>,
     ) -> ComponentParts<Self> {
-        let Self::Init { test_case_name } = init;
-        let model = Self { test_case_name };
+        let Self::Init {
+            package_name,
+            test_case_name,
+        } = init;
+        let model = Self {
+            package_name,
+            test_case_name,
+        };
         let widgets = view_output!();
         ComponentParts { model, widgets }
     }
@@ -156,6 +166,7 @@ impl Component for ExportDialogModel {
                     .modal(true)
                     .title(lang::lookup("header-open"))
                     .initial_folder(&gtk::gio::File::for_path("."))
+                    .initial_name(self.test_case_name.as_ref().unwrap_or(&self.package_name))
                     .accept_label(lang::lookup("select"))
                     .build();
 
