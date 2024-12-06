@@ -1413,6 +1413,9 @@ impl Component for AppModel {
                         // update evidence
                         let mut tef = self.test_evidence_factory.guard();
                         tef.remove(at.current_index());
+
+                        // Fix for #73
+                        widgets.test_case_scrolled.grab_focus();
                     }
                 }
             }
@@ -1438,6 +1441,15 @@ impl Component for AppModel {
                 }
                 let export_dlg = ExportDialogModel::builder()
                     .launch(ExportDialogInit {
+                        package_name: self
+                            .open_package
+                            .as_ref()
+                            .unwrap()
+                            .read()
+                            .unwrap()
+                            .metadata()
+                            .title()
+                            .clone(),
                         test_case_name: None,
                     })
                     .forward(sender.input_sender(), |msg| match msg {
@@ -1462,6 +1474,7 @@ impl Component for AppModel {
                         .unwrap_or_default();
                     let export_dlg = ExportDialogModel::builder()
                         .launch(ExportDialogInit {
+                            package_name: pkg.metadata().title().clone(),
                             test_case_name: Some(case_name),
                         })
                         .forward(sender.input_sender(), |msg| match msg {

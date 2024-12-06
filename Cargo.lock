@@ -341,9 +341,9 @@ dependencies = [
 
 [[package]]
 name = "clap"
-version = "4.5.22"
+version = "4.5.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "69371e34337c4c984bbe322360c2547210bf632eb2814bbe78a6e87a2935bd2b"
+checksum = "3135e7ec2ef7b10c6ed8950f0f792ed96ee093fa088608f1c76e569722700c84"
 dependencies = [
  "clap_builder",
  "clap_derive",
@@ -351,9 +351,9 @@ dependencies = [
 
 [[package]]
 name = "clap_builder"
-version = "4.5.22"
+version = "4.5.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6e24c1b4099818523236a8ca881d2b45db98dadfb4625cf6608c12069fcbbde1"
+checksum = "30582fc632330df2bd26877bde0c1f4470d57c582bbc070376afcd04d8cb4838"
 dependencies = [
  "anstream",
  "anstyle",
@@ -384,9 +384,9 @@ dependencies = [
 
 [[package]]
 name = "clap_lex"
-version = "0.7.3"
+version = "0.7.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "afb84c814227b90d6895e01398aee0d8033c00e7466aca416fb6a8e0eb19d8a7"
+checksum = "f46ad14479a25103f283c0f10005961cf086d8dc42205bb44c46ac563475dca6"
 
 [[package]]
 name = "colorchoice"
@@ -564,7 +564,7 @@ checksum = "5443807d6dff69373d433ab9ef5378ad8df50ca6298caf15de6e52e24aaf54d5"
 
 [[package]]
 name = "evidenceangel"
-version = "1.0.1"
+version = "1.0.2"
 dependencies = [
  "base64",
  "chrono",
@@ -575,6 +575,7 @@ dependencies = [
  "fluent",
  "fluent-templates",
  "getset",
+ "html-escape",
  "infer",
  "jsonschema",
  "log",
@@ -1204,6 +1205,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6c49c37c09c17a53d937dfbb742eb3a961d65a994e6bcdcf37e7399d0cc8ab5e"
 dependencies = [
  "digest",
+]
+
+[[package]]
+name = "html-escape"
+version = "0.2.13"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6d1ad449764d627e22bfd7cd5e8868264fc9236e07c752972b4080cd351cb476"
+dependencies = [
+ "utf8-width",
 ]
 
 [[package]]
@@ -2275,14 +2285,14 @@ version = "0.10.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e14e4d63b804dc0c7ec4a1e52bcb63f02c7ac94476755aa579edac21e01f915d"
 dependencies = [
- "self_cell 1.0.4",
+ "self_cell 1.1.0",
 ]
 
 [[package]]
 name = "self_cell"
-version = "1.0.4"
+version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d369a96f978623eb3dc28807c4852d6cc617fed53da5d3c400feff1ef34a714a"
+checksum = "c2fdfc24bc566f839a2da4c4295b82db7d25a24253867d5c64355abb5799bdbe"
 
 [[package]]
 name = "semver"
@@ -2757,6 +2767,12 @@ name = "utf16_iter"
 version = "1.0.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c8232dd3cdaed5356e0f716d285e4b40b932ac434100fe9b7e0e8e935b9e6246"
+
+[[package]]
+name = "utf8-width"
+version = "0.1.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "86bd8d4e895da8537e5315b8254664e6b769c4ff3db18321b297a1e7004392e3"
 
 [[package]]
 name = "utf8_iter"

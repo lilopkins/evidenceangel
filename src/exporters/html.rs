@@ -32,13 +32,13 @@ impl Exporter for HtmlExporter {
     ) -> crate::Result<()> {
         let mut body = HtmlBodyElement::new();
 
-        let title = h1!(package.metadata().title());
+        let title = h1!(&html_escape::encode_text(package.metadata().title()));
         body.add_child(title);
 
         let mut authors = String::new();
         for author in package.metadata().authors() {
             if let Some(email) = author.email() {
-                authors.push_str(&format!("{} &lt;{}&gt;, ", author.name(), email));
+                authors.push_str(&format!("{} <{}>, ", author.name(), email));
             } else {
                 authors.push_str(&format!("{}, ", author.name()));
             }
@@ -46,7 +46,10 @@ impl Exporter for HtmlExporter {
         authors.pop();
         authors.pop();
 
-        body.add_child(HtmlElement::new("p").child(HtmlElement::new("em").content(&authors)));
+        body.add_child(
+            HtmlElement::new("p")
+                .child(HtmlElement::new("em").content(&html_escape::encode_text(&authors))),
+        );
 
         let mut test_cases: Vec<&TestCase> = package.test_case_iter()?.collect();
         test_cases.sort_by(|a, b| {
@@ -107,7 +110,7 @@ fn create_test_case_div(
     log::debug!("Creating HTML element for test case {}", test_case.id());
     let mut elem = div!().no_indent();
     elem.add_child(HtmlElement::new("hr"));
-    elem.add_child(h2!(test_case.metadata().title()));
+    elem.add_child(h2!(&html_escape::encode_text(test_case.metadata().title())));
     elem.add_child(HtmlElement::new("p").child(
         HtmlElement::new("em").content(&test_case.metadata().execution_datetime().to_rfc2822()),
     ));
@@ -115,7 +118,10 @@ fn create_test_case_div(
     // Write evidence
     for evidence in test_case.evidence() {
         if let Some(caption) = evidence.caption() {
-            elem.add_child(HtmlElement::new("p").child(HtmlElement::new("em").content(caption)));
+            elem.add_child(
+                HtmlElement::new("p")
+                    .child(HtmlElement::new("em").content(&html_escape::encode_text(caption))),
+            );
         }
 
         match evidence.kind() {
@@ -123,7 +129,7 @@ fn create_test_case_div(
                 let data = evidence.value().get_data(&mut package)?;
                 let text = String::from_utf8_lossy(data.as_slice());
                 for line in text.lines() {
-                    elem.add_child(HtmlElement::new("p").content(line));
+                    elem.add_child(HtmlElement::new("p").content(&html_escape::encode_text(line)));
                 }
             }
             EvidenceKind::Image => {
@@ -141,9 +147,11 @@ fn create_test_case_div(
                 let data = evidence.value().get_data(&mut package)?;
                 let text = String::from_utf8_lossy(data.as_slice());
                 elem.add_child(
-                    HtmlElement::new("code")
-                        .no_indent()
-                        .child(HtmlElement::new("pre").no_indent().content(&text)),
+                    HtmlElement::new("code").no_indent().child(
+                        HtmlElement::new("pre")
+                            .no_indent()
+                            .content(&html_escape::encode_text(&text)),
+                    ),
                 );
             }
             EvidenceKind::File => {
