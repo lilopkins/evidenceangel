@@ -79,7 +79,8 @@ pub enum EvidenceFactoryOutput {
     /// Replace the evidence at the given position. This MUST NOT trigger an update to the interface.
     UpdateEvidence(DynamicIndex, Evidence),
     /// Delete evidence at the given position. This MUST trigger an update to the interface.
-    DeleteEvidence(DynamicIndex),
+    /// Second parameter defines if it is user inititiated
+    DeleteEvidence(DynamicIndex, bool),
     /// `InsertEvidenceAt` MUST be followed by a `DeleteEvidence` call as it is only triggered by a data move.
     /// As such, it MUST NOT trigger an update to the interface.
     InsertEvidenceAt(DynamicIndex, isize, Evidence),
@@ -113,7 +114,7 @@ impl FactoryComponent for EvidenceFactoryModel {
                 connect_drag_end[sender, index] => move |_slf, _drag, delete_data| {
                     if delete_data {
                         log::debug!("Deleting drag start item");
-                        sender.output(EvidenceFactoryOutput::DeleteEvidence(index.clone())).unwrap();
+                        sender.output(EvidenceFactoryOutput::DeleteEvidence(index.clone(), false)).unwrap();
                     }
                 }
             },
@@ -422,7 +423,10 @@ impl FactoryComponent for EvidenceFactoryModel {
             }
             EvidenceFactoryInput::Delete => {
                 sender
-                    .output(EvidenceFactoryOutput::DeleteEvidence(self.index.clone()))
+                    .output(EvidenceFactoryOutput::DeleteEvidence(
+                        self.index.clone(),
+                        true,
+                    ))
                     .unwrap();
             }
             EvidenceFactoryInput::MoveUp => {
@@ -434,7 +438,10 @@ impl FactoryComponent for EvidenceFactoryModel {
                     ))
                     .unwrap();
                 sender
-                    .output(EvidenceFactoryOutput::DeleteEvidence(self.index.clone()))
+                    .output(EvidenceFactoryOutput::DeleteEvidence(
+                        self.index.clone(),
+                        false,
+                    ))
                     .unwrap();
             }
             EvidenceFactoryInput::MoveDown => {
@@ -446,7 +453,10 @@ impl FactoryComponent for EvidenceFactoryModel {
                     ))
                     .unwrap();
                 sender
-                    .output(EvidenceFactoryOutput::DeleteEvidence(self.index.clone()))
+                    .output(EvidenceFactoryOutput::DeleteEvidence(
+                        self.index.clone(),
+                        false,
+                    ))
                     .unwrap();
             }
         }
