@@ -35,6 +35,7 @@ impl FactoryComponent for AuthorFactoryModel {
         adw::ActionRow {
             set_title: &self.author.name(),
             set_subtitle: &self.author.email().clone().unwrap_or_default(),
+            set_use_markup: false,
 
             add_suffix = &gtk::Button {
                 set_icon_name: relm4_icons::icon_names::CROSS_LARGE,
