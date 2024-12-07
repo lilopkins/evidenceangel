@@ -9,6 +9,8 @@ jobs:
   check-version:
     name: Check version
     runs-on: ubuntu-latest
+    container:
+      image: docker.io/cimg/go:1.17
 
     steps:
       - name: Checkout this PR
