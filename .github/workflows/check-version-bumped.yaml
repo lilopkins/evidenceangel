@@ -9,8 +9,6 @@ jobs:
   check-version:
     name: Check version
     runs-on: ubuntu-latest
-    container:
-      image: docker.io/cimg/go:1.17
 
     steps:
       - name: Checkout this PR
@@ -36,6 +34,4 @@ jobs:
           echo "CARGO_PKG_PRERELEASE=${CARGO_PKG_PRERELEASE}" >> $GITHUB_OUTPUT
 
       - name: Assert versions are different
-        run: |
-          go install github.com/davidrjonas/semver-cli@latest
-          semver-cli greater ${{ steps.version-pr.outputs.CARGO_PKG_VERSION }} ${{ steps.version-main.outputs.CARGO_PKG_VERSION }}
+        run: go run github.com/davidrjonas/semver-cli@latest greater ${{ steps.version-pr.outputs.CARGO_PKG_VERSION }} ${{ steps.version-main.outputs.CARGO_PKG_VERSION }}
