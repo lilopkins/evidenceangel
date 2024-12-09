@@ -127,6 +127,7 @@ jobs:
       - name: Get latest Win-GTK4 build
         if: matrix.platform.os_name == 'Windows'
         id: wingtk-install
+        shell: bash
         run: |
           REPO_OWNER="wingtk"  # Replace with the owner of the repository
           REPO_NAME="gvsbuild" # Replace with the name of the repository
@@ -188,12 +189,12 @@ jobs:
 
       - name: Build
         if: matrix.platform.os_name == 'Windows'
-        shell: pwsh
+        shell: bash
         run: |
-          $env:PATH="${{ steps.wingtk-install.outputs.BASE_DIR }}\bin;" + $env:PATH
-          $env:LIB="${{ steps.wingtk-install.outputs.BASE_DIR }}\lib;" + $env:LIB
-          $env:INCLUDE="${{ steps.wingtk-install.outputs.BASE_DIR }}\include;${{ steps.wingtk-install.outputs.BASE_DIR }}\include\cairo;${{ steps.wingtk-install.outputs.BASE_DIR }}\include\glib-2.0;${{ steps.wingtk-install.outputs.BASE_DIR }}\include\gobject-introspection-1.0;${{ steps.wingtk-install.outputs.BASE_DIR }}\lib\glib-2.0\include;" + $env:INCLUDE
-          $env:PKG_CONFIG_PATH="${{ steps.wingtk-install.outputs.BASE_DIR }}\lib\pkgconfig;" + $env:PKG_CONFIG_PATH
+          PATH="${{ steps.wingtk-install.outputs.BASE_DIR }}/bin:$PATH"
+          LIB="${{ steps.wingtk-install.outputs.BASE_DIR }}/lib:$LIB"
+          INCLUDE="${{ steps.wingtk-install.outputs.BASE_DIR }}/include:${{ steps.wingtk-install.outputs.BASE_DIR }}/include/cairo:${{ steps.wingtk-install.outputs.BASE_DIR }}/include/glib-2.0:${{ steps.wingtk-install.outputs.BASE_DIR }}/include/gobject-introspection-1.0:${{ steps.wingtk-install.outputs.BASE_DIR }}/lib/glib-2.0/include:$INCLUDE"
+          PKG_CONFIG_PATH="${{ steps.wingtk-install.outputs.BASE_DIR }}/lib/pkgconfig:$PKG_CONFIG_PATH"
 
           mkdir -p bundle/bin
           cargo build --release ${{ env.CARGO_EXTRA_BUILD_PARAMS }}
@@ -201,8 +202,8 @@ jobs:
           cargo build --release --features ${{ env.CARGO_KEEP_CONSOLE_ON_WINDOWS_FEATURE }} ${{ env.CARGO_EXTRA_BUILD_PARAMS }}
           mv target/release/${{ env.EXECUTABLE_NAME }}.exe bundle/bin/${{ env.EXECUTABLE_NAME }}-console-${{ matrix.platform.file_suffix }}.exe
 
-          rm -r -fo ${{ steps.wingtk-install.outputs.BASE_DIR }}/include
-          cp ${{ steps.wingtk-install.outputs.BASE_DIR }}/* bundle/
+          rm -rf ${{ steps.wingtk-install.outputs.BASE_DIR }}/include
+          cp -r ${{ steps.wingtk-install.outputs.BASE_DIR }}/* bundle/
 
       - name: Save Cargo cache
         uses: actions/cache/save@v3
