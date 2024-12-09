@@ -1,4 +1,4 @@
-name: Check version is suitable for merge to main
+name: Check version is suitable for merge to upstream
 
 on:
   pull_request:
@@ -21,12 +21,12 @@ jobs:
           echo "CARGO_PKG_VERSION=${CARGO_PKG_VERSION}" >> $GITHUB_OUTPUT
           echo "CARGO_PKG_PRERELEASE=${CARGO_PKG_PRERELEASE}" >> $GITHUB_OUTPUT
 
-      - name: Checkout main
+      - name: Checkout ${{ github.base_ref }}
         uses: actions/checkout@v4
         with:
-          ref: main
-      - name: Determine Cargo version of main
-        id: version-main
+          ref: ${{ github.base_ref }}
+      - name: Determine Cargo version of ${{ github.base_ref }}
+        id: version-upstream
         run: |
           export CARGO_PKG_VERSION=$(awk -F '["=]' '/^\[(workspace.)?package\]/{p=1} p && /^version[[:space:]]*=/ {gsub(/"/, "", $3); print $3; p=0}' Cargo.toml)
           export CARGO_PKG_PRERELEASE=$([[ $CARGO_PKG_VERSION =~ -[0-9A-Za-z]+ ]] && echo "true" || echo "false")
@@ -34,4 +34,4 @@ jobs:
           echo "CARGO_PKG_PRERELEASE=${CARGO_PKG_PRERELEASE}" >> $GITHUB_OUTPUT
 
       - name: Assert versions are different
-        run: go run github.com/davidrjonas/semver-cli@latest greater ${{ steps.version-pr.outputs.CARGO_PKG_VERSION }} ${{ steps.version-main.outputs.CARGO_PKG_VERSION }}
+        run: go run github.com/davidrjonas/semver-cli@latest greater ${{ steps.version-pr.outputs.CARGO_PKG_VERSION }} ${{ steps.version-upstream.outputs.CARGO_PKG_VERSION }}
