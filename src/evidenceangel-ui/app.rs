@@ -1122,7 +1122,13 @@ impl Component for AppModel {
             }
             AppInput::SetMetadataDescription(new_desc) => {
                 if let Some(pkg) = self.get_package() {
-                    pkg.write().unwrap().metadata_mut().set_description(if new_desc.trim().is_empty() { None } else { Some(new_desc) });
+                    pkg.write().unwrap().metadata_mut().set_description(
+                        if new_desc.trim().is_empty() {
+                            None
+                        } else {
+                            Some(new_desc)
+                        },
+                    );
                     self.needs_saving = true;
                 }
             }

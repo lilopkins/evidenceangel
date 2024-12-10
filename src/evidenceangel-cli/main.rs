@@ -263,7 +263,9 @@ fn exec() -> Result<(), Box<dyn std::error::Error>> {
                         let mut evidence =
                             Evidence::new(EvidenceKind::File, EvidenceData::Media { hash });
                         evidence.set_caption(caption);
-                        evidence.set_original_filename(path.file_name().map(|s| s.to_string_lossy().to_string()));
+                        evidence.set_original_filename(
+                            path.file_name().map(|s| s.to_string_lossy().to_string()),
+                        );
                         case.evidence_mut().push(evidence);
                     } else {
                         eprintln!("No test case exists with that ID!");
