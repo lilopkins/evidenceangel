@@ -1,6 +1,6 @@
 {
   "$id": "https://evidenceangel-schemas.hpkns.uk/testcase.1.schema.json",
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$schema": "http://json-schema.org/draft-07/schema",
   "type": "object",
   "description": "A test case file `testcases/<UUID>.json` as part of an evidence package.",
   "properties": {
@@ -40,9 +40,23 @@
           "caption": {
             "type": "string",
             "description": "An optional caption for this piece of evidence."
+          },
+          "original_filename": {
+            "type": "string",
+            "description": "The original filename for File evidence"
           }
         },
-        "required": ["kind", "value"]
+        "required": ["kind", "value"],
+        "if": {
+          "properties": {
+            "kind": { "const": "File" }
+          }
+        },
+        "else": {
+          "not": {
+            "required": ["original_filename"]
+          }
+        }
       }
     }
   },

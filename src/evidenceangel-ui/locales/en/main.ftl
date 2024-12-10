@@ -3,6 +3,7 @@ ok = Ok
 cancel = Cancel
 invalid-data = Invalid data
 select = Select
+undo = Undo
 
 header-new = New
 header-open = Open
@@ -28,6 +29,7 @@ toast-saved = Package saved.
 toast-export-complete = Export complete.
 toast-name-too-long = Name too long. Please make it less than 30 characters.
 toast-name-cant-be-empty = Name cannot be empty.
+toast-evidence-deleted = Evidence deleted.
 
 error-failed-save-title = Failed to Save
 error-failed-save-body = Failed to save the evidence package: { $error }
@@ -55,6 +57,7 @@ title-no-case = No case open
 
 metadata-group-title = Package Metadata
 metadata-title = Package Title
+metadata-description = Package Description
 metadata-authors = Package Authors
 
 author-create-title = Add Author

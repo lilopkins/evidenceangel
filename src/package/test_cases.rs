@@ -70,6 +70,12 @@ pub struct Evidence {
     #[getset(get_mut = "pub", set = "pub")]
     #[serde(skip_serializing_if = "Option::is_none")]
     caption: Option<String>,
+
+    /// The original filename, if this is `File` evidence.
+    /// This MUST be None for any other kind of evidence.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[getset(get_mut = "pub", set = "pub")]
+    original_filename: Option<String>,
 }
 
 impl Evidence {
@@ -79,6 +85,7 @@ impl Evidence {
             kind,
             value,
             caption: None,
+            original_filename: None,
         }
     }
 }

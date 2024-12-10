@@ -58,6 +58,7 @@ pub struct AppModel {
     latest_add_evidence_image_dlg: Option<Controller<AddImageEvidenceDialogModel>>,
     latest_error_dlg: Option<Controller<ErrorDialogModel>>,
     latest_export_dlg: Option<Controller<ExportDialogModel>>,
+    latest_delete_toasts: Vec<adw::Toast>,
 
     test_case_nav_factory: FactoryVecDeque<NavFactoryModel>,
     authors_factory: FactoryVecDeque<AuthorFactoryModel>,
@@ -186,6 +187,7 @@ pub enum AppInput {
     DeleteCase(Uuid),
     CreateCaseAndSelect,
     SetMetadataTitle(String),
+    SetMetadataDescription(String),
     CreateAuthor,
     _CreateAuthor(Author),
     DeleteAuthor(Author),
@@ -200,11 +202,11 @@ pub enum AppInput {
     AddImageEvidence,
     #[allow(dead_code)]
     AddFileEvidence,
-    _AddEvidence(Evidence),
+    _AddEvidence(Evidence, Option<usize>),
     /// `InsertEvidenceAt` MUST NOT update the interface.
     InsertEvidenceAt(usize, Evidence),
     ReplaceEvidenceAt(DynamicIndex, Evidence),
-    DeleteEvidenceAt(DynamicIndex),
+    DeleteEvidenceAt(DynamicIndex, bool),
     _AddMedia(MediaFile),
     /// Show an error dialog.
     ShowError {
@@ -393,6 +395,15 @@ impl Component for AppModel {
 
                                                 connect_changed[sender] => move |entry| {
                                                     sender.input(AppInput::SetMetadataTitle(entry.text().to_string()));
+                                                } @metadata_description_changed
+                                            },
+
+                                            #[name = "metadata_description"]
+                                            adw::EntryRow {
+                                                set_title: &lang::lookup("metadata-description"),
+
+                                                connect_changed[sender] => move |entry| {
+                                                    sender.input(AppInput::SetMetadataDescription(entry.text().to_string()));
                                                 } @metadata_title_changed
                                             },
 
@@ -507,7 +518,7 @@ impl Component for AppModel {
                                                             if let Ok(data) = val.get::<BoxedEvidenceJson>() {
                                                                 let ev = data.inner();
                                                                 log::debug!("Dropped data: {ev:?}");
-                                                                sender.input(AppInput::_AddEvidence(ev));
+                                                                sender.input(AppInput::_AddEvidence(ev, None));
                                                                 return true;
                                                             }
                                                             false
@@ -701,6 +712,7 @@ impl Component for AppModel {
             latest_add_evidence_http_dlg: None,
             latest_add_evidence_image_dlg: None,
             latest_export_dlg: None,
+            latest_delete_toasts: vec![],
 
             test_case_nav_factory: FactoryVecDeque::builder().launch_default().forward(
                 sender.input_sender(),
@@ -734,7 +746,9 @@ impl Component for AppModel {
                         };
                         AppInput::InsertEvidenceAt(idx_with_offset, ev)
                     }
-                    EvidenceFactoryOutput::DeleteEvidence(at) => AppInput::DeleteEvidenceAt(at),
+                    EvidenceFactoryOutput::DeleteEvidence(at, user_triggered) => {
+                        AppInput::DeleteEvidenceAt(at, user_triggered)
+                    }
                 },
             ),
         };
@@ -858,6 +872,7 @@ impl Component for AppModel {
             }
             AppInput::SaveFileThen(then) => {
                 if let Some(package) = self.get_package() {
+                    self.latest_delete_toasts.iter().for_each(|t| t.dismiss());
                     if let Err(e) = package.write().unwrap().save() {
                         // Show error dialog
                         let error_dlg = ErrorDialogModel::builder()
@@ -955,6 +970,22 @@ impl Component for AppModel {
                         widgets
                             .metadata_title
                             .unblock_signal(&widgets.metadata_title_changed);
+
+                        widgets
+                            .metadata_description
+                            .block_signal(&widgets.metadata_description_changed);
+                        widgets.metadata_description.set_text(
+                            &self
+                                .open_package
+                                .as_ref()
+                                .map(|pkg| pkg.read().unwrap().metadata().description().clone())
+                                .expect("Cannot navigate to metadata when no package is open")
+                                .unwrap_or_default(),
+                        );
+                        widgets
+                            .metadata_description
+                            .unblock_signal(&widgets.metadata_description_changed);
+
                         let mut authors = self.authors_factory.guard();
                         authors.clear();
                         let pkg_authors = self
@@ -1087,6 +1118,18 @@ impl Component for AppModel {
                         .metadata_title_error_popover_label
                         .set_text(&lang::lookup("toast-name-cant-be-empty"));
                     widgets.metadata_title_error_popover.set_visible(true);
+                }
+            }
+            AppInput::SetMetadataDescription(new_desc) => {
+                if let Some(pkg) = self.get_package() {
+                    pkg.write().unwrap().metadata_mut().set_description(
+                        if new_desc.trim().is_empty() {
+                            None
+                        } else {
+                            Some(new_desc)
+                        },
+                    );
+                    self.needs_saving = true;
                 }
             }
             AppInput::DeleteCase(id) => {
@@ -1286,7 +1329,7 @@ impl Component for AppModel {
                 let add_evidence_text_dlg = AddTextEvidenceDialogModel::builder()
                     .launch(self.get_package().unwrap())
                     .forward(sender.input_sender(), |msg| match msg {
-                        AddEvidenceOutput::AddEvidence(ev) => AppInput::_AddEvidence(ev),
+                        AddEvidenceOutput::AddEvidence(ev) => AppInput::_AddEvidence(ev, None),
                         AddEvidenceOutput::Error { title, message } => {
                             AppInput::ShowError { title, message }
                         }
@@ -1300,7 +1343,7 @@ impl Component for AppModel {
                 let add_evidence_http_dlg = AddHttpEvidenceDialogModel::builder()
                     .launch(self.get_package().unwrap())
                     .forward(sender.input_sender(), |msg| match msg {
-                        AddEvidenceOutput::AddEvidence(ev) => AppInput::_AddEvidence(ev),
+                        AddEvidenceOutput::AddEvidence(ev) => AppInput::_AddEvidence(ev, None),
                         AddEvidenceOutput::Error { title, message } => {
                             AppInput::ShowError { title, message }
                         }
@@ -1314,7 +1357,7 @@ impl Component for AppModel {
                 let add_evidence_image_dlg = AddImageEvidenceDialogModel::builder()
                     .launch(self.get_package().unwrap())
                     .forward(sender.input_sender(), |msg| match msg {
-                        AddEvidenceOutput::AddEvidence(ev) => AppInput::_AddEvidence(ev),
+                        AddEvidenceOutput::AddEvidence(ev) => AppInput::_AddEvidence(ev, None),
                         AddEvidenceOutput::Error { title, message } => {
                             AppInput::ShowError { title, message }
                         }
@@ -1326,28 +1369,45 @@ impl Component for AppModel {
             }
             AppInput::AddFileEvidence => (),
             AppInput::ReinstatePaste => self.action_paste_evidence.set_enabled(true),
-            AppInput::_AddEvidence(ev) => {
+            AppInput::_AddEvidence(ev, maybe_pos) => {
                 if let Some(pkg) = self.get_package() {
                     if let OpenCase::Case { id, .. } = &self.open_case {
-                        pkg.write()
-                            .unwrap()
-                            .test_case_mut(*id)
-                            .ok()
-                            .flatten()
-                            .unwrap()
-                            .evidence_mut()
-                            .push(ev.clone());
+                        {
+                            let mut pkg_guard = pkg.write().unwrap();
+                            let evidence = pkg_guard
+                                .test_case_mut(*id)
+                                .ok()
+                                .flatten()
+                                .unwrap()
+                                .evidence_mut();
+                            if let Some(pos) = &maybe_pos {
+                                evidence.insert(*pos, ev.clone())
+                            } else {
+                                evidence.push(ev.clone());
+                            }
+                        }
                         self.needs_saving = true;
                         // update evidence
                         let mut evidence = self.test_evidence_factory.guard();
-                        evidence.push_back(EvidenceFactoryInit {
-                            evidence: ev,
-                            package: pkg.clone(),
-                        });
-                        // scroll to the bottom
-                        let adj = widgets.test_case_scrolled.vadjustment();
-                        adj.set_value(adj.upper());
-                        widgets.test_case_scrolled.set_vadjustment(Some(&adj));
+
+                        if let Some(pos) = &maybe_pos {
+                            evidence.insert(
+                                *pos,
+                                EvidenceFactoryInit {
+                                    evidence: ev,
+                                    package: pkg.clone(),
+                                },
+                            );
+                        } else {
+                            evidence.push_back(EvidenceFactoryInit {
+                                evidence: ev,
+                                package: pkg.clone(),
+                            });
+                            // scroll to the bottom
+                            let adj = widgets.test_case_scrolled.vadjustment();
+                            adj.set_value(adj.upper());
+                            widgets.test_case_scrolled.set_vadjustment(Some(&adj));
+                        }
                     }
                 }
             }
@@ -1398,7 +1458,7 @@ impl Component for AppModel {
                     }
                 }
             }
-            AppInput::DeleteEvidenceAt(at) => {
+            AppInput::DeleteEvidenceAt(at, user_triggered) => {
                 if let Some(pkg) = self.get_package() {
                     if let OpenCase::Case { id, .. } = &self.open_case {
                         let mut pkg = pkg.write().unwrap();
@@ -1408,11 +1468,25 @@ impl Component for AppModel {
                             .flatten()
                             .unwrap()
                             .evidence_mut();
-                        evidence.remove(at.current_index());
+                        let ev = evidence.remove(at.current_index());
                         self.needs_saving = true;
                         // update evidence
                         let mut tef = self.test_evidence_factory.guard();
+                        let index = at.current_index();
                         tef.remove(at.current_index());
+
+                        if user_triggered {
+                            let toast = adw::Toast::new(&lang::lookup("toast-evidence-deleted"));
+                            toast.set_timeout(5);
+                            toast.set_button_label(Some(&lang::lookup("undo")));
+                            let sender = sender.clone();
+                            toast.connect_button_clicked(move |_| {
+                                sender.input(AppInput::_AddEvidence(ev.clone(), Some(index)));
+                            });
+
+                            widgets.toast_target.add_toast(toast.clone());
+                            self.latest_delete_toasts.push(toast);
+                        }
 
                         // Fix for #73
                         widgets.test_case_scrolled.grab_focus();
@@ -1618,7 +1692,7 @@ impl Component for AppModel {
                                                 content: data.to_string(),
                                             },
                                         );
-                                        sender_c.input(AppInput::_AddEvidence(evidence));
+                                        sender_c.input(AppInput::_AddEvidence(evidence, None));
                                     } else {
                                         sender_c.input(AppInput::ShowToast(lang::lookup(
                                             "paste-evidence-failed",
@@ -1644,7 +1718,7 @@ impl Component for AppModel {
                                                 },
                                             );
                                             sender_c.input(AppInput::_AddMedia(media));
-                                            sender_c.input(AppInput::_AddEvidence(evidence));
+                                            sender_c.input(AppInput::_AddEvidence(evidence, None));
                                         } else {
                                             sender_c.input(AppInput::ShowToast(lang::lookup(
                                                 "paste-evidence-failed",

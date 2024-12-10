@@ -11,6 +11,10 @@ pub struct Metadata {
     /// The package title.
     pub(super) title: String,
 
+    /// The package description.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(super) description: Option<String>,
+
     /// The package authors.
     #[get_mut = "pub"]
     pub(super) authors: Vec<Author>,

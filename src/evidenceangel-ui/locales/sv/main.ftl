@@ -3,6 +3,7 @@ ok = Ok
 cancel = Avbryt
 invalid-data = Ogiltiga data
 select = Välj
+undo = Ångra
 
 header-new = Ny
 header-open = Öppna
@@ -28,6 +29,7 @@ toast-saved = Bevispaket sparade.
 toast-export-complete = Exporten är klar.
 toast-name-too-long = Namnet är för långt. Vänligen gör det mindre än 30 tecken.
 toast-name-cant-be-empty = Namnet får inte vara tomt.
+toast-evidence-deleted = Bevis raderade.
 
 error-failed-save-title = Misslyckades att Spara
 error-failed-save-body = Misslyckades att spara bevispaketet: { $error }
@@ -55,6 +57,7 @@ title-no-case = Inget fall öppet
 
 metadata-group-title = Paketmetadata
 metadata-title = Paketets Titel
+metadata-description = Packetets Beskrivning
 metadata-authors = Paketets Författare
 
 author-create-title = Lägg till Författare

@@ -124,56 +124,43 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Restore GTK4
+      - name: Get latest Win-GTK4 build
         if: matrix.platform.os_name == 'Windows'
-        id: cache-gtk4
-        uses: actions/cache/restore@v3
-        with:
-          key: windows-gtk4
-          path: |
-            C:\gtk-build
-
-      - name: Move git binary
-        if: matrix.platform.os_name == 'Windows'
+        id: wingtk-install
+        shell: bash
         run: |
-          Move-Item "C:\Program Files\Git\usr\bin" "C:\Program Files\Git\usr\notbin"
-          Move-Item "C:\Program Files\Git\bin" "C:\Program Files\Git\notbin"
+          REPO_OWNER="wingtk"  # Replace with the owner of the repository
+          REPO_NAME="gvsbuild" # Replace with the name of the repository
+          ASSET_PREFIX="GTK4"  # The prefix of the asset you want to download
 
-      - name: Build GTK4
-        if: matrix.platform.os_name == 'Windows'
-        continue-on-error: true
-        id: build-gtk4-fallible
-        run: |
-          python -m pip install --user pipx
-          python -m pipx ensurepath
-          pipx install gvsbuild
-          gvsbuild build gtk4 libadwaita librsvg --ninja-opts -j2
+          mkdir -p "${ASSET_PREFIX}"
+          cd "${ASSET_PREFIX}" || exit 1
 
-      - name: Build GTK4 with known good gvsbuild (${{ vars.GVSBUILD_KNOWN_GOOD_VERSION }})
-        if: steps.build-gtk4-fallible.outcome == 'failure' && matrix.platform.os_name == 'Windows'
-        run: |
-          python -m pip install --user pipx
-          python -m pipx ensurepath
-          pipx install --force gvsbuild==${{ vars.GVSBUILD_KNOWN_GOOD_VERSION }}
-          gvsbuild build gtk4 libadwaita librsvg --ninja-opts -j2
+          # Get the latest release
+          RELEASE_INFO=$(curl -s \
+          "https://api.github.com/repos/$REPO_OWNER/$REPO_NAME/releases/latest")
 
-      - name: Restore git binary
-        if: matrix.platform.os_name == 'Windows'
-        run: |
-          Move-Item "C:\Program Files\Git\usr\notbin" "C:\Program Files\Git\usr\bin"
-          Move-Item "C:\Program Files\Git\notbin" "C:\Program Files\Git\bin"
+          # Extract the asset URL that starts with the specified prefix
+          ASSET_URL=$(echo "$RELEASE_INFO" | jq -r --arg ASSET_PREFIX "$ASSET_PREFIX" \
+          '.assets[] | select(.name | startswith($ASSET_PREFIX)) | .url')
 
-      - name: Save GTK4
-        if: matrix.platform.os_name == 'Windows'
-        uses: actions/cache/save@v3
-        with:
-          key: ${{ steps.cache-gtk4.outputs.cache-primary-key }}
-          path: |
-            C:\gtk-build
+          if [ -z "$ASSET_URL" ]; then
+          echo "No asset found starting with '$ASSET_PREFIX'!"
+          exit 1
+          fi
 
-      - name: Tree GTK release
-        if: matrix.platform.os_name == 'Windows'
-        run: tree C:\gtk-build\gtk\x64\
+          # Download the asset
+          curl -L \
+          -H "Accept: application/octet-stream" \
+          "$ASSET_URL" -o "${ASSET_PREFIX}_asset.zip"
+
+          echo "Downloaded asset: ${ASSET_PREFIX}_asset.zip"
+
+          unzip "${ASSET_PREFIX}_asset.zip"
+          rm -f "${ASSET_PREFIX}_asset.zip"
+          rm -rf "include/" "python/" "wheels/"
+          BASE_DIR=$(pwd)
+          echo "BASE_DIR=${BASE_DIR}" >> $GITHUB_OUTPUT
 
       - name: Install Mac dependencies
         if: matrix.platform.os_name == 'Mac'
@@ -202,29 +189,21 @@ jobs:
 
       - name: Build
         if: matrix.platform.os_name == 'Windows'
-        shell: pwsh
+        shell: bash
         run: |
-          $env:PATH="C:\gtk-build\gtk\x64\release\bin;" + $env:PATH
-          $env:LIB="C:\gtk-build\gtk\x64\release\lib;" + $env:LIB
-          $env:INCLUDE="C:\gtk-build\gtk\x64\release\include;C:\gtk-build\gtk\x64\release\include\cairo;C:\gtk-build\gtk\x64\release\include\glib-2.0;C:\gtk-build\gtk\x64\release\include\gobject-introspection-1.0;C:\gtk-build\gtk\x64\release\lib\glib-2.0\include;" + $env:INCLUDE
-          $env:PKG_CONFIG_PATH="C:\gtk-build\gtk\x64\release\lib\pkgconfig;" + $env:PKG_CONFIG_PATH
+          PATH="${{ steps.wingtk-install.outputs.BASE_DIR }}/bin:$PATH"
+          LIB="${{ steps.wingtk-install.outputs.BASE_DIR }}/lib:$LIB"
+          INCLUDE="${{ steps.wingtk-install.outputs.BASE_DIR }}/include:${{ steps.wingtk-install.outputs.BASE_DIR }}/include/cairo:${{ steps.wingtk-install.outputs.BASE_DIR }}/include/glib-2.0:${{ steps.wingtk-install.outputs.BASE_DIR }}/include/gobject-introspection-1.0:${{ steps.wingtk-install.outputs.BASE_DIR }}/lib/glib-2.0/include:$INCLUDE"
+          PKG_CONFIG_PATH="${{ steps.wingtk-install.outputs.BASE_DIR }}/lib/pkgconfig:$PKG_CONFIG_PATH"
 
-          mkdir -p bundle
+          mkdir -p bundle/bin
           cargo build --release ${{ env.CARGO_EXTRA_BUILD_PARAMS }}
-          mv target/release/${{ env.EXECUTABLE_NAME }}.exe bundle/${{ env.EXECUTABLE_NAME }}-${{ matrix.platform.file_suffix }}.exe
+          mv target/release/${{ env.EXECUTABLE_NAME }}.exe bundle/bin/${{ env.EXECUTABLE_NAME }}-${{ matrix.platform.file_suffix }}.exe
           cargo build --release --features ${{ env.CARGO_KEEP_CONSOLE_ON_WINDOWS_FEATURE }} ${{ env.CARGO_EXTRA_BUILD_PARAMS }}
-          mv target/release/${{ env.EXECUTABLE_NAME }}.exe bundle/${{ env.EXECUTABLE_NAME }}-console-${{ matrix.platform.file_suffix }}.exe
-          cp C:\gtk-build\gtk\x64\release\bin\*.dll bundle/
+          mv target/release/${{ env.EXECUTABLE_NAME }}.exe bundle/bin/${{ env.EXECUTABLE_NAME }}-console-${{ matrix.platform.file_suffix }}.exe
 
-          # GSchemas
-          glib-compile-schemas C:\gtk-build\gtk\x64\release\share\glib-2.0\schemas\
-          mkdir -p bundle/share/glib-2.0/schemas
-          copy C:\gtk-build\gtk\x64\release\share\glib-2.0\schemas\gschemas.compiled bundle/share/glib-2.0/schemas/
-
-          # SVG loader for icons
-          mkdir -p bundle/lib/gdk-pixbuf-2.0/2.10.0/loaders
-          copy C:\gtk-build\gtk\x64\release\lib\gdk-pixbuf-2.0\2.10.0\loaders.cache bundle/lib/gdk-pixbuf-2.0/2.10.0/
-          copy C:\gtk-build\gtk\x64\release\lib\gdk-pixbuf-2.0\2.10.0\loaders\libpixbufloader-svg.dll bundle/lib/gdk-pixbuf-2.0/2.10.0/loaders/
+          rm -rf ${{ steps.wingtk-install.outputs.BASE_DIR }}/include
+          cp -r ${{ steps.wingtk-install.outputs.BASE_DIR }}/* bundle/
 
       - name: Save Cargo cache
         uses: actions/cache/save@v3
