@@ -87,7 +87,7 @@ impl EvidencePackage {
             schema: MANIFEST_SCHEMA_LOCATION.to_string(),
             media: vec![],
             test_cases: vec![],
-            metadata: Metadata { title, authors },
+            metadata: Metadata { title, description: None, authors },
         };
         let manifest_clone = manifest.clone_serde();
 

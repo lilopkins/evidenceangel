@@ -187,6 +187,7 @@ pub enum AppInput {
     DeleteCase(Uuid),
     CreateCaseAndSelect,
     SetMetadataTitle(String),
+    SetMetadataDescription(String),
     CreateAuthor,
     _CreateAuthor(Author),
     DeleteAuthor(Author),
@@ -394,6 +395,15 @@ impl Component for AppModel {
 
                                                 connect_changed[sender] => move |entry| {
                                                     sender.input(AppInput::SetMetadataTitle(entry.text().to_string()));
+                                                } @metadata_description_changed
+                                            },
+
+                                            #[name = "metadata_description"]
+                                            adw::EntryRow {
+                                                set_title: &lang::lookup("metadata-description"),
+
+                                                connect_changed[sender] => move |entry| {
+                                                    sender.input(AppInput::SetMetadataDescription(entry.text().to_string()));
                                                 } @metadata_title_changed
                                             },
 
@@ -960,6 +970,22 @@ impl Component for AppModel {
                         widgets
                             .metadata_title
                             .unblock_signal(&widgets.metadata_title_changed);
+
+                        widgets
+                            .metadata_description
+                            .block_signal(&widgets.metadata_description_changed);
+                        widgets.metadata_description.set_text(
+                            &self
+                                .open_package
+                                .as_ref()
+                                .map(|pkg| pkg.read().unwrap().metadata().description().clone())
+                                .expect("Cannot navigate to metadata when no package is open")
+                                .unwrap_or_default(),
+                        );
+                        widgets
+                            .metadata_description
+                            .unblock_signal(&widgets.metadata_description_changed);
+
                         let mut authors = self.authors_factory.guard();
                         authors.clear();
                         let pkg_authors = self
@@ -1092,6 +1118,12 @@ impl Component for AppModel {
                         .metadata_title_error_popover_label
                         .set_text(&lang::lookup("toast-name-cant-be-empty"));
                     widgets.metadata_title_error_popover.set_visible(true);
+                }
+            }
+            AppInput::SetMetadataDescription(new_desc) => {
+                if let Some(pkg) = self.get_package() {
+                    pkg.write().unwrap().metadata_mut().set_description(if new_desc.trim().is_empty() { None } else { Some(new_desc) });
+                    self.needs_saving = true;
                 }
             }
             AppInput::DeleteCase(id) => {

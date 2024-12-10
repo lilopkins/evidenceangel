@@ -57,6 +57,7 @@ title-no-case = Inget fall öppet
 
 metadata-group-title = Paketmetadata
 metadata-title = Paketets Titel
+metadata-description = Packetets Beskrivning
 metadata-authors = Paketets Författare
 
 author-create-title = Lägg till Författare

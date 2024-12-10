@@ -1,6 +1,6 @@
 {
   "$id": "https://evidenceangel-schemas.hpkns.uk/testcase.1.schema.json",
-  "$schema": "https://json-schema.org/draft-07/schema",
+  "$schema": "http://json-schema.org/draft-07/schema",
   "type": "object",
   "description": "A test case file `testcases/<UUID>.json` as part of an evidence package.",
   "properties": {

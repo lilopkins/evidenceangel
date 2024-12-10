@@ -57,6 +57,7 @@ title-no-case = No case open
 
 metadata-group-title = Package Metadata
 metadata-title = Package Title
+metadata-description = Package Description
 metadata-authors = Package Authors
 
 author-create-title = Add Author

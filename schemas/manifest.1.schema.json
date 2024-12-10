@@ -1,6 +1,6 @@
 {
   "$id": "https://evidenceangel-schemas.hpkns.uk/manifest.1.schema.json",
-  "$schema": "https://json-schema.org/draft-07/schema",
+  "$schema": "http://json-schema.org/draft-07/schema",
   "type": "object",
   "description": "The metadata file `metadata.json` as part of an evidence package.",
   "properties": {
@@ -31,6 +31,10 @@
             },
             "required": ["name"]
           }
+        },
+        "description": {
+          "type": "string",
+          "description": "An optional description of the package."
         }
       },
       "required": ["title", "authors"]
