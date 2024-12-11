@@ -165,7 +165,6 @@ impl Component for ExportDialogModel {
                 let dialog = gtk::FileDialog::builder()
                     .modal(true)
                     .title(lang::lookup("header-open"))
-                    .initial_folder(&gtk::gio::File::for_path("."))
                     .initial_name(self.test_case_name.as_ref().unwrap_or(&self.package_name))
                     .accept_label(lang::lookup("select"))
                     .build();
