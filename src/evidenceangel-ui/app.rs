@@ -1705,32 +1705,32 @@ impl Component for AppModel {
                                 let sender_c = sender.clone();
                                 clipboard.read_texture_async(
                                     Some(&Cancellable::new()),
-                                    move |cb| {
-                                        match cb {
-                                            Ok(texture) => {
-                                                if let Some(data) = texture {
-                                                    let media =
-                                                        MediaFile::from(data.save_to_png_bytes().to_vec());
-                                                    let evidence = Evidence::new(
-                                                        EvidenceKind::Image,
-                                                        evidenceangel::EvidenceData::Media {
-                                                            hash: media.hash(),
-                                                        },
-                                                    );
-                                                    sender_c.input(AppInput::_AddMedia(media));
-                                                    sender_c.input(AppInput::_AddEvidence(evidence, None));
-                                                } else {
-                                                    sender_c.input(AppInput::ShowToast(lang::lookup(
-                                                        "paste-evidence-failed",
-                                                    )));
-                                                }
-                                            },
-                                            Err(e) => {
-                                                log::warn!("Failed to paste image: {e}");
+                                    move |cb| match cb {
+                                        Ok(texture) => {
+                                            if let Some(data) = texture {
+                                                let media = MediaFile::from(
+                                                    data.save_to_png_bytes().to_vec(),
+                                                );
+                                                let evidence = Evidence::new(
+                                                    EvidenceKind::Image,
+                                                    evidenceangel::EvidenceData::Media {
+                                                        hash: media.hash(),
+                                                    },
+                                                );
+                                                sender_c.input(AppInput::_AddMedia(media));
+                                                sender_c
+                                                    .input(AppInput::_AddEvidence(evidence, None));
+                                            } else {
                                                 sender_c.input(AppInput::ShowToast(lang::lookup(
                                                     "paste-evidence-failed",
                                                 )));
                                             }
+                                        }
+                                        Err(e) => {
+                                            log::warn!("Failed to paste image: {e}");
+                                            sender_c.input(AppInput::ShowToast(lang::lookup(
+                                                "paste-evidence-failed",
+                                            )));
                                         }
                                     },
                                 );
