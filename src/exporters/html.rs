@@ -51,6 +51,10 @@ impl Exporter for HtmlExporter {
                 .child(HtmlElement::new("em").content(&html_escape::encode_text(&authors))),
         );
 
+        if let Some(description) = package.metadata().description() {
+            body.add_child(HtmlElement::new("p").content(&html_escape::encode_text(description)));
+        }
+
         let mut test_cases: Vec<&TestCase> = package.test_case_iter()?.collect();
         test_cases.sort_by(|a, b| {
             a.metadata()

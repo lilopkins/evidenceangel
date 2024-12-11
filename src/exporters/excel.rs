@@ -97,6 +97,11 @@ fn create_metadata_sheet(
         worksheet.write_string_with_format(row, 1, format!("{author}"), &italic)?;
     }
 
+    row += 2;
+    if let Some(description) = package.metadata().description() {
+        worksheet.write_string(row, 1, description)?;
+    }
+
     Ok(())
 }
 
