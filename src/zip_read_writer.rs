@@ -13,9 +13,12 @@ use zip::{ZipArchive, ZipWriter};
 /// [`ZipReaderWriter::conclude_write`] is called.
 #[derive(Default, Setters)]
 pub(crate) struct ZipReaderWriter {
+    /// The path of this zip file, if set
     #[getset(set = "pub")]
     file: Option<path::PathBuf>,
+    /// The reader, if in write mode, of this reader/writer
     reader: Option<ZipArchive<BufReader<fs::File>>>,
+    /// The writer, if in write mode, of this reader/writer
     writer: Option<ZipWriter<BufWriter<fs::File>>>,
 }
 
@@ -45,6 +48,7 @@ impl fmt::Debug for ZipReaderWriter {
 }
 
 impl ZipReaderWriter {
+    /// Create a new [`ZipReaderWriter`] instance.
     pub fn new(path: path::PathBuf) -> Self {
         Self {
             file: Some(path),
@@ -52,6 +56,7 @@ impl ZipReaderWriter {
         }
     }
 
+    /// Get this [`ZipReaderWriter`] instance in read mode.
     pub fn as_reader(&mut self) -> crate::Result<&mut ZipArchive<BufReader<fs::File>>> {
         if self.reader.is_none() {
             // Close writer
@@ -69,6 +74,7 @@ impl ZipReaderWriter {
         Ok(self.reader.as_mut().unwrap())
     }
 
+    /// Get this [`ZipReaderWriter`] instance in write mode.
     #[allow(clippy::type_complexity)]
     pub fn as_writer(
         &mut self,
@@ -96,6 +102,7 @@ impl ZipReaderWriter {
         Ok((self.reader.as_mut(), self.writer.as_mut().unwrap()))
     }
 
+    /// Conclude writing to the ZIP file and reset for reading or writing again.
     pub fn conclude_write(&mut self) -> crate::Result<()> {
         if self.writer.is_some() {
             // Close write

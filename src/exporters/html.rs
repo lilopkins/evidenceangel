@@ -107,6 +107,7 @@ impl Exporter for HtmlExporter {
     }
 }
 
+/// Create the <div> element that holds a test case's data
 fn create_test_case_div(
     mut package: EvidencePackage,
     test_case: &TestCase,
@@ -173,6 +174,7 @@ fn create_test_case_div(
     Ok(elem)
 }
 
+/// Get the styling for this document
 fn get_style() -> CssDocument {
     let mut style = CssDocument::new();
     style.add_element(domrs::CssElement::Ruleset(

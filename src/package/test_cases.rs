@@ -7,13 +7,16 @@ use serde::{
 };
 use uuid::Uuid;
 
+/// The URL for $schema in the test case manifests
 const TESTCASE_SCHEMA_LOCATION: &str =
     "https://evidenceangel-schemas.hpkns.uk/testcase.1.schema.json";
+/// The schema itself for test case manifests
 pub(crate) const TESTCASE_SCHEMA: &str = include_str!("../../schemas/testcase.1.schema.json");
 
 /// A test case stored within an [`EvidencePackage`](super::EvidencePackage).
 #[derive(Clone, Debug, Serialize, Deserialize, Getters, MutGetters, Setters)]
 pub struct TestCase {
+    /// The $schema from this test case
     #[serde(rename = "$schema")]
     schema: String,
 
@@ -32,6 +35,7 @@ pub struct TestCase {
 }
 
 impl TestCase {
+    /// Create a new test case
     pub(super) fn new(id: Uuid, title: String, execution_datetime: DateTime<FixedOffset>) -> Self {
         Self {
             schema: TESTCASE_SCHEMA_LOCATION.to_string(),
@@ -138,6 +142,8 @@ impl EvidenceData {
     }
 }
 
+/// The serde visitor for parsing evidence data values (i.e. `plain:`, `base64:`
+/// and `media:`)
 struct EvidenceDataVisitor;
 
 impl Visitor<'_> for EvidenceDataVisitor {
