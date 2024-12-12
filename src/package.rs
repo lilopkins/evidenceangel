@@ -217,7 +217,7 @@ impl EvidencePackage {
             &serde_json::from_str(MANIFEST_SCHEMA).expect("Schema is validated statically"),
             &serde_json::from_str(&manifest_data).expect("JSON just generated, shouldn't fail"),
         ) {
-            return Err(Error::TestCaseSchemaValidationFailed);
+            return Err(Error::ManifestSchemaValidationFailed);
         }
         zip.start_file("manifest.json", options)?;
         zip.write_all(manifest_data.as_bytes())?;
