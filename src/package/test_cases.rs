@@ -8,7 +8,7 @@ use serde::{
 use uuid::Uuid;
 
 const TESTCASE_SCHEMA_LOCATION: &str =
-    "https://evidenceangel-schemas.hpkns.uk/manifest.1.schema.json";
+    "https://evidenceangel-schemas.hpkns.uk/testcase.1.schema.json";
 pub(crate) const TESTCASE_SCHEMA: &str = include_str!("../../schemas/testcase.1.schema.json");
 
 /// A test case stored within an [`EvidencePackage`](super::EvidencePackage).
