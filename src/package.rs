@@ -17,17 +17,22 @@ use zip::{result::ZipError, write::SimpleFileOptions};
 
 use crate::{result::Error, zip_read_writer::ZipReaderWriter, Result};
 
+/// Package manifests
 mod manifest;
 pub use manifest::*;
 
+/// Media handling
 mod media;
 pub use media::MediaFile;
 
+/// Test cases from packages
 mod test_cases;
 pub use test_cases::{Evidence, EvidenceData, EvidenceKind, TestCase, TestCaseMetadata};
 
+/// The URL for $schema for manifest.json
 const MANIFEST_SCHEMA_LOCATION: &str =
     "https://evidenceangel-schemas.hpkns.uk/manifest.1.schema.json";
+/// The schema to validate manifest.json against
 const MANIFEST_SCHEMA: &str = include_str!("../schemas/manifest.1.schema.json");
 
 /// An Evidence Package.
@@ -36,17 +41,22 @@ pub struct EvidencePackage {
     /// The internal ZIP file. This will never be `None`, as long as it has been correctly parsed.
     #[serde(skip)]
     zip: ZipReaderWriter,
+    /// The actual media data from this package
     #[serde(skip)]
     media_data: HashMap<String, MediaFile>,
+    /// The actual test data from this package
     #[serde(skip)]
     test_case_data: HashMap<Uuid, TestCase>,
 
+    /// The JSON schema for for this package
     #[serde(rename = "$schema")]
     schema: String,
     /// The metadata for the package.
     #[getset(get = "pub", get_mut = "pub")]
     metadata: Metadata,
+    /// The manifest entries for the media in this package
     media: Vec<MediaFileManifestEntry>,
+    /// The manifest entries for the test cases in this package
     test_cases: Vec<TestCaseManifestEntry>,
 }
 
@@ -166,6 +176,7 @@ impl EvidencePackage {
                     &serde_json::from_str(TESTCASE_SCHEMA).expect("Schema is validated statically"),
                     &serde_json::from_str(&data).expect("JSON just generated, shouldn't fail"),
                 ) {
+                    let _ = self.zip.interrupt_write();
                     return Err(Error::TestCaseSchemaValidationFailed);
                 }
                 zip.start_file(format!("testcases/{id}.json"), options)?;
@@ -227,7 +238,8 @@ impl EvidencePackage {
             &serde_json::from_str(MANIFEST_SCHEMA).expect("Schema is validated statically"),
             &serde_json::from_str(&manifest_data).expect("JSON just generated, shouldn't fail"),
         ) {
-            return Err(Error::TestCaseSchemaValidationFailed);
+            let _ = self.zip.interrupt_write();
+            return Err(Error::ManifestSchemaValidationFailed);
         }
         zip.start_file("manifest.json", options)?;
         zip.write_all(manifest_data.as_bytes())?;
