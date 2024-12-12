@@ -51,6 +51,10 @@ impl Exporter for HtmlExporter {
                 .child(HtmlElement::new("em").content(&html_escape::encode_text(&authors))),
         );
 
+        if let Some(description) = package.metadata().description() {
+            body.add_child(HtmlElement::new("p").content(&html_escape::encode_text(description)));
+        }
+
         let mut test_cases: Vec<&TestCase> = package.test_case_iter()?.collect();
         test_cases.sort_by(|a, b| {
             a.metadata()
@@ -103,6 +107,7 @@ impl Exporter for HtmlExporter {
     }
 }
 
+/// Create the <div> element that holds a test case's data
 fn create_test_case_div(
     mut package: EvidencePackage,
     test_case: &TestCase,
@@ -169,6 +174,7 @@ fn create_test_case_div(
     Ok(elem)
 }
 
+/// Get the styling for this document
 fn get_style() -> CssDocument {
     let mut style = CssDocument::new();
     style.add_element(domrs::CssElement::Ruleset(

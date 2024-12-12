@@ -74,6 +74,7 @@ impl Exporter for ExcelExporter {
     }
 }
 
+/// Create the worksheet for the metadata
 fn create_metadata_sheet(
     worksheet: &mut Worksheet,
     package: &EvidencePackage,
@@ -97,9 +98,15 @@ fn create_metadata_sheet(
         worksheet.write_string_with_format(row, 1, format!("{author}"), &italic)?;
     }
 
+    row += 2;
+    if let Some(description) = package.metadata().description() {
+        worksheet.write_string(row, 1, description)?;
+    }
+
     Ok(())
 }
 
+/// Create the worksheet that holds the test case's information
 fn create_test_case_sheet(
     worksheet: &mut Worksheet,
     mut package: EvidencePackage,

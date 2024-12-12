@@ -395,7 +395,6 @@ impl Component for AddImageEvidenceDialogModel {
                     .modal(true)
                     .title(lang::lookup("header-open"))
                     .filters(&filter::filter_list(vec![filter::images()]))
-                    .initial_folder(&gtk::gio::File::for_path("."))
                     .build();
 
                 let sender_c = sender.clone();
