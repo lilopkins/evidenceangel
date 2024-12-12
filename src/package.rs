@@ -78,6 +78,16 @@ impl fmt::Debug for EvidencePackage {
 impl EvidencePackage {
     /// Create a new evidence package.
     pub fn new(path: PathBuf, title: String, authors: Vec<Author>) -> Result<Self> {
+        Self::new_with_description(path, title, None, authors)
+    }
+
+    /// Create a new evidence package with a specified description.
+    pub fn new_with_description(
+        path: PathBuf,
+        title: String,
+        description: Option<String>,
+        authors: Vec<Author>,
+    ) -> Result<Self> {
         // Create manifest data.
         let mut manifest = Self {
             zip: ZipReaderWriter::new(path),
@@ -89,7 +99,7 @@ impl EvidencePackage {
             test_cases: vec![],
             metadata: Metadata {
                 title,
-                description: None,
+                description,
                 authors,
             },
         };
