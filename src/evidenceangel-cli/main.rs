@@ -48,9 +48,11 @@ fn main() {
             let mut cmd = <arg_parser::Args as CommandFactory>::command();
             let name = command_name.clone().unwrap_or(cmd.get_name().to_string());
             clap_complete::generate(*shell, &mut cmd, name, &mut io::stdout());
+            std::process::exit(0);
         }
         Command::JsonSchema => {
             println!("{}", CliData::schema());
+            std::process::exit(0);
         }
         _ => (),
     }
