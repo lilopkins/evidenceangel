@@ -126,4 +126,31 @@ impl ZipReaderWriter {
         }
         Ok(())
     }
+
+    /// Interrupt a write early, concluding the write and removing the temporary file.
+    pub fn interrupt_write(&mut self) -> crate::Result<()> {
+        if self.writer.is_some() {
+            // Close write
+            log::debug!("Closing writer");
+            let writer = self.writer.take().unwrap();
+            writer.finish()?;
+
+            log::debug!("Closing reader");
+            self.reader = None;
+
+            // Delete temp file
+            log::debug!("Moving temp file to overwrite package");
+            let tmp_path = self
+                .file
+                .as_ref()
+                .map(|p| {
+                    let mut p = p.clone();
+                    p.set_file_name(format!("{}.tmp", p.file_name().unwrap().to_string_lossy()));
+                    p
+                })
+                .expect("zipreadwriter must not be called upon until file is set.");
+            fs::remove_file(tmp_path)?;
+        }
+        Ok(())
+    }
 }
