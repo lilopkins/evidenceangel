@@ -59,6 +59,7 @@ impl fmt::Display for Author {
     }
 }
 
+/// The manifest entry for a media file present in the package.
 #[derive(Clone, Debug, Getters, Serialize, Deserialize)]
 #[getset(get = "pub")]
 pub(super) struct MediaFileManifestEntry {
@@ -81,6 +82,8 @@ impl From<&crate::MediaFile> for MediaFileManifestEntry {
     }
 }
 
+/// An entry in the manifest storing the [`Uuid`] for a test case present in the
+/// package.
 #[derive(Clone, Debug, Getters, Serialize, Deserialize)]
 #[getset(get = "pub")]
 pub(super) struct TestCaseManifestEntry {
@@ -89,6 +92,7 @@ pub(super) struct TestCaseManifestEntry {
 }
 
 impl TestCaseManifestEntry {
+    /// Create a new test case manifest entry
     pub(super) fn new(name: Uuid) -> Self {
         Self { name }
     }
