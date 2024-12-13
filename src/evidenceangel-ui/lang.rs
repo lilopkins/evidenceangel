@@ -70,3 +70,16 @@ where
 {
     LOCALES.lookup_with_args(&current_locale(), text_id.as_ref(), &args)
 }
+
+#[macro_export]
+macro_rules! lang_args {
+    ($($name: expr, $val: expr),*) => {
+        {
+            let mut map = ::std::collections::HashMap::new();
+            $(
+                map.insert($name, $val.into());
+            )*
+            map
+        }
+    };
+}

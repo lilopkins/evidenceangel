@@ -10,6 +10,9 @@ pub mod excel;
 /// Exporter for HTML.
 #[cfg(feature = "exporter-html")]
 pub mod html;
+/// Exporter for a ZIP of the files.
+#[cfg(feature = "exporter-zip-of-files")]
+pub mod zip_of_files;
 
 /// Exporters can take an EvidencePackage and a target file path and export to other formats.
 pub trait Exporter {

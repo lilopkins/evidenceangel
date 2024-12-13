@@ -1,12 +1,13 @@
 use std::{
-    collections::HashMap,
     path::PathBuf,
     sync::{Arc, RwLock},
 };
 
 use adw::prelude::*;
 use evidenceangel::{
-    exporters::{excel::ExcelExporter, html::HtmlExporter, Exporter},
+    exporters::{
+        excel::ExcelExporter, html::HtmlExporter, zip_of_files::ZipOfFilesExporter, Exporter,
+    },
     Author, Evidence, EvidenceKind, EvidencePackage, MediaFile,
 };
 #[allow(unused)]
@@ -25,7 +26,7 @@ use crate::{
     author_factory::{AuthorFactoryModel, AuthorFactoryOutput},
     dialogs::{add_evidence::*, error::*, export::*, new_author::*},
     evidence_factory::{EvidenceFactoryInit, EvidenceFactoryModel, EvidenceFactoryOutput},
-    filter, lang,
+    filter, lang, lang_args,
     nav_factory::{NavFactoryInit, NavFactoryInput, NavFactoryModel, NavFactoryOutput},
     util::BoxedEvidenceJson,
 };
@@ -56,6 +57,7 @@ pub struct AppModel {
     latest_add_evidence_text_dlg: Option<Controller<AddTextEvidenceDialogModel>>,
     latest_add_evidence_http_dlg: Option<Controller<AddHttpEvidenceDialogModel>>,
     latest_add_evidence_image_dlg: Option<Controller<AddImageEvidenceDialogModel>>,
+    latest_add_evidence_file_dlg: Option<Controller<AddFileEvidenceDialogModel>>,
     latest_error_dlg: Option<Controller<ErrorDialogModel>>,
     latest_export_dlg: Option<Controller<ExportDialogModel>>,
     latest_delete_toasts: Vec<adw::Toast>,
@@ -395,7 +397,7 @@ impl Component for AppModel {
 
                                                 connect_changed[sender] => move |entry| {
                                                     sender.input(AppInput::SetMetadataTitle(entry.text().to_string()));
-                                                } @metadata_description_changed
+                                                } @metadata_title_changed
                                             },
 
                                             #[name = "metadata_description"]
@@ -404,7 +406,7 @@ impl Component for AppModel {
 
                                                 connect_changed[sender] => move |entry| {
                                                     sender.input(AppInput::SetMetadataDescription(entry.text().to_string()));
-                                                } @metadata_title_changed
+                                                } @metadata_description_changed
                                             },
 
                                             #[name = "metadata_title_error_popover"]
@@ -559,7 +561,7 @@ impl Component for AppModel {
                                                                 set_label: &lang::lookup("evidence-image"),
                                                             }
                                                         },
-                                                        /* gtk::Button {
+                                                        gtk::Button {
                                                             connect_clicked => AppInput::AddFileEvidence,
                                                             add_css_class: "pill",
 
@@ -567,7 +569,7 @@ impl Component for AppModel {
                                                                 set_icon_name: relm4_icons::icon_names::PLUS,
                                                                 set_label: &lang::lookup("evidence-file"),
                                                             }
-                                                        }, */
+                                                        },
                                                     },
 
                                                     gtk::Separator {
@@ -711,6 +713,7 @@ impl Component for AppModel {
             latest_add_evidence_text_dlg: None,
             latest_add_evidence_http_dlg: None,
             latest_add_evidence_image_dlg: None,
+            latest_add_evidence_file_dlg: None,
             latest_export_dlg: None,
             latest_delete_toasts: vec![],
 
@@ -817,11 +820,10 @@ impl Component for AppModel {
                     let error_dlg = ErrorDialogModel::builder()
                         .launch(ErrorDialogInit {
                             title: Box::new(lang::lookup("error-failed-new-title")),
-                            body: Box::new(lang::lookup_with_args("error-failed-new-body", {
-                                let mut map = HashMap::new();
-                                map.insert("error", e.to_string().into());
-                                map
-                            })),
+                            body: Box::new(lang::lookup_with_args(
+                                "error-failed-new-body",
+                                lang_args!("error", e.to_string()),
+                            )),
                         })
                         .forward(sender.input_sender(), |msg| match msg {});
                     error_dlg.emit(ErrorDialogInput::Present(root.clone()));
@@ -857,11 +859,10 @@ impl Component for AppModel {
                     let error_dlg = ErrorDialogModel::builder()
                         .launch(ErrorDialogInit {
                             title: Box::new(lang::lookup("error-failed-open-title")),
-                            body: Box::new(lang::lookup_with_args("error-failed-open-body", {
-                                let mut map = HashMap::new();
-                                map.insert("error", e.to_string().into());
-                                map
-                            })),
+                            body: Box::new(lang::lookup_with_args(
+                                "error-failed-open-body",
+                                lang_args!("error", e.to_string()),
+                            )),
                         })
                         .forward(sender.input_sender(), |msg| match msg {});
                     error_dlg.emit(ErrorDialogInput::Present(root.clone()));
@@ -876,11 +877,10 @@ impl Component for AppModel {
                         let error_dlg = ErrorDialogModel::builder()
                             .launch(ErrorDialogInit {
                                 title: Box::new(lang::lookup("error-failed-save-title")),
-                                body: Box::new(lang::lookup_with_args("error-failed-save-body", {
-                                    let mut map = HashMap::new();
-                                    map.insert("error", e.to_string().into());
-                                    map
-                                })),
+                                body: Box::new(lang::lookup_with_args(
+                                    "error-failed-save-body",
+                                    lang_args!("error", e.to_string()),
+                                )),
                             })
                             .forward(sender.input_sender(), |msg| match msg {});
                         error_dlg.emit(ErrorDialogInput::Present(root.clone()));
@@ -1138,11 +1138,7 @@ impl Component for AppModel {
                                 title: Box::new(lang::lookup("error-failed-delete-case-title")),
                                 body: Box::new(lang::lookup_with_args(
                                     "error-failed-delete-case-body",
-                                    {
-                                        let mut map = HashMap::new();
-                                        map.insert("error", e.to_string().into());
-                                        map
-                                    },
+                                    lang_args!("error", e.to_string()),
                                 )),
                             })
                             .forward(sender.input_sender(), |msg| match msg {});
@@ -1282,21 +1278,18 @@ impl Component for AppModel {
 
                         let dialog = adw::MessageDialog::builder()
                             .transient_for(root)
-                            .title(lang::lookup_with_args("delete-case-title", {
-                                let mut map = HashMap::new();
-                                map.insert("name", case.metadata().title().into());
-                                map
-                            }))
-                            .heading(lang::lookup_with_args("delete-case-title", {
-                                let mut map = HashMap::new();
-                                map.insert("name", case.metadata().title().into());
-                                map
-                            }))
-                            .body(lang::lookup_with_args("delete-case-message", {
-                                let mut map = HashMap::new();
-                                map.insert("name", case.metadata().title().into());
-                                map
-                            }))
+                            .title(lang::lookup_with_args(
+                                "delete-case-title",
+                                lang_args!("name", case.metadata().title()),
+                            ))
+                            .heading(lang::lookup_with_args(
+                                "delete-case-title",
+                                lang_args!("name", case.metadata().title()),
+                            ))
+                            .body(lang::lookup_with_args(
+                                "delete-case-message",
+                                lang_args!("name", case.metadata().title()),
+                            ))
                             .modal(true)
                             .build();
                         dialog.add_response("cancel", &lang::lookup("cancel"));
@@ -1365,7 +1358,20 @@ impl Component for AppModel {
                 self.latest_add_evidence_image_dlg = Some(add_evidence_image_dlg);
                 self.action_paste_evidence.set_enabled(false);
             }
-            AppInput::AddFileEvidence => (),
+            AppInput::AddFileEvidence => {
+                let add_evidence_file_dlg = AddFileEvidenceDialogModel::builder()
+                    .launch(self.get_package().unwrap())
+                    .forward(sender.input_sender(), |msg| match msg {
+                        AddEvidenceOutput::AddEvidence(ev) => AppInput::_AddEvidence(ev, None),
+                        AddEvidenceOutput::Error { title, message } => {
+                            AppInput::ShowError { title, message }
+                        }
+                        AddEvidenceOutput::Closed => AppInput::ReinstatePaste,
+                    });
+                add_evidence_file_dlg.emit(AddEvidenceInput::Present(root.clone()));
+                self.latest_add_evidence_file_dlg = Some(add_evidence_file_dlg);
+                self.action_paste_evidence.set_enabled(false);
+            }
             AppInput::ReinstatePaste => self.action_paste_evidence.set_enabled(true),
             AppInput::_AddEvidence(ev, maybe_pos) => {
                 if let Some(pkg) = self.get_package() {
@@ -1564,6 +1570,9 @@ impl Component for AppModel {
                     if let Err(e) = match format.as_str() {
                         "html document" => HtmlExporter.export_package(&mut pkg, path.clone()),
                         "excel workbook" => ExcelExporter.export_package(&mut pkg, path.clone()),
+                        "zip archive of files" => {
+                            ZipOfFilesExporter.export_package(&mut pkg, path.clone())
+                        }
                         _ => {
                             log::error!("Invalid format specified.");
                             Ok(())
@@ -1575,11 +1584,7 @@ impl Component for AppModel {
                                 title: Box::new(lang::lookup("export-error-failed-title")),
                                 body: Box::new(lang::lookup_with_args(
                                     "export-error-failed-message",
-                                    {
-                                        let mut map = HashMap::new();
-                                        map.insert("error", e.to_string().into());
-                                        map
-                                    },
+                                    lang_args!("error", e.to_string()),
                                 )),
                             })
                             .forward(sender.input_sender(), |msg| match msg {});
@@ -1618,6 +1623,9 @@ impl Component for AppModel {
                             "excel workbook" => {
                                 ExcelExporter.export_case(&mut pkg, *id, path.clone())
                             }
+                            "zip archive of files" => {
+                                ZipOfFilesExporter.export_case(&mut pkg, *id, path.clone())
+                            }
                             _ => {
                                 log::error!("Invalid format specified.");
                                 Ok(())
@@ -1629,11 +1637,7 @@ impl Component for AppModel {
                                     title: Box::new(lang::lookup("export-error-failed-title")),
                                     body: Box::new(lang::lookup_with_args(
                                         "export-error-failed-message",
-                                        {
-                                            let mut map = HashMap::new();
-                                            map.insert("error", e.to_string().into());
-                                            map
-                                        },
+                                        lang_args!("error", e.to_string()),
                                     )),
                                 })
                                 .forward(sender.input_sender(), |msg| match msg {});

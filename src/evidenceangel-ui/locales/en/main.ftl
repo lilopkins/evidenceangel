@@ -69,6 +69,8 @@ test-group-title = Test Case Metadata
 test-title = Test Case Title
 test-execution = Test Case Execution Time
 test-evidence-caption = Caption
+test-evidence-file-unnamed = <b>Unnamed file</b>
+test-evidence-file-named = <b>File:</b> { $filename }
 
 add-evidence-title = Add Evidence
 add-evidence-submit = Add
@@ -80,6 +82,10 @@ add-evidence-image-label = Image Path
 add-evidence-image-caption-label = Image Caption (optional)
 add-evidence-image-failed = Failed to Add Image
 add-evidence-image-failed-message = Failed to add image to package: { $error }
+add-evidence-file-label = File Path
+add-evidence-file-caption-label = File Caption (optional)
+add-evidence-file-failed = Failed to Add File
+add-evidence-file-failed-message = Failed to add file to package: { $error }
 
 export-title = Export { $target }
 export-target-package = Entire Package
