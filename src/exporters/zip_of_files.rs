@@ -3,6 +3,7 @@ use std::{
     io::{self, BufWriter, Cursor},
 };
 
+use thiserror::Error;
 use uuid::Uuid;
 use zip::{write::SimpleFileOptions, ZipWriter};
 
@@ -13,6 +14,14 @@ use super::Exporter;
 /// An exporter to an ZIP of the files in the package.
 #[derive(Default)]
 pub struct ZipOfFilesExporter;
+
+/// An error from the [`ZipOfFilesExporter`].
+#[derive(Debug, Error)]
+pub enum ZipOfFilesError {
+    /// No files are in this package, so no output would be produced
+    #[error("no files are in this package, so no output would be produced")]
+    NoFilesToExport,
+}
 
 impl Exporter for ZipOfFilesExporter {
     fn export_name() -> String {
@@ -28,6 +37,17 @@ impl Exporter for ZipOfFilesExporter {
         package: &mut EvidencePackage,
         path: std::path::PathBuf,
     ) -> crate::Result<()> {
+        let mut has_files = false;
+        for test_case in package.test_case_iter()? {
+            if check_has_files(test_case) {
+                has_files = true;
+                break;
+            }
+        }
+        if !has_files {
+            return Err(crate::Error::OtherExportError(Box::new(ZipOfFilesError::NoFilesToExport)));
+        }
+
         let mut zip = ZipWriter::new(BufWriter::new(
             fs::File::create(path).map_err(|e| crate::Error::OtherExportError(Box::new(e)))?,
         ));
@@ -49,14 +69,19 @@ impl Exporter for ZipOfFilesExporter {
         case: Uuid,
         path: std::path::PathBuf,
     ) -> crate::Result<()> {
-        let mut zip = ZipWriter::new(BufWriter::new(
-            fs::File::create(path).map_err(|e| crate::Error::OtherExportError(Box::new(e)))?,
-        ));
         let case = package
             .test_case(case)?
             .ok_or(crate::Error::OtherExportError(
                 "Test case not found!".into(),
             ))?;
+
+        if !check_has_files(case) {
+            return Err(crate::Error::OtherExportError(Box::new(ZipOfFilesError::NoFilesToExport)));
+        }
+
+        let mut zip = ZipWriter::new(BufWriter::new(
+            fs::File::create(path).map_err(|e| crate::Error::OtherExportError(Box::new(e)))?,
+        ));
 
         add_test_case_to_zip(&mut zip, package.clone(), case)
             .map_err(crate::Error::OtherExportError)?;
@@ -66,6 +91,16 @@ impl Exporter for ZipOfFilesExporter {
 
         Ok(())
     }
+}
+
+/// Check is this test case contains any file evidence
+fn check_has_files(test_case: &TestCase) -> bool {
+    for ev in test_case.evidence() {
+        if let EvidenceKind::File = ev.kind() {
+            return true;
+        }
+    }
+    return false;
 }
 
 /// Create the worksheet that holds the test case's information
