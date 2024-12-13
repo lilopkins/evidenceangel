@@ -1,4 +1,4 @@
-use std::sync::{Arc, RwLock};
+use std::{collections::HashMap, sync::{Arc, RwLock}};
 
 use adw::prelude::*;
 use evidenceangel::{Evidence, EvidenceData, EvidenceKind, EvidencePackage};
@@ -308,7 +308,20 @@ impl FactoryComponent for EvidenceFactoryModel {
                 frame.set_child(Some(&scrolled));
                 widgets.evidence_child.append(&frame);
             }
-            EvidenceKind::File => (),
+            EvidenceKind::File => {
+                let label = gtk::Label::default();
+                if let Some(filename) = self.evidence.read().unwrap().original_filename() {
+                    label.set_markup(&lang::lookup_with_args("test-evidence-file-named", {
+                        let mut map = HashMap::new();
+                        map.insert("filename", filename.into());
+                        map
+                    }));
+                } else {
+                    label.set_markup(&lang::lookup("test-evidence-file-unnamed"));
+                }
+                widgets.evidence_child.set_halign(gtk::Align::Center);
+                widgets.evidence_child.append(&label);
+            },
         };
 
         widgets

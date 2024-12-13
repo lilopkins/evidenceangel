@@ -69,6 +69,8 @@ test-group-title = Test Case Metadata
 test-title = Test Case Title
 test-execution = Test Case Execution Time
 test-evidence-caption = Caption
+test-evidence-file-unnamed = <b>Unnamed file</b>
+test-evidence-file-named = <b>File:</b> { $filename }
 
 add-evidence-title = Add Evidence
 add-evidence-submit = Add

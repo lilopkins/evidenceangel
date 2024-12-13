@@ -69,6 +69,8 @@ test-group-title = Testfallsmetadata
 test-title = Testfallstitel
 test-execution = Tidpunkt för Testfallet
 test-evidence-caption = Rubrik
+test-evidence-file-unnamed = <b>Namnlös fil</b>
+test-evidence-file-named = <b>Fil:</b> { $filename }
 
 add-evidence-title = Lägg till Bevis
 add-evidence-submit = Lägg till
