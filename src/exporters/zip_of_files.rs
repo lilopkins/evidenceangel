@@ -1,6 +1,5 @@
 use std::{
-    fs,
-    io::{self, BufWriter, Cursor},
+    collections::HashMap, fs, io::{self, BufWriter, Cursor}
 };
 
 use thiserror::Error;
@@ -111,6 +110,15 @@ fn add_test_case_to_zip(
 ) -> Result<(), Box<dyn std::error::Error>> {
     log::debug!("Creating ZIP of files for test case {}", test_case.id());
 
+    let mut filename_count = HashMap::new();
+    for ev in test_case.evidence() {
+        if let EvidenceKind::File = ev.kind() {
+            if let Some(filename) = ev.original_filename() {
+                filename_count.insert(filename, filename_count.get(filename).unwrap_or(&0) + 1);
+            }
+        }
+    }
+
     let mut unnamed_counter = 0;
 
     // Write evidence
@@ -127,8 +135,22 @@ fn add_test_case_to_zip(
                 format!("unnamed-{unnamed_counter}")
             };
 
+            let disambiguator = if let Some(count) = filename_count.get(&name) {
+                if *count > 1 {
+                    if let Some(caption) = evidence.caption() {
+                        format!("({}) ", caption)
+                    } else {
+                        "".to_string()
+                    }
+                } else {
+                    "".to_string()
+                }
+            } else {
+                "".to_string()
+            };
+
             // Add to ZIP file
-            zip.start_file(name, SimpleFileOptions::default())
+            zip.start_file(format!("{}/{disambiguator}{name}", test_case.metadata().title()), SimpleFileOptions::default())
                 .map_err(|e| crate::Error::OtherExportError(Box::new(e)))?;
             let mut data_cursor = Cursor::new(data);
             io::copy(&mut data_cursor, zip)
