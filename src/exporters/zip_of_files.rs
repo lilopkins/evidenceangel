@@ -1,5 +1,7 @@
 use std::{
-    collections::HashMap, fs, io::{self, BufWriter, Cursor}
+    collections::HashMap,
+    fs,
+    io::{self, BufWriter, Cursor},
 };
 
 use thiserror::Error;
@@ -44,7 +46,9 @@ impl Exporter for ZipOfFilesExporter {
             }
         }
         if !has_files {
-            return Err(crate::Error::OtherExportError(Box::new(ZipOfFilesError::NoFilesToExport)));
+            return Err(crate::Error::OtherExportError(Box::new(
+                ZipOfFilesError::NoFilesToExport,
+            )));
         }
 
         let mut zip = ZipWriter::new(BufWriter::new(
@@ -75,7 +79,9 @@ impl Exporter for ZipOfFilesExporter {
             ))?;
 
         if !check_has_files(case) {
-            return Err(crate::Error::OtherExportError(Box::new(ZipOfFilesError::NoFilesToExport)));
+            return Err(crate::Error::OtherExportError(Box::new(
+                ZipOfFilesError::NoFilesToExport,
+            )));
         }
 
         let mut zip = ZipWriter::new(BufWriter::new(
@@ -99,7 +105,7 @@ fn check_has_files(test_case: &TestCase) -> bool {
             return true;
         }
     }
-    return false;
+    false
 }
 
 /// Create the worksheet that holds the test case's information
@@ -150,8 +156,11 @@ fn add_test_case_to_zip(
             };
 
             // Add to ZIP file
-            zip.start_file(format!("{}/{disambiguator}{name}", test_case.metadata().title()), SimpleFileOptions::default())
-                .map_err(|e| crate::Error::OtherExportError(Box::new(e)))?;
+            zip.start_file(
+                format!("{}/{disambiguator}{name}", test_case.metadata().title()),
+                SimpleFileOptions::default(),
+            )
+            .map_err(|e| crate::Error::OtherExportError(Box::new(e)))?;
             let mut data_cursor = Cursor::new(data);
             io::copy(&mut data_cursor, zip)
                 .map_err(|e| crate::Error::OtherExportError(Box::new(e)))?;
