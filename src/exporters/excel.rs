@@ -180,8 +180,28 @@ fn create_test_case_sheet(
             EvidenceKind::File => {
                 let data = evidence.value().get_data(&mut package)?;
                 let text = String::from_utf8_lossy(data.as_slice());
-                for line in text.lines() {
-                    worksheet.write_string_with_format(row, 1, line, &file_data)?;
+
+                if let Some(filename) = evidence.original_filename() {
+                    worksheet.write_string(row, 1, filename)?;
+                    row += 1;
+                }
+
+                // Check if plaintext ASCII
+                let mut is_printable = true;
+                for c in text.chars() {
+                    if !c.is_ascii() {
+                        is_printable = false;
+                        break;
+                    }
+                }
+
+                if is_printable {
+                    for line in text.lines() {
+                        worksheet.write_string_with_format(row, 1, line, &file_data)?;
+                        row += 1;
+                    }
+                } else {
+                    worksheet.write_string_with_format(row, 1, "binary file data", &italic)?;
                     row += 1;
                 }
             }
