@@ -395,7 +395,7 @@ impl Component for AppModel {
 
                                                 connect_changed[sender] => move |entry| {
                                                     sender.input(AppInput::SetMetadataTitle(entry.text().to_string()));
-                                                } @metadata_description_changed
+                                                } @metadata_title_changed
                                             },
 
                                             #[name = "metadata_description"]
@@ -404,7 +404,7 @@ impl Component for AppModel {
 
                                                 connect_changed[sender] => move |entry| {
                                                     sender.input(AppInput::SetMetadataDescription(entry.text().to_string()));
-                                                } @metadata_title_changed
+                                                } @metadata_description_changed
                                             },
 
                                             #[name = "metadata_title_error_popover"]
