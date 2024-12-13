@@ -310,6 +310,7 @@ impl FactoryComponent for EvidenceFactoryModel {
             }
             EvidenceKind::File => {
                 let label = gtk::Label::default();
+                label.set_ellipsize(gtk::pango::EllipsizeMode::Middle);
                 if let Some(filename) = self.evidence.read().unwrap().original_filename() {
                     label.set_markup(&lang::lookup_with_args(
                         "test-evidence-file-named",
