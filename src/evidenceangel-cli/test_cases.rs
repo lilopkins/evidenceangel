@@ -1,5 +1,5 @@
 use std::{
-    fmt, fs,
+    fmt::{self, Write}, fs,
     io::{self, Cursor, Read},
     path::PathBuf,
     rc::Rc,
@@ -143,8 +143,7 @@ pub struct CliTestCase {
 impl fmt::Display for CliTestCase {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(f, "🧪 {}", self.name.bold())?;
-        writeln!(f, "  {}", self.executed_at.to_string().magenta())?;
-        writeln!(f, "")?;
+        writeln!(f, "  {}\n", self.executed_at.to_string().magenta())?;
 
         for (idx, ev) in self.evidence.iter().enumerate() {
             writeln!(
@@ -155,8 +154,10 @@ impl fmt::Display for CliTestCase {
                     CliEvidence::Text { data } => data
                         .clone()
                         .lines()
-                        .map(|l| format!("> {l}\n"))
-                        .collect::<String>()
+                        .fold(String::new(), |mut output, l| {
+                            let _ = writeln!(output, "> {l}");
+                            output
+                        })
                         .trim_end()
                         .to_string(),
                     CliEvidence::Http => "HTTP request".magenta().to_string(),

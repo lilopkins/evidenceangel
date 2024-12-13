@@ -1,4 +1,4 @@
-use std::{collections::HashMap, path::PathBuf};
+use std::path::PathBuf;
 
 use adw::prelude::*;
 use relm4::{
@@ -7,7 +7,7 @@ use relm4::{
     Component, ComponentParts, ComponentSender, RelmWidgetExt,
 };
 
-use crate::lang;
+use crate::{lang, lang_args};
 
 const EXPORT_FORMATS: &[&str] = &["HTML Document", "Excel Workbook"];
 const EXPORT_EXTENSIONS: &[&str] = &["html", "xlsx"];
@@ -57,17 +57,9 @@ impl Component for ExportDialogModel {
                     #[wrap(Some)]
                     set_title_widget = &adw::WindowTitle {
                         set_title: &if let Some(name) = &model.test_case_name {
-                            lang::lookup_with_args("export-title", {
-                                let mut map = HashMap::new();
-                                map.insert("target", name.clone().into());
-                                map
-                            })
+                            lang::lookup_with_args("export-title", lang_args!("target", name.clone()))
                         } else {
-                            lang::lookup_with_args("export-title", {
-                                let mut map = HashMap::new();
-                                map.insert("target", lang::lookup("export-target-package").into());
-                                map
-                            })
+                            lang::lookup_with_args("export-title", lang_args!("target", lang::lookup("export-target-package")))
                         }
                     }
                 },

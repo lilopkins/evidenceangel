@@ -1,5 +1,4 @@
 use std::{
-    collections::HashMap,
     io::{BufReader, Read},
     path::PathBuf,
     sync::{Arc, RwLock},
@@ -12,7 +11,7 @@ use relm4::{
     gtk, Component, ComponentParts, ComponentSender, RelmWidgetExt,
 };
 
-use crate::{filter, lang};
+use crate::{filter, lang, lang_args};
 
 #[derive(Debug)]
 pub enum AddEvidenceInput {
@@ -351,11 +350,10 @@ impl Component for AddImageEvidenceDialogModel {
                     sender
                         .output(AddEvidenceOutput::Error {
                             title: lang::lookup("add-evidence-image-failed"),
-                            message: lang::lookup_with_args("add-evidence-image-failed-message", {
-                                let mut map = HashMap::new();
-                                map.insert("error", e.to_string().into());
-                                map
-                            }),
+                            message: lang::lookup_with_args(
+                                "add-evidence-image-failed-message",
+                                lang_args!("error", e.to_string()),
+                            ),
                         })
                         .unwrap();
                     return;
@@ -370,11 +368,10 @@ impl Component for AddImageEvidenceDialogModel {
                     sender
                         .output(AddEvidenceOutput::Error {
                             title: lang::lookup("add-evidence-image-failed"),
-                            message: lang::lookup_with_args("add-evidence-image-failed-message", {
-                                let mut map = HashMap::new();
-                                map.insert("error", e.to_string().into());
-                                map
-                            }),
+                            message: lang::lookup_with_args(
+                                "add-evidence-image-failed-message",
+                                lang_args!("error", e.to_string()),
+                            ),
                         })
                         .unwrap();
                     return;

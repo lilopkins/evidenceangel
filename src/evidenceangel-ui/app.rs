@@ -1,5 +1,4 @@
 use std::{
-    collections::HashMap,
     path::PathBuf,
     sync::{Arc, RwLock},
 };
@@ -25,7 +24,7 @@ use crate::{
     author_factory::{AuthorFactoryModel, AuthorFactoryOutput},
     dialogs::{add_evidence::*, error::*, export::*, new_author::*},
     evidence_factory::{EvidenceFactoryInit, EvidenceFactoryModel, EvidenceFactoryOutput},
-    filter, lang,
+    filter, lang, lang_args,
     nav_factory::{NavFactoryInit, NavFactoryInput, NavFactoryModel, NavFactoryOutput},
     util::BoxedEvidenceJson,
 };
@@ -817,11 +816,10 @@ impl Component for AppModel {
                     let error_dlg = ErrorDialogModel::builder()
                         .launch(ErrorDialogInit {
                             title: Box::new(lang::lookup("error-failed-new-title")),
-                            body: Box::new(lang::lookup_with_args("error-failed-new-body", {
-                                let mut map = HashMap::new();
-                                map.insert("error", e.to_string().into());
-                                map
-                            })),
+                            body: Box::new(lang::lookup_with_args(
+                                "error-failed-new-body",
+                                lang_args!("error", e.to_string()),
+                            )),
                         })
                         .forward(sender.input_sender(), |msg| match msg {});
                     error_dlg.emit(ErrorDialogInput::Present(root.clone()));
@@ -857,11 +855,10 @@ impl Component for AppModel {
                     let error_dlg = ErrorDialogModel::builder()
                         .launch(ErrorDialogInit {
                             title: Box::new(lang::lookup("error-failed-open-title")),
-                            body: Box::new(lang::lookup_with_args("error-failed-open-body", {
-                                let mut map = HashMap::new();
-                                map.insert("error", e.to_string().into());
-                                map
-                            })),
+                            body: Box::new(lang::lookup_with_args(
+                                "error-failed-open-body",
+                                lang_args!("error", e.to_string()),
+                            )),
                         })
                         .forward(sender.input_sender(), |msg| match msg {});
                     error_dlg.emit(ErrorDialogInput::Present(root.clone()));
@@ -876,11 +873,10 @@ impl Component for AppModel {
                         let error_dlg = ErrorDialogModel::builder()
                             .launch(ErrorDialogInit {
                                 title: Box::new(lang::lookup("error-failed-save-title")),
-                                body: Box::new(lang::lookup_with_args("error-failed-save-body", {
-                                    let mut map = HashMap::new();
-                                    map.insert("error", e.to_string().into());
-                                    map
-                                })),
+                                body: Box::new(lang::lookup_with_args(
+                                    "error-failed-save-body",
+                                    lang_args!("error", e.to_string()),
+                                )),
                             })
                             .forward(sender.input_sender(), |msg| match msg {});
                         error_dlg.emit(ErrorDialogInput::Present(root.clone()));
@@ -1138,11 +1134,7 @@ impl Component for AppModel {
                                 title: Box::new(lang::lookup("error-failed-delete-case-title")),
                                 body: Box::new(lang::lookup_with_args(
                                     "error-failed-delete-case-body",
-                                    {
-                                        let mut map = HashMap::new();
-                                        map.insert("error", e.to_string().into());
-                                        map
-                                    },
+                                    lang_args!("error", e.to_string()),
                                 )),
                             })
                             .forward(sender.input_sender(), |msg| match msg {});
@@ -1282,21 +1274,18 @@ impl Component for AppModel {
 
                         let dialog = adw::MessageDialog::builder()
                             .transient_for(root)
-                            .title(lang::lookup_with_args("delete-case-title", {
-                                let mut map = HashMap::new();
-                                map.insert("name", case.metadata().title().into());
-                                map
-                            }))
-                            .heading(lang::lookup_with_args("delete-case-title", {
-                                let mut map = HashMap::new();
-                                map.insert("name", case.metadata().title().into());
-                                map
-                            }))
-                            .body(lang::lookup_with_args("delete-case-message", {
-                                let mut map = HashMap::new();
-                                map.insert("name", case.metadata().title().into());
-                                map
-                            }))
+                            .title(lang::lookup_with_args(
+                                "delete-case-title",
+                                lang_args!("name", case.metadata().title()),
+                            ))
+                            .heading(lang::lookup_with_args(
+                                "delete-case-title",
+                                lang_args!("name", case.metadata().title()),
+                            ))
+                            .body(lang::lookup_with_args(
+                                "delete-case-message",
+                                lang_args!("name", case.metadata().title()),
+                            ))
                             .modal(true)
                             .build();
                         dialog.add_response("cancel", &lang::lookup("cancel"));
@@ -1575,11 +1564,7 @@ impl Component for AppModel {
                                 title: Box::new(lang::lookup("export-error-failed-title")),
                                 body: Box::new(lang::lookup_with_args(
                                     "export-error-failed-message",
-                                    {
-                                        let mut map = HashMap::new();
-                                        map.insert("error", e.to_string().into());
-                                        map
-                                    },
+                                    lang_args!("error", e.to_string()),
                                 )),
                             })
                             .forward(sender.input_sender(), |msg| match msg {});
@@ -1629,11 +1614,7 @@ impl Component for AppModel {
                                     title: Box::new(lang::lookup("export-error-failed-title")),
                                     body: Box::new(lang::lookup_with_args(
                                         "export-error-failed-message",
-                                        {
-                                            let mut map = HashMap::new();
-                                            map.insert("error", e.to_string().into());
-                                            map
-                                        },
+                                        lang_args!("error", e.to_string()),
                                     )),
                                 })
                                 .forward(sender.input_sender(), |msg| match msg {});

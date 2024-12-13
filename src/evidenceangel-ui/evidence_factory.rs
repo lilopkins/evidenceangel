@@ -1,4 +1,4 @@
-use std::{collections::HashMap, sync::{Arc, RwLock}};
+use std::sync::{Arc, RwLock};
 
 use adw::prelude::*;
 use evidenceangel::{Evidence, EvidenceData, EvidenceKind, EvidencePackage};
@@ -12,8 +12,8 @@ use relm4::{
     FactorySender, RelmWidgetExt,
 };
 
-use crate::lang;
 use crate::util::BoxedEvidenceJson;
+use crate::{lang, lang_args};
 
 const EVIDENCE_HEIGHT_REQUEST: i32 = 300;
 const HTTP_SEPARATOR: char = '\x1e';
@@ -311,17 +311,16 @@ impl FactoryComponent for EvidenceFactoryModel {
             EvidenceKind::File => {
                 let label = gtk::Label::default();
                 if let Some(filename) = self.evidence.read().unwrap().original_filename() {
-                    label.set_markup(&lang::lookup_with_args("test-evidence-file-named", {
-                        let mut map = HashMap::new();
-                        map.insert("filename", filename.into());
-                        map
-                    }));
+                    label.set_markup(&lang::lookup_with_args(
+                        "test-evidence-file-named",
+                        lang_args!("filename", filename),
+                    ));
                 } else {
                     label.set_markup(&lang::lookup("test-evidence-file-unnamed"));
                 }
                 widgets.evidence_child.set_halign(gtk::Align::Center);
                 widgets.evidence_child.append(&label);
-            },
+            }
         };
 
         widgets
