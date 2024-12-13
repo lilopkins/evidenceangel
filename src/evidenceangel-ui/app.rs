@@ -5,7 +5,9 @@ use std::{
 
 use adw::prelude::*;
 use evidenceangel::{
-    exporters::{excel::ExcelExporter, html::HtmlExporter, Exporter},
+    exporters::{
+        excel::ExcelExporter, html::HtmlExporter, zip_of_files::ZipOfFilesExporter, Exporter,
+    },
     Author, Evidence, EvidenceKind, EvidencePackage, MediaFile,
 };
 #[allow(unused)]
@@ -1568,6 +1570,9 @@ impl Component for AppModel {
                     if let Err(e) = match format.as_str() {
                         "html document" => HtmlExporter.export_package(&mut pkg, path.clone()),
                         "excel workbook" => ExcelExporter.export_package(&mut pkg, path.clone()),
+                        "zip archive of files" => {
+                            ZipOfFilesExporter.export_package(&mut pkg, path.clone())
+                        }
                         _ => {
                             log::error!("Invalid format specified.");
                             Ok(())
@@ -1617,6 +1622,9 @@ impl Component for AppModel {
                             }
                             "excel workbook" => {
                                 ExcelExporter.export_case(&mut pkg, *id, path.clone())
+                            }
+                            "zip archive of files" => {
+                                ZipOfFilesExporter.export_case(&mut pkg, *id, path.clone())
                             }
                             _ => {
                                 log::error!("Invalid format specified.");

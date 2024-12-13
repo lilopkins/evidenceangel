@@ -9,8 +9,8 @@ use relm4::{
 
 use crate::{lang, lang_args};
 
-const EXPORT_FORMATS: &[&str] = &["HTML Document", "Excel Workbook"];
-const EXPORT_EXTENSIONS: &[&str] = &["html", "xlsx"];
+const EXPORT_FORMATS: &[&str] = &["HTML Document", "Excel Workbook", "ZIP Archive of Files"];
+const EXPORT_EXTENSIONS: &[&str] = &["html", "xlsx", "zip"];
 
 #[derive(Debug)]
 pub enum ExportInput {

@@ -21,10 +21,11 @@ path = "src/evidenceangel-ui/main.rs"
 required-features = ["ui"]
 
 [features]
-default = ["exporter-html"]
+default = ["exporter-html", "exporter-zip-of-files"]
 cli = [
     "exporter-html",
     "exporter-excel",
+    "exporter-zip-of-files",
     "dep:clap",
     "dep:clap_complete",
     "dep:colored",
@@ -34,6 +35,7 @@ cli = [
 ]
 exporter-excel = ["dep:rust_xlsxwriter"]
 exporter-html = ["dep:domrs", "dep:html-escape"]
+exporter-zip-of-files = []
 ui = [
     "dep:clap",
     "dep:fern",
@@ -48,6 +50,7 @@ ui = [
     "dep:sys-locale",
     "exporter-html",
     "exporter-excel",
+    "exporter-zip-of-files",
 ]
 windows-keep-console-window = []
 

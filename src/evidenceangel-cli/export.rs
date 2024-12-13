@@ -2,7 +2,9 @@ use std::{fmt, path::PathBuf, rc::Rc};
 
 use clap::Subcommand;
 use evidenceangel::{
-    exporters::{excel::ExcelExporter, html::HtmlExporter, Exporter},
+    exporters::{
+        excel::ExcelExporter, html::HtmlExporter, zip_of_files::ZipOfFilesExporter, Exporter,
+    },
     EvidencePackage,
 };
 use schemars::JsonSchema;
@@ -28,7 +30,7 @@ pub enum ExportSubcommand {
         /// The one-based index of the test case to delete, or enough of the title to uniquely match against one test case.
         #[arg(index = 1)]
         case: String,
-        /// The format to export to. Permitted values are "html" and "excel".
+        /// The format to export to. Permitted values are "html", "excel" and "zip-of-files".
         #[arg(index = 2)]
         format: String,
         /// The target file to write.
@@ -54,6 +56,8 @@ enum ExportFormat {
     Excel,
     /// The export was to HTML
     Html,
+    /// The export was a ZIP of files
+    ZipOfFiles,
 }
 
 /// The scope of data exported
@@ -76,6 +80,7 @@ impl fmt::Display for CliExportResult {
             match self.format {
                 ExportFormat::Excel => "Excel",
                 ExportFormat::Html => "HTML",
+                ExportFormat::ZipOfFiles => "ZIP of files",
             },
             self.path.display()
         )
@@ -107,6 +112,18 @@ pub fn process(path: PathBuf, command: &ExportSubcommand) -> CliData {
 
                     CliData::ExportResult(CliExportResult {
                         format: ExportFormat::Html,
+                        scope: ExportScope::Package,
+                        path: target.clone(),
+                    })
+                }
+                "zip-of-files" => {
+                    let mut exporter = ZipOfFilesExporter;
+                    if let Err(e) = exporter.export_package(&mut package, target.clone()) {
+                        return CliError::FailedToExport(Rc::new(e)).into();
+                    }
+
+                    CliData::ExportResult(CliExportResult {
+                        format: ExportFormat::ZipOfFiles,
                         scope: ExportScope::Package,
                         path: target.clone(),
                     })
@@ -190,6 +207,19 @@ pub fn process(path: PathBuf, command: &ExportSubcommand) -> CliData {
 
                         CliData::ExportResult(CliExportResult {
                             format: ExportFormat::Html,
+                            scope: ExportScope::TestCase { title: case_title },
+                            path: target.clone(),
+                        })
+                    }
+                    "zip-of-files" => {
+                        let mut exporter = ZipOfFilesExporter;
+                        if let Err(e) = exporter.export_case(&mut package, case_id, target.clone())
+                        {
+                            return CliError::FailedToExport(Rc::new(e)).into();
+                        }
+
+                        CliData::ExportResult(CliExportResult {
+                            format: ExportFormat::ZipOfFiles,
                             scope: ExportScope::TestCase { title: case_title },
                             path: target.clone(),
                         })
