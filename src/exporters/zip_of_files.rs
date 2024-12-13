@@ -105,7 +105,7 @@ fn check_has_files(test_case: &TestCase) -> bool {
             return true;
         }
     }
-    return false;
+    false
 }
 
 /// Create the worksheet that holds the test case's information
