@@ -1369,7 +1369,7 @@ impl Component for AppModel {
                 add_evidence_file_dlg.emit(AddEvidenceInput::Present(root.clone()));
                 self.latest_add_evidence_file_dlg = Some(add_evidence_file_dlg);
                 self.action_paste_evidence.set_enabled(false);
-            },
+            }
             AppInput::ReinstatePaste => self.action_paste_evidence.set_enabled(true),
             AppInput::_AddEvidence(ev, maybe_pos) => {
                 if let Some(pkg) = self.get_package() {
