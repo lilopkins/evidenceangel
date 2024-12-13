@@ -55,6 +55,7 @@ pub struct AppModel {
     latest_add_evidence_text_dlg: Option<Controller<AddTextEvidenceDialogModel>>,
     latest_add_evidence_http_dlg: Option<Controller<AddHttpEvidenceDialogModel>>,
     latest_add_evidence_image_dlg: Option<Controller<AddImageEvidenceDialogModel>>,
+    latest_add_evidence_file_dlg: Option<Controller<AddFileEvidenceDialogModel>>,
     latest_error_dlg: Option<Controller<ErrorDialogModel>>,
     latest_export_dlg: Option<Controller<ExportDialogModel>>,
     latest_delete_toasts: Vec<adw::Toast>,
@@ -558,7 +559,7 @@ impl Component for AppModel {
                                                                 set_label: &lang::lookup("evidence-image"),
                                                             }
                                                         },
-                                                        /* gtk::Button {
+                                                        gtk::Button {
                                                             connect_clicked => AppInput::AddFileEvidence,
                                                             add_css_class: "pill",
 
@@ -566,7 +567,7 @@ impl Component for AppModel {
                                                                 set_icon_name: relm4_icons::icon_names::PLUS,
                                                                 set_label: &lang::lookup("evidence-file"),
                                                             }
-                                                        }, */
+                                                        },
                                                     },
 
                                                     gtk::Separator {
@@ -710,6 +711,7 @@ impl Component for AppModel {
             latest_add_evidence_text_dlg: None,
             latest_add_evidence_http_dlg: None,
             latest_add_evidence_image_dlg: None,
+            latest_add_evidence_file_dlg: None,
             latest_export_dlg: None,
             latest_delete_toasts: vec![],
 
@@ -1354,7 +1356,20 @@ impl Component for AppModel {
                 self.latest_add_evidence_image_dlg = Some(add_evidence_image_dlg);
                 self.action_paste_evidence.set_enabled(false);
             }
-            AppInput::AddFileEvidence => (),
+            AppInput::AddFileEvidence => {
+                let add_evidence_file_dlg = AddFileEvidenceDialogModel::builder()
+                    .launch(self.get_package().unwrap())
+                    .forward(sender.input_sender(), |msg| match msg {
+                        AddEvidenceOutput::AddEvidence(ev) => AppInput::_AddEvidence(ev, None),
+                        AddEvidenceOutput::Error { title, message } => {
+                            AppInput::ShowError { title, message }
+                        }
+                        AddEvidenceOutput::Closed => AppInput::ReinstatePaste,
+                    });
+                add_evidence_file_dlg.emit(AddEvidenceInput::Present(root.clone()));
+                self.latest_add_evidence_file_dlg = Some(add_evidence_file_dlg);
+                self.action_paste_evidence.set_enabled(false);
+            },
             AppInput::ReinstatePaste => self.action_paste_evidence.set_enabled(true),
             AppInput::_AddEvidence(ev, maybe_pos) => {
                 if let Some(pkg) = self.get_package() {

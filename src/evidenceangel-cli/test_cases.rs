@@ -1,5 +1,6 @@
 use std::{
-    fmt::{self, Write}, fs,
+    fmt::{self, Write},
+    fs,
     io::{self, Cursor, Read},
     path::PathBuf,
     rc::Rc,
