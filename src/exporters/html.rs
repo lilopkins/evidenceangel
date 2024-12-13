@@ -8,7 +8,7 @@ use domrs::{
 };
 use uuid::Uuid;
 
-use crate::{EvidenceKind, EvidencePackage, MediaFile, TestCase};
+use crate::{EvidenceData, EvidenceKind, EvidencePackage, MediaFile, TestCase};
 
 use super::Exporter;
 
@@ -161,11 +161,38 @@ fn create_test_case_div(
             }
             EvidenceKind::File => {
                 let data = evidence.value().get_data(&mut package)?;
-                let text = String::from_utf8_lossy(data.as_slice());
+                let data = base64::prelude::BASE64_STANDARD_NO_PAD.encode(data);
+                let mime = if let EvidenceData::Media { hash } = evidence.value() {
+                    if let Some(media) = package.get_media(hash).ok().flatten() {
+                        if let Some(mime) = media.mime_type() {
+                            mime.to_string()
+                        } else {
+                            "application/octet-stream".to_string()
+                        }
+                    } else {
+                        "application/octet-stream".to_string()
+                    }
+                } else {
+                    "application/octet-stream".to_string()
+                };
+
                 elem.add_child(
-                    HtmlElement::new("code")
-                        .no_indent()
-                        .child(HtmlElement::new("pre").no_indent().content(&text)),
+                    HtmlElement::new("div").child(
+                        HtmlElement::new("a")
+                            .attribute("href", format!("data:{mime};base64,{data}"))
+                            .attribute(
+                                "download",
+                                evidence
+                                    .original_filename()
+                                    .clone()
+                                    .unwrap_or(String::new()),
+                            )
+                            .content(&if let Some(filename) = evidence.original_filename() {
+                                filename.clone()
+                            } else {
+                                "Unnamed file".to_string()
+                            }),
+                    ),
                 );
             }
         }
