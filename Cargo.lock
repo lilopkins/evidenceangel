@@ -209,6 +209,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "build_html"
+version = "2.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "225eb82ce9e70dcc0cfa6e404d0f353326b6e163bf500ec4711cec317d11935c"
+
+[[package]]
 name = "bumpalo"
 version = "3.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -533,12 +539,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "domrs"
-version = "0.0.16"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fdda6acc74f0bfd12b77f1f72b5dda9e4147137af9d4e5cd91fa395bf1aa91b4"
-
-[[package]]
 name = "dyn-clone"
 version = "1.0.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -583,11 +583,11 @@ name = "evidenceangel"
 version = "1.3.0-rc.1"
 dependencies = [
  "base64",
+ "build_html",
  "chrono",
  "clap",
  "clap_complete",
  "colored",
- "domrs",
  "fern",
  "fluent",
  "fluent-templates",
