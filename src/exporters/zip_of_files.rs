@@ -51,17 +51,30 @@ impl Exporter for ZipOfFilesExporter {
             )));
         }
 
-        let mut zip = ZipWriter::new(BufWriter::new(
-            fs::File::create(path).map_err(|e| crate::Error::OtherExportError(Box::new(e)))?,
+        let zip = ZipWriter::new(BufWriter::new(
+            fs::File::create(&path).map_err(|e| crate::Error::OtherExportError(Box::new(e)))?,
         ));
 
-        for test_case in package.test_case_iter()? {
-            add_test_case_to_zip(&mut zip, package.clone(), test_case)
-                .map_err(crate::Error::OtherExportError)?;
-        }
+        fn inner(
+            mut zip: ZipWriter<BufWriter<fs::File>>,
+            package: &mut EvidencePackage,
+        ) -> crate::Result<()> {
+            for test_case in package.test_case_iter()? {
+                add_test_case_to_zip(&mut zip, package.clone(), test_case)
+                    .map_err(crate::Error::OtherExportError)?;
+            }
 
-        zip.finish()
-            .map_err(|e| crate::Error::OtherExportError(Box::new(e)))?;
+            zip.finish()
+                .map_err(|e| crate::Error::OtherExportError(Box::new(e)))?;
+
+            Ok(())
+        }
+        if let Err(e) = inner(zip, package) {
+            // Delete file if exists
+            let _ = fs::remove_file(path);
+
+            return Err(e);
+        }
 
         Ok(())
     }
@@ -76,23 +89,38 @@ impl Exporter for ZipOfFilesExporter {
             .test_case(case)?
             .ok_or(crate::Error::OtherExportError(
                 "Test case not found!".into(),
-            ))?;
+            ))?
+            .clone();
 
-        if !check_has_files(case) {
+        if !check_has_files(&case) {
             return Err(crate::Error::OtherExportError(Box::new(
                 ZipOfFilesError::NoFilesToExport,
             )));
         }
 
-        let mut zip = ZipWriter::new(BufWriter::new(
-            fs::File::create(path).map_err(|e| crate::Error::OtherExportError(Box::new(e)))?,
-        ));
+        let file =
+            fs::File::create(&path).map_err(|e| crate::Error::OtherExportError(Box::new(e)))?;
+        let zip = ZipWriter::new(BufWriter::new(file));
 
-        add_test_case_to_zip(&mut zip, package.clone(), case)
-            .map_err(crate::Error::OtherExportError)?;
+        fn inner(
+            mut zip: ZipWriter<BufWriter<fs::File>>,
+            package: &mut EvidencePackage,
+            case: &TestCase,
+        ) -> crate::Result<()> {
+            add_test_case_to_zip(&mut zip, package.clone(), case)
+                .map_err(crate::Error::OtherExportError)?;
 
-        zip.finish()
-            .map_err(|e| crate::Error::OtherExportError(Box::new(e)))?;
+            zip.finish()
+                .map_err(|e| crate::Error::OtherExportError(Box::new(e)))?;
+
+            Ok(())
+        }
+        if let Err(e) = inner(zip, package, &case) {
+            // Delete file if exists
+            let _ = fs::remove_file(path);
+
+            return Err(e);
+        }
 
         Ok(())
     }
