@@ -235,6 +235,7 @@ impl Component for AppModel {
     view! {
         #[root]
         adw::ApplicationWindow {
+            set_title: Some(&lang::lookup("app-name")),
             set_width_request: 800,
             set_height_request: 600,
 
