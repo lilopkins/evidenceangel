@@ -142,7 +142,7 @@ fn add_test_case_to_zip(
     mut package: EvidencePackage,
     test_case: &TestCase,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    log::debug!("Creating ZIP of files for test case {}", test_case.id());
+    tracing::debug!("Creating ZIP of files for test case {}", test_case.id());
 
     let mut filename_count = HashMap::new();
     for ev in test_case.evidence() {

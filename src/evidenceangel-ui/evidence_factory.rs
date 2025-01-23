@@ -26,16 +26,16 @@ pub struct EvidenceFactoryModel {
 
 impl EvidenceFactoryModel {
     fn get_data(&self) -> Vec<u8> {
-        log::debug!("Got some {:?} data", self.evidence.read().unwrap().kind());
+        tracing::debug!("Got some {:?} data", self.evidence.read().unwrap().kind());
         match self.evidence.read().unwrap().value() {
             EvidenceData::Text { content } => content.as_bytes().to_vec(),
             EvidenceData::Base64 { data } => data.clone(),
             EvidenceData::Media { hash } => {
-                log::debug!("Fetching media with hash {hash}");
+                tracing::debug!("Fetching media with hash {hash}");
                 let mut pkg = self.package.write().unwrap();
-                log::debug!("Got package instance!");
+                tracing::debug!("Got package instance!");
                 let media = pkg.get_media(hash).ok().flatten();
-                log::debug!("Got media {media:?}");
+                tracing::debug!("Got media {media:?}");
                 if let Some(media) = media {
                     media.data().clone()
                 } else {
@@ -46,15 +46,15 @@ impl EvidenceFactoryModel {
     }
 
     fn get_data_as_string(&self) -> String {
-        log::debug!("Converting media to string...");
+        tracing::debug!("Converting media to string...");
         String::from_utf8(self.get_data()).unwrap_or(lang::lookup("invalid-data"))
     }
 
     fn get_data_as_texture(&self) -> Option<gtk::gdk::Texture> {
-        log::debug!("Converting media to texture...");
+        tracing::debug!("Converting media to texture...");
         let glib_bytes = gtk::glib::Bytes::from_owned(self.get_data().clone());
         let r = gtk::gdk::Texture::from_bytes(&glib_bytes).ok();
-        log::debug!("Resultant texture: {r:?}");
+        tracing::debug!("Resultant texture: {r:?}");
         r
     }
 }
@@ -107,13 +107,13 @@ impl FactoryComponent for EvidenceFactoryModel {
 
                 connect_prepare => move |_slf, _x, _y| {
                     let dnd_data = BoxedEvidenceJson::new((*ev.read().unwrap()).clone());
-                    log::debug!("Drag data started: {dnd_data:?}");
+                    tracing::debug!("Drag data started: {dnd_data:?}");
                     Some(gtk::gdk::ContentProvider::for_value(&dnd_data.to_value()))
                 },
 
                 connect_drag_end[sender, index] => move |_slf, _drag, delete_data| {
                     if delete_data {
-                        log::debug!("Deleting drag start item");
+                        tracing::debug!("Deleting drag start item");
                         sender.output(EvidenceFactoryOutput::DeleteEvidence(index.clone(), false)).unwrap();
                     }
                 }
@@ -123,10 +123,10 @@ impl FactoryComponent for EvidenceFactoryModel {
                 set_types: &[BoxedEvidenceJson::static_type()],
 
                 connect_drop[sender, index] => move |_slf, val, _x, _y| {
-                    log::debug!("Dropped type: {:?}", val.type_());
+                    tracing::debug!("Dropped type: {:?}", val.type_());
                     if let Ok(data) = val.get::<BoxedEvidenceJson>() {
                         let ev = data.inner();
-                        log::debug!("Dropped data: {ev:?}");
+                        tracing::debug!("Dropped data: {ev:?}");
                         sender.output(EvidenceFactoryOutput::InsertEvidenceAt(index.clone(), 0, ev)).unwrap();
                         return true;
                     }

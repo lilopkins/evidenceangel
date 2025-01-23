@@ -136,7 +136,7 @@ fn create_test_case_div(
     mut package: EvidencePackage,
     test_case: &TestCase,
 ) -> Result<HtmlElement, Box<dyn std::error::Error>> {
-    log::debug!("Creating HTML element for test case {}", test_case.id());
+    tracing::debug!("Creating HTML element for test case {}", test_case.id());
     let mut elem = HtmlElement::new(HtmlTag::Div)
         .with_html(
             HtmlElement::new(HtmlTag::Heading2)

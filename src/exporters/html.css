@@ -2,6 +2,7 @@ body {
     font-family: "Segoe UI", "Liberation Sans", sans-serif;
     margin: 8px auto;
     max-width: 800px;
+    padding: 0 16px;
 }
 
 img {
@@ -36,8 +37,8 @@ pre {
 
 .tabs {
     display: flex;
-    flex-wrap: wrap;
-    padding-left: 16px;
+    overflow-x: scroll;
+    padding: 0 16px;
     border-bottom: 1px solid black;
 }
 
@@ -49,6 +50,7 @@ pre {
     margin-right: -1px;
     list-style: none;
     padding: 4px;
+    text-wrap: nowrap;
 }
 
 .tabs > li.selected {

@@ -7,7 +7,7 @@
 //!
 //! To get usage information, please execute the binary with `--help`.
 
-use std::io;
+use std::{io, sync::Mutex};
 
 use arg_parser::{Args, Command};
 use clap::{CommandFactory, Parser};
@@ -27,7 +27,12 @@ mod test_cases;
 
 fn main() {
     let args = Args::parse();
-    pretty_env_logger::init_custom_env("EVIDENCEANGEL_LOG");
+    let subscriber = tracing_subscriber::FmtSubscriber::builder()
+        .with_ansi(true)
+        .with_max_level(*args.verbose())
+        .with_writer(Mutex::new(io::stderr()))
+        .finish();
+    tracing::subscriber::set_global_default(subscriber).expect("couldn't start logging");
 
     if *args.no_color() {
         colored::control::set_override(false);

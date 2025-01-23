@@ -155,7 +155,7 @@ impl EvidencePackage {
         zip.add_directory("media", options)?;
         zip.add_directory("testcases", options)?;
 
-        log::trace!("Current media cache: {:?}", self.media_data);
+        tracing::trace!("Current media cache: {:?}", self.media_data);
 
         let mut media_used = vec![];
 
@@ -199,19 +199,19 @@ impl EvidencePackage {
             .retain(|hash, _val| media_used.contains(&hash));
 
         // Save media to package, either sourcing it from memory if present, or from the previous package.
-        log::debug!("Media entries: {:?}", self.media);
+        tracing::debug!("Media entries: {:?}", self.media);
         for entry in &self.media {
             let hash = entry.sha256_checksum();
             zip.start_file(format!("media/{hash}"), options)?;
             if self.media_data.contains_key(hash) {
                 // If in memory, write from there
-                log::trace!("Writing from cache {hash}");
+                tracing::trace!("Writing from cache {hash}");
                 zip.write_all(self.media_data.get(hash).unwrap().data())?;
             } else {
                 // Otherwise pull from previous package.
                 // Consider moving this to not load entire file on move.
                 if maybe_old_archive.is_some() {
-                    log::debug!("Migrating media with hash {hash} from old file");
+                    tracing::debug!("Migrating media with hash {hash} from old file");
                     let old_archive = maybe_old_archive.as_mut().unwrap();
                     let res = old_archive.by_name(&format!("media/{hash}"));
                     match res {
@@ -219,7 +219,7 @@ impl EvidencePackage {
                             return Err(Error::MediaMissing(hash.clone()))
                         }
                         Err(e) => {
-                            log::error!("Error migrating from old package: {e}");
+                            tracing::error!("Error migrating from old package: {e}");
                             return Err(e.into());
                         }
                         Ok(mut file) => {
@@ -434,7 +434,7 @@ impl EvidencePackage {
             self.media.push(manifest_entry);
 
             // Insert data and return reference
-            log::trace!("New media cache entry: {hash}");
+            tracing::trace!("New media cache entry: {hash}");
             self.media_data.insert(hash.clone(), media_file);
         }
 
@@ -454,7 +454,7 @@ impl EvidencePackage {
 
         // Check in-memory cache
         if self.media_data.contains_key(&hash) {
-            log::debug!("{hash} found in cache.");
+            tracing::debug!("{hash} found in cache.");
             return Ok(self.media_data.get(&hash));
         }
 
@@ -465,7 +465,7 @@ impl EvidencePackage {
             Ok(file) => {
                 let size = file.size() as usize;
                 let mut buf = Vec::with_capacity(size);
-                log::debug!("Cache miss: {hash} (size: {size})");
+                tracing::debug!("Cache miss: {hash} (size: {size})");
 
                 // Read from ZIP data
                 let mut data = BufReader::new(file);
@@ -473,14 +473,14 @@ impl EvidencePackage {
 
                 // Add to in-memory cache
                 let media: MediaFile = buf.into();
-                log::trace!("New media cache entry: {hash}");
+                tracing::trace!("New media cache entry: {hash}");
                 self.media_data.insert(hash.clone(), media);
 
                 // Return cached version
                 Ok(Some(self.media_data.get(&hash).unwrap()))
             }
             Err(ZipError::FileNotFound) => {
-                log::warn!("{hash} not found in package!");
+                tracing::warn!("{hash} not found in package!");
                 Ok(None)
             }
             Err(e) => Err(e.into()),
