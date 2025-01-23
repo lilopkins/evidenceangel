@@ -79,7 +79,7 @@ fn create_metadata_sheet(
     worksheet: &mut Worksheet,
     package: &EvidencePackage,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    log::debug!("Creating excel sheet for metadata");
+    tracing::debug!("Creating excel sheet for metadata");
     worksheet.set_name(package.metadata().title())?;
     worksheet.set_screen_gridlines(false);
     worksheet.set_column_width(0, 3)?; // To appear tidy
@@ -112,7 +112,7 @@ fn create_test_case_sheet(
     mut package: EvidencePackage,
     test_case: &TestCase,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    log::debug!("Creating excel sheet for test case {}", test_case.id());
+    tracing::debug!("Creating excel sheet for test case {}", test_case.id());
     worksheet.set_name(test_case.metadata().title())?;
     worksheet.set_screen_gridlines(false);
     worksheet.set_column_width(0, 3)?; // To appear tidy

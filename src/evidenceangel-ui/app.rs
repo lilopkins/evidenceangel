@@ -79,7 +79,7 @@ impl AppModel {
             title,
             authors,
         )?;
-        log::debug!("Package opened: {pkg:?}");
+        tracing::debug!("Package opened: {pkg:?}");
         self.open_package = Some(Arc::new(RwLock::new(pkg)));
         self.needs_saving = false;
         self.action_save.set_enabled(true);
@@ -91,7 +91,7 @@ impl AppModel {
 
     fn open(&mut self, path: PathBuf) -> evidenceangel::Result<()> {
         let pkg = EvidencePackage::open(path.clone())?;
-        log::debug!("Package opened: {pkg:?}");
+        tracing::debug!("Package opened: {pkg:?}");
         self.open_package = Some(Arc::new(RwLock::new(pkg)));
         self.needs_saving = false;
         self.open_path = Some(path);
@@ -109,7 +109,7 @@ impl AppModel {
         self.action_save.set_enabled(false);
         self.action_close.set_enabled(false);
         self.action_export_package.set_enabled(false);
-        log::debug!("Package closed.");
+        tracing::debug!("Package closed.");
     }
 
     /// Update nav menu with test cases from the currently open package.
@@ -516,10 +516,10 @@ impl Component for AppModel {
                                                         set_types: &[BoxedEvidenceJson::static_type()],
 
                                                         connect_drop[sender] => move |_slf, val, _x, _y| {
-                                                            log::debug!("Dropped type: {:?}", val.type_());
+                                                            tracing::debug!("Dropped type: {:?}", val.type_());
                                                             if let Ok(data) = val.get::<BoxedEvidenceJson>() {
                                                                 let ev = data.inner();
-                                                                log::debug!("Dropped data: {ev:?}");
+                                                                tracing::debug!("Dropped data: {ev:?}");
                                                                 sender.input(AppInput::_AddEvidence(ev, None));
                                                                 return true;
                                                             }
@@ -779,7 +779,7 @@ impl Component for AppModel {
         sender: ComponentSender<Self>,
         root: &Self::Root,
     ) {
-        log::debug!("Handling event: {message:?}");
+        tracing::debug!("Handling event: {message:?}");
         match message {
             AppInput::Exit => {
                 relm4::main_application().quit();
@@ -1229,7 +1229,7 @@ impl Component for AppModel {
             AppInput::TrySetExecutionDateTime(new_exec_time) => {
                 match parse_datetime::parse_datetime_at_date(chrono::Local::now(), new_exec_time) {
                     Ok(dt) => {
-                        log::debug!("Setting exec date time {dt}");
+                        tracing::debug!("Setting exec date time {dt}");
 
                         if let OpenCase::Case { id, .. } = &self.open_case {
                             if let Some(pkg) = self.get_package() {
@@ -1574,7 +1574,7 @@ impl Component for AppModel {
                             ZipOfFilesExporter.export_package(&mut pkg, path.clone())
                         }
                         _ => {
-                            log::error!("Invalid format specified.");
+                            tracing::error!("Invalid format specified.");
                             Ok(())
                         }
                     } {
@@ -1627,7 +1627,7 @@ impl Component for AppModel {
                                 ZipOfFilesExporter.export_case(&mut pkg, *id, path.clone())
                             }
                             _ => {
-                                log::error!("Invalid format specified.");
+                                tracing::error!("Invalid format specified.");
                                 Ok(())
                             }
                         } {
@@ -1679,7 +1679,7 @@ impl Component for AppModel {
                 if let Some(disp) = gtk::gdk::Display::default() {
                     let clipboard = disp.clipboard();
                     let mime_types = clipboard.formats().mime_types();
-                    log::debug!("Clipboard MIME types: {mime_types:?}");
+                    tracing::debug!("Clipboard MIME types: {mime_types:?}");
                     let mut matched_kind = false;
                     'mime_loop: for mime in mime_types {
                         match mime.as_str().to_lowercase().as_str() {
@@ -1731,7 +1731,7 @@ impl Component for AppModel {
                                             }
                                         }
                                         Err(e) => {
-                                            log::warn!("Failed to paste image: {e}");
+                                            tracing::warn!("Failed to paste image: {e}");
                                             sender_c.input(AppInput::ShowToast(lang::lookup(
                                                 "paste-evidence-failed",
                                             )));
@@ -1750,7 +1750,7 @@ impl Component for AppModel {
                         )));
                     }
                 } else {
-                    log::warn!("No default display! Cannot get clipboard!");
+                    tracing::warn!("No default display! Cannot get clipboard!");
                 }
             }
             AppInput::ShowToast(msg) => {

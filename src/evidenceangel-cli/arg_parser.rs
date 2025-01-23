@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 
 use clap::{Parser, Subcommand};
+use clap_verbosity_flag::Verbosity;
 use getset::Getters;
 
 use crate::{
@@ -27,6 +28,10 @@ pub struct Args {
     /// The action for this tool to perform
     #[command(subcommand)]
     command: Command,
+
+    /// Verbosity
+    #[command(flatten)]
+    verbose: Verbosity,
 }
 
 #[derive(Subcommand, Clone)]
