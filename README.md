@@ -1,36 +1,58 @@
 # EvidenceAngel
 
-EvidenceAngel is a new tool in the Angel-suite to collect test evidence from both manual and automated testing.
+EvidenceAngel is a new tool in the Angel-suite to collect test evidence from
+both manual and automated testing.
 
-## Requirements
-
-EvidenceAngel should accept evidence in the forms of:
+EvidenceAngel takes and stores evidence in the forms of:
 
 - Text
 - Images
 - Files
 - HTTP requests and responses
-- potentially more in the future...
+- potentially more in the future…
 
-EvidenceAngel should allow a single evidence package to contain:
+This evidence is stored in a single file, saving you the hassle of managing lots
+of files scattered around!
 
-- Package metadata
-    - Title
-    - Authors
-- Test Cases
-    - Case Title
-    - Case Execution Date and Time
-    - Case Evidence
+Don't worry! Not everyone needs to use EvidenceAngel! EvidenceAngel allows data
+to be exported into a variety of interchange formats:
 
-EvidenceAngel allows users to:
+- Tabbed HTML document
+- Excel workbook (with sheets per test case)
 
-- Create a new package
-- Create a new test case
-- Add evidence to a test case
-- (GUI only) Edit evidence in a test case
-- Delete evidence from a test case
+## Installation
 
-EvidenceAngel allows data to be exported into a variety of interchange formats:
+### Prerequisites (Windows)
 
-- HTML document
-- Excel file (with sheets per test case)
+There are no prerequisites for Windows.
+
+### Prerequisites (Mac)
+
+- GTK4
+- Adwaita
+
+The easiest way to install these is via [Homebrew](https://brew.sh):
+
+```sh
+$ brew install gtk4 libadwaita
+```
+
+### Prerequisites (Linux)
+
+- GTK4
+- Adwaita
+
+Installation procedure for these will vary by system. If you already use GNOME
+as a desktop environment, you will almost certainly already have these
+prerequisites.
+
+### …via the AngelSuite Installer
+
+If you prefer an option that provides easy updating in the future, the
+[AngelSuite Installer](https://github.com/lilopkins/angelsuite-installer) is the
+way to go.
+
+### …manually
+
+If you prefer to install manually, you can download a suitable package from the
+[GitHub Releases](https://github.com/lilopkins/angelsuite-installer/releases).
