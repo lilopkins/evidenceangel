@@ -50,6 +50,7 @@ pre {
     margin-right: -1px;
     list-style: none;
     padding: 4px;
+    padding-bottom: 8px;
     text-wrap: nowrap;
 }
 
