@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fmt::Display, sync::Mutex};
+use std::{borrow::Cow, collections::HashMap, fmt::Display, sync::Mutex};
 
 use fluent::FluentValue;
 use fluent_templates::{LanguageIdentifier, Loader};
@@ -63,10 +63,12 @@ where
 }
 
 /// Lookup a string with args
-pub(crate) fn lookup_with_args<S, K>(text_id: S, args: HashMap<K, FluentValue<'_>>) -> String
+pub(crate) fn lookup_with_args<S>(
+    text_id: S,
+    args: HashMap<Cow<'static, str>, FluentValue<'_>>,
+) -> String
 where
     S: AsRef<str> + Display,
-    K: AsRef<str>,
 {
     LOCALES.lookup_with_args(&current_locale(), text_id.as_ref(), &args)
 }
@@ -77,7 +79,7 @@ macro_rules! lang_args {
         {
             let mut map = ::std::collections::HashMap::new();
             $(
-                map.insert($name, $val.into());
+                map.insert($name.into(), $val.into());
             )*
             map
         }
