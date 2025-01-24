@@ -63,7 +63,10 @@ where
 }
 
 /// Lookup a string with args
-pub(crate) fn lookup_with_args<S>(text_id: S, args: HashMap<Cow<'static, str>, FluentValue<'_>>) -> String
+pub(crate) fn lookup_with_args<S>(
+    text_id: S,
+    args: HashMap<Cow<'static, str>, FluentValue<'_>>,
+) -> String
 where
     S: AsRef<str> + Display,
 {
