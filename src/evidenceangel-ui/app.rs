@@ -431,6 +431,7 @@ impl Component for AppModel {
                                             set_header_suffix = &adw::Bin {
                                                 gtk::Button {
                                                     set_icon_name: relm4_icons::icon_names::PLUS,
+                                                    set_tooltip: &lang::lookup("author-create-title"),
                                                     add_css_class: "flat",
 
                                                     connect_clicked[sender] => move |_entry| {

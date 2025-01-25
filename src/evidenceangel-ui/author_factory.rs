@@ -5,8 +5,10 @@ use relm4::{
     factory::FactoryView,
     gtk,
     prelude::{DynamicIndex, FactoryComponent},
-    FactorySender,
+    FactorySender, RelmWidgetExt,
 };
+
+use crate::lang;
 
 pub struct AuthorFactoryModel {
     author: Author,
@@ -39,6 +41,7 @@ impl FactoryComponent for AuthorFactoryModel {
 
             add_suffix = &gtk::Button {
                 set_icon_name: relm4_icons::icon_names::CROSS_LARGE,
+                set_tooltip: &lang::lookup("author-remove"),
                 add_css_class: "flat",
 
                 connect_clicked[sender] => move |_| {
