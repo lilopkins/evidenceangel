@@ -64,6 +64,7 @@ author-create-title = Lägg till Författare
 author-create-name = Författarens Namn
 author-create-email = Författarens E-postadress
 author-create-submit = Lägg till
+author-remove = Ta bort Författare
 
 test-group-title = Testfallsmetadata
 test-title = Testfallstitel

@@ -64,6 +64,7 @@ author-create-title = Add Author
 author-create-name = Author Name
 author-create-email = Author Email Address
 author-create-submit = Add
+author-remove = Delete Author
 
 test-group-title = Test Case Metadata
 test-title = Test Case Title
