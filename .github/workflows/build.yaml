@@ -118,8 +118,11 @@ jobs:
             os: windows-latest
             file_suffix: windows-x86_64
           - os_name: Mac
-            os: macos-latest
+            os: macos-13
             file_suffix: mac-x86_64
+          - os_name: Mac
+            os: macos-latest
+            file_suffix: mac-arm64
 
     steps:
       - name: Checkout

@@ -3,7 +3,7 @@
     windows_subsystem = "windows"
 )]
 
-use std::path::PathBuf;
+use std::{env, path::PathBuf, sync::Mutex};
 
 use clap::Parser;
 use relm4::{
@@ -14,6 +14,7 @@ use relm4::{
     },
     RelmApp,
 };
+use tracing_subscriber_multi::*;
 
 mod about;
 mod app;
@@ -34,23 +35,30 @@ struct Args {
 }
 
 fn main() {
-    fern::Dispatch::new()
-        .format(|out, message, record| {
-            out.finish(format_args!(
-                "[{} {} {}] {}",
-                chrono::Local::now(),
-                record.level(),
-                record.target(),
-                message
-            ))
-        })
-        .level(log::LevelFilter::Info)
-        .level_for("evidenceangel", log::LevelFilter::Debug)
-        .level_for("evidenceangel_ui", log::LevelFilter::Debug)
-        .chain(std::io::stdout())
-        .chain(fern::log_file("evidenceangel.log").expect("Couldn't open log file."))
-        .apply()
-        .expect("Couldn't start logger!");
+    let subscriber = FmtSubscriber::builder()
+        .with_max_level(
+            if cfg!(debug_assertions) || env::var("EA_DEBUG").is_ok_and(|v| !v.is_empty()) {
+                tracing::Level::TRACE
+            } else {
+                tracing::Level::INFO
+            },
+        )
+        .with_ansi(true)
+        .with_writer(Mutex::new(DualWriter::new(
+            std::io::stderr(),
+            AnsiStripper::new(RotatingFile::new(
+                env::current_exe()
+                    .ok()
+                    .and_then(|p| p.parent().map(|p| p.to_path_buf()))
+                    .unwrap_or(PathBuf::from("."))
+                    .join("evidenceangel.log"),
+                AppendCount::new(3),
+                ContentLimit::Lines(1000),
+                Compression::OnRotate(0),
+            )),
+        )))
+        .finish();
+    tracing::subscriber::set_global_default(subscriber).expect("failed to initialise logger");
 
     let cli = Args::parse();
 

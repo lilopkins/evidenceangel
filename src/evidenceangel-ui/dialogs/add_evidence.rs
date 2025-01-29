@@ -288,6 +288,7 @@ impl Component for AddImageEvidenceDialogModel {
                             set_title: &lang::lookup("add-evidence-image-label"),
                             add_suffix = &gtk::Button {
                                 set_icon_name: relm4_icons::icon_names::FOLDER_OPEN_FILLED,
+                                set_tooltip: &lang::lookup("select"),
                                 add_css_class: "flat",
                                 connect_clicked => AddEvidenceInput::_SelectFile,
                             },
@@ -454,6 +455,7 @@ impl Component for AddFileEvidenceDialogModel {
                             set_title: &lang::lookup("add-evidence-file-label"),
                             add_suffix = &gtk::Button {
                                 set_icon_name: relm4_icons::icon_names::FOLDER_OPEN_FILLED,
+                                set_tooltip: &lang::lookup("select"),
                                 add_css_class: "flat",
                                 connect_clicked => AddEvidenceInput::_SelectFile,
                             },

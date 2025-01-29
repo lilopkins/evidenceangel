@@ -60,11 +60,11 @@ impl ZipReaderWriter {
     pub fn as_reader(&mut self) -> crate::Result<&mut ZipArchive<BufReader<fs::File>>> {
         if self.reader.is_none() {
             // Close writer
-            log::debug!("Closing writer");
+            tracing::debug!("Closing writer");
             self.writer = None;
 
             // Open reader
-            log::debug!("Opening reader");
+            tracing::debug!("Opening reader");
             self.reader = Some(ZipArchive::new(BufReader::new(fs::File::open(
                 self.file
                     .as_ref()
@@ -83,7 +83,7 @@ impl ZipReaderWriter {
         &mut ZipWriter<BufWriter<fs::File>>,
     )> {
         if self.writer.is_none() {
-            log::debug!("Opening writer");
+            tracing::debug!("Opening writer");
             // Open writer
             self.writer = Some(ZipWriter::new(BufWriter::new(fs::File::create(
                 self.file
@@ -106,15 +106,15 @@ impl ZipReaderWriter {
     pub fn conclude_write(&mut self) -> crate::Result<()> {
         if self.writer.is_some() {
             // Close write
-            log::debug!("Closing writer");
+            tracing::debug!("Closing writer");
             let writer = self.writer.take().unwrap();
             writer.finish()?;
 
-            log::debug!("Closing reader");
+            tracing::debug!("Closing reader");
             self.reader = None;
 
             // Move temp file
-            log::debug!("Moving temp file to overwrite package");
+            tracing::debug!("Moving temp file to overwrite package");
             let tmp_path = self
                 .file
                 .as_ref()
@@ -138,15 +138,15 @@ impl ZipReaderWriter {
     pub fn interrupt_write(&mut self) -> crate::Result<()> {
         if self.writer.is_some() {
             // Close write
-            log::debug!("Closing writer");
+            tracing::debug!("Closing writer");
             let writer = self.writer.take().unwrap();
             writer.finish()?;
 
-            log::debug!("Closing reader");
+            tracing::debug!("Closing reader");
             self.reader = None;
 
             // Delete temp file
-            log::debug!("Moving temp file to overwrite package");
+            tracing::debug!("Moving temp file to overwrite package");
             let tmp_path = self
                 .file
                 .as_ref()

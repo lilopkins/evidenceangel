@@ -1,7 +1,7 @@
 [package]
 name = "evidenceangel"
 description = "Library and executables to work with EvidenceAngel evidence packages (*.evp)."
-version = "1.2.0"
+version = "1.3.0"
 edition = "2021"
 license = "GPL-3.0-or-later"
 authors = [
@@ -28,26 +28,26 @@ cli = [
     "exporter-zip-of-files",
     "dep:clap",
     "dep:clap_complete",
+    "dep:clap-verbosity-flag",
     "dep:colored",
     "dep:parse_datetime",
-    "dep:pretty_env_logger",
     "dep:schemars",
+    "dep:tracing-subscriber",
 ]
 exporter-excel = ["dep:rust_xlsxwriter"]
-exporter-html = ["dep:domrs", "dep:html-escape"]
+exporter-html = ["dep:build_html", "dep:html-escape"]
 exporter-zip-of-files = []
 ui = [
     "dep:clap",
-    "dep:fern",
     "dep:fluent",
     "dep:fluent-templates",
     "dep:once_cell",
     "dep:open",
     "dep:parse_datetime",
-    "dep:pretty_env_logger",
     "dep:relm4",
     "dep:relm4-icons",
     "dep:sys-locale",
+    "dep:tracing-subscriber-multi",
     "exporter-html",
     "exporter-excel",
     "exporter-zip-of-files",
@@ -56,34 +56,39 @@ windows-keep-console-window = []
 
 [dependencies]
 base64 = "0.22.1"
+build_html = { version = "2.5.0", optional = true }
 chrono = { version = "0.4.38", features = ["serde"] }
 clap = { version = "4.5.4", features = ["derive"], optional = true }
+clap-verbosity-flag = { version = "3.0.2", default-features = false, features = ["tracing"], optional = true }
 clap_complete = { version = "4.5.2", optional = true }
-colored = { version = "2.1.0", optional = true }
-domrs = { version = "0.0.16", optional = true }
-fern = { version = "0.7.0", optional = true }
+colored = { version = "3.0.0", optional = true }
 fluent = { version = "0.16.1", optional = true }
-fluent-templates = { version = "0.11.0", optional = true }
+fluent-templates = { version = "0.13.0", optional = true }
 getset = "0.1.2"
 html-escape = { version = "0.2.13", optional = true }
 infer = "0.16.0"
-jsonschema = "0.26.1"
-log = "0.4.21"
+jsonschema = "0.28.2"
 once_cell = { version = "1.19.0", optional = true }
 open = { version = "5.3.0", optional = true }
-parse_datetime = { version = "0.6.0", optional = true }
-pretty_env_logger = { version = "0.5.0", optional = true }
+parse_datetime = { version = "0.7.0", optional = true }
 relm4 = { version = "0.9.0", features = [
     "libadwaita",
     "gnome_46",
 ], optional = true }
 relm4-icons = { version = "0.9.0", optional = true }
-rust_xlsxwriter = { version = "0.80.0", features = ["chrono"], optional = true }
+rust_xlsxwriter = { version = "0.81.0", features = ["chrono"], optional = true }
 schemars = { version = "0.8.21", features = ["chrono"], optional = true }
 serde = { version = "1.0.200", features = ["derive"] }
 serde_json = "1.0.116"
 sha256 = "1.5.0"
 sys-locale = { version = "0.3.1", optional = true }
 thiserror = "2.0.4"
+tracing = "0.1.41"
+tracing-subscriber = { version = "0.3.19", optional = true }
+tracing-subscriber-multi = { version = "0.1.0", optional = true }
 uuid = { version = "1.8.0", features = ["v4", "fast-rng", "serde"] }
 zip = "2.2.0"
+
+[target.'cfg(windows)'.build-dependencies]
+winres = "0.1"
+ico-builder = "0.1"
