@@ -55,6 +55,7 @@ ui = [
 windows-keep-console-window = []
 
 [dependencies]
+angelmark = { path = "angelmark" }
 base64 = "0.22.1"
 build_html = { version = "2.5.0", optional = true }
 chrono = { version = "0.4.38", features = ["serde"] }
