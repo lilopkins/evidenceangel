@@ -242,6 +242,33 @@ impl FactoryComponent for EvidenceFactoryModel {
                 frame.set_child(Some(&scroll_window));
                 widgets.evidence_child.append(&frame);
             }
+            EvidenceKind::RichText => {
+                // TODO
+                let scroll_window = gtk::ScrolledWindow::default();
+                scroll_window.set_height_request(100);
+                scroll_window.set_hexpand(true);
+
+                let frame = gtk::Frame::new(None);
+
+                let text_view = gtk::TextView::new();
+                text_view.set_top_margin(8);
+                text_view.set_bottom_margin(8);
+                text_view.set_left_margin(8);
+                text_view.set_right_margin(8);
+
+                text_view.buffer().set_text(&self.get_data_as_string());
+                let sender_c = sender.clone();
+                text_view.buffer().connect_changed(move |buf| {
+                    sender_c.input(EvidenceFactoryInput::TextSetText(
+                        buf.text(&buf.start_iter(), &buf.end_iter(), false)
+                            .to_string(),
+                    ));
+                });
+
+                scroll_window.set_child(Some(&text_view));
+                frame.set_child(Some(&scroll_window));
+                widgets.evidence_child.append(&frame);
+            }
             EvidenceKind::Image => {
                 let img = gtk::Picture::new();
                 img.set_paintable(self.get_data_as_texture().as_ref());
