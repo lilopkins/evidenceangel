@@ -1,3 +1,4 @@
+use angelmark::{parse_angelmark, AngelmarkLine, AngelmarkText};
 use rust_xlsxwriter::{Format, FormatBorder, Image, Workbook, Worksheet};
 use uuid::Uuid;
 
@@ -161,6 +162,29 @@ fn create_test_case_sheet(
                 let data = evidence.value().get_data(&mut package)?;
                 let text = String::from_utf8_lossy(data.as_slice());
                 for line in text.lines() {
+                    if let Ok(mut rich_text) = parse_angelmark(&text) {
+                        if rich_text.last() != Some(&AngelmarkLine::Newline) {
+                            rich_text.push(AngelmarkLine::Newline);
+                        }
+                        let mut line_buffer = vec![];
+                        for line in rich_text {
+                            match line {
+                                AngelmarkLine::Newline => {
+                                    worksheet.write_rich_string(row, 1, &line_buffer)?;
+                                    line_buffer.clear();
+                                    row += 1;
+                                }
+                                _ => todo!(),
+                            }
+                        }
+                    } else {
+                        for line in text.lines() {
+                            // TODO Make this monospace
+                            worksheet.write_string(row, 1, line)?;
+                            row += 1;
+                        }
+                    }
+
                     worksheet.write_string(row, 1, line)?;
                     row += 1;
                 }
@@ -220,4 +244,13 @@ fn create_test_case_sheet(
     }
 
     Ok(())
+}
+
+fn angelmark_to_excel(angelmark: &AngelmarkText) -> Vec<(Format, String)> {
+    match angelmark {
+        AngelmarkText::Raw(txt) => todo!(),
+        AngelmarkText::Bold(content) => todo!(),
+        AngelmarkText::Italic(content) => todo!(),
+        AngelmarkText::Monospace(content) => todo!(),
+    }
 }

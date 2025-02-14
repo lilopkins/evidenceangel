@@ -17,12 +17,14 @@ impl fmt::Debug for MediaFile {
 
 impl MediaFile {
     /// Generate a SHA256 hash of this data.
-    #[must_use] pub fn hash(&self) -> String {
+    #[must_use]
+    pub fn hash(&self) -> String {
         sha256::digest(&self.data)
     }
 
     /// Determine the MIME type of this data.
-    #[must_use] pub fn mime_type(&self) -> Option<infer::Type> {
+    #[must_use]
+    pub fn mime_type(&self) -> Option<infer::Type> {
         infer::get(&self.data)
     }
 }

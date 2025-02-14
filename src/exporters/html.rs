@@ -1,5 +1,6 @@
 use std::fs;
 
+use angelmark::{parse_angelmark, AngelmarkLine, AngelmarkText};
 use base64::Engine;
 use build_html::{Html, HtmlContainer, HtmlElement, HtmlPage, HtmlTag};
 use uuid::Uuid;
@@ -171,14 +172,45 @@ fn create_test_case_div(
                 }
             }
             EvidenceKind::RichText => {
-                // TODO
                 let data = evidence.value().get_data(&mut package)?;
                 let text = String::from_utf8_lossy(data.as_slice());
-                for line in text.lines() {
-                    elem.add_html(
-                        HtmlElement::new(HtmlTag::ParagraphText)
-                            .with_raw(html_escape::encode_text(line)),
-                    );
+                if let Ok(rich_text) = parse_angelmark(&text) {
+                    for line in rich_text {
+                        match line {
+                            AngelmarkLine::Newline => {
+                                elem.add_html(HtmlElement::new(HtmlTag::LineBreak))
+                            }
+                            AngelmarkLine::Heading1(txt) => elem.add_html(angelmark_to_html(
+                                &txt,
+                                HtmlElement::new(HtmlTag::Heading1),
+                            )),
+                            AngelmarkLine::Heading2(txt) => elem.add_html(angelmark_to_html(
+                                &txt,
+                                HtmlElement::new(HtmlTag::Heading2),
+                            )),
+                            AngelmarkLine::Heading3(txt) => elem.add_html(angelmark_to_html(
+                                &txt,
+                                HtmlElement::new(HtmlTag::Heading3),
+                            )),
+                            AngelmarkLine::Heading4(txt) => elem.add_html(angelmark_to_html(
+                                &txt,
+                                HtmlElement::new(HtmlTag::Heading4),
+                            )),
+                            AngelmarkLine::Heading5(txt) => elem.add_html(angelmark_to_html(
+                                &txt,
+                                HtmlElement::new(HtmlTag::Heading5),
+                            )),
+                            AngelmarkLine::Heading6(txt) => elem.add_html(angelmark_to_html(
+                                &txt,
+                                HtmlElement::new(HtmlTag::Heading6),
+                            )),
+                            AngelmarkLine::TextLine(txt) => elem
+                                .add_html(angelmark_to_html(&txt, HtmlElement::new(HtmlTag::Span))),
+                        }
+                    }
+                    elem.add_html(HtmlElement::new(HtmlTag::LineBreak));
+                } else {
+                    elem.add_html(HtmlElement::new(HtmlTag::CodeText).with_preformatted(text));
                 }
             }
             EvidenceKind::Image => {
@@ -263,4 +295,34 @@ fn create_test_case_div(
     }
 
     Ok(elem)
+}
+
+fn angelmark_to_html(angelmark: &AngelmarkText, mut elem: HtmlElement) -> HtmlElement {
+    match angelmark {
+        AngelmarkText::Raw(txt) => elem.with_raw(html_escape::encode_text(txt)),
+        AngelmarkText::Bold(content) => {
+            if let Some((_k, v)) = elem.attributes.iter_mut().find(|(k, _v)| k == "class") {
+                v.push_str(" richtext-bold");
+            } else {
+                elem.add_attribute("class", "richtext-bold");
+            }
+            angelmark_to_html(content, elem)
+        }
+        AngelmarkText::Italic(content) => {
+            if let Some((_k, v)) = elem.attributes.iter_mut().find(|(k, _v)| k == "class") {
+                v.push_str(" richtext-italic");
+            } else {
+                elem.add_attribute("class", "richtext-italic");
+            }
+            angelmark_to_html(content, elem)
+        }
+        AngelmarkText::Monospace(content) => {
+            if let Some((_k, v)) = elem.attributes.iter_mut().find(|(k, _v)| k == "class") {
+                v.push_str(" richtext-monospace");
+            } else {
+                elem.add_attribute("class", "richtext-monospace");
+            }
+            angelmark_to_html(content, elem)
+        }
+    }
 }

@@ -137,9 +137,7 @@ impl AppModel {
         Ok(())
     }
 
-    fn create_needs_saving_dialog(
-        transient_for: &impl IsA<gtk::Window>,
-    ) -> adw::MessageDialog {
+    fn create_needs_saving_dialog(transient_for: &impl IsA<gtk::Window>) -> adw::MessageDialog {
         let dialog = adw::MessageDialog::builder()
             .transient_for(transient_for)
             .title(lang::lookup("needs-saving-title"))
@@ -872,7 +870,9 @@ impl Component for AppModel {
             }
             AppInput::SaveFileThen(then) => {
                 if let Some(package) = self.get_package() {
-                    self.latest_delete_toasts.iter().for_each(adw::Toast::dismiss);
+                    self.latest_delete_toasts
+                        .iter()
+                        .for_each(adw::Toast::dismiss);
                     if let Err(e) = package.write().unwrap().save() {
                         // Show error dialog
                         let error_dlg = ErrorDialogModel::builder()
@@ -1207,8 +1207,7 @@ impl Component for AppModel {
                     widgets.test_title_error_popover.set_visible(false);
                     if let OpenCase::Case { index, id, .. } = &self.open_case {
                         if let Some(pkg) = self.get_package() {
-                            if let Some(tc) =
-                                pkg.write().unwrap().test_case_mut(*id).ok().flatten()
+                            if let Some(tc) = pkg.write().unwrap().test_case_mut(*id).ok().flatten()
                             {
                                 tc.metadata_mut().set_title(new_title.clone());
                                 self.needs_saving = true;

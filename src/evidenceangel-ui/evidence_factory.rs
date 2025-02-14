@@ -63,6 +63,8 @@ impl EvidenceFactoryModel {
 pub enum EvidenceFactoryInput {
     /// Set the text for a text evidence object. If not text evidence, ignore.
     TextSetText(String),
+    /// Set the text for a rich text evidence object. If not rich text evidence, ignore.
+    RichTextSetText(String),
     /// Set the HTTP request text. If not HTTP evidence, ignore.
     HttpSetRequest(String),
     /// Set the HTTP response text. If not HTTP evidence, ignore.
@@ -259,7 +261,7 @@ impl FactoryComponent for EvidenceFactoryModel {
                 text_view.buffer().set_text(&self.get_data_as_string());
                 let sender_c = sender.clone();
                 text_view.buffer().connect_changed(move |buf| {
-                    sender_c.input(EvidenceFactoryInput::TextSetText(
+                    sender_c.input(EvidenceFactoryInput::RichTextSetText(
                         buf.text(&buf.start_iter(), &buf.end_iter(), false)
                             .to_string(),
                     ));
@@ -371,6 +373,26 @@ impl FactoryComponent for EvidenceFactoryModel {
             }
             EvidenceFactoryInput::TextSetText(new_text) => {
                 if *self.evidence.read().unwrap().kind() != EvidenceKind::Text {
+                    return;
+                }
+                match self.evidence.write().unwrap().value_mut() {
+                    EvidenceData::Text { content } => {
+                        *content = new_text;
+                    }
+                    EvidenceData::Base64 { data } => {
+                        *data = new_text.into_bytes();
+                    }
+                    EvidenceData::Media { .. } => panic!("cannot handle text of media type"),
+                }
+                sender
+                    .output(EvidenceFactoryOutput::UpdateEvidence(
+                        self.index.clone(),
+                        self.evidence.read().unwrap().clone(),
+                    ))
+                    .unwrap();
+            }
+            EvidenceFactoryInput::RichTextSetText(new_text) => {
+                if *self.evidence.read().unwrap().kind() != EvidenceKind::RichText {
                     return;
                 }
                 match self.evidence.write().unwrap().value_mut() {

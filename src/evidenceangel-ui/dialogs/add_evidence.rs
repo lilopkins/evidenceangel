@@ -223,11 +223,19 @@ impl Component for AddHttpEvidenceDialogModel {
             AddEvidenceInput::_AddEvidence => {
                 let request_buffer = widgets.request_entry.buffer();
                 let request_content = request_buffer
-                    .text(&request_buffer.start_iter(), &request_buffer.end_iter(), false)
+                    .text(
+                        &request_buffer.start_iter(),
+                        &request_buffer.end_iter(),
+                        false,
+                    )
                     .to_string();
                 let response_buffer = widgets.response_entry.buffer();
                 let response_content = response_buffer
-                    .text(&response_buffer.start_iter(), &response_buffer.end_iter(), false)
+                    .text(
+                        &response_buffer.start_iter(),
+                        &response_buffer.end_iter(),
+                        false,
+                    )
                     .to_string();
                 let content = format!("{request_content}\n\n\x1e{response_content}");
                 let mut ev = Evidence::new(

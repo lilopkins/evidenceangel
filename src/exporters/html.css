@@ -120,3 +120,15 @@ pre {
 .http-container pre {
     padding-bottom: 10px;
 }
+
+.richtext-bold {
+    font-weight: bold;
+}
+
+.richtext-italic {
+    font-style: italic;
+}
+
+.richtext-monospace {
+    font-family: 'Liberation Mono', 'Consolas', 'Courier New', Courier, monospace;
+}
