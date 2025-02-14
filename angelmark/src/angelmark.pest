@@ -1,0 +1,73 @@
+MarkupFile = {
+    SOI ~
+    MarkupLine* ~
+    EOI
+}
+
+MarkupLine = _{
+	Comment |
+	Heading6 |
+    Heading5 |
+    Heading4 |
+    Heading3 |
+    Heading2 | 
+    Heading1 |
+    TextContent |
+    Newline
+}
+
+Comment = {
+	"//" ~ (!NEWLINE ~ ANY)*
+}
+
+Newline = {
+    NEWLINE+
+}
+
+Heading1 = {
+	"#" ~ " "? ~ TextContent ~ NEWLINE+
+}
+
+Heading2 = {
+	"##" ~ " "? ~ TextContent ~ NEWLINE+
+}
+
+Heading3 = {
+	"###" ~ " "? ~ TextContent ~ NEWLINE+
+}
+
+Heading4 = {
+	"####" ~ " "? ~ TextContent ~ NEWLINE+
+}
+
+Heading5 = {
+	"#####" ~ " "? ~ TextContent ~ NEWLINE+
+}
+
+Heading6 = {
+	"######" ~ " "? ~ TextContent ~ NEWLINE+
+}
+
+TextContent = _{
+	TextBold |
+    TextItalic |
+    TextMonospace |
+    RawText
+}
+
+TextBold = {
+	"**" ~ TextContent ~ "**"
+}
+
+TextItalic = {
+	("_" ~ TextContent ~ "_") |
+    ("*" ~ TextContent ~ "*")
+}
+
+TextMonospace = {
+	"`" ~ TextContent ~ "`"
+}
+
+RawText = @{
+    (!("*" | "_" | "`" | NEWLINE) ~ ANY)+
+}
