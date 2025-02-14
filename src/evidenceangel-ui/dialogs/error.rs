@@ -69,6 +69,6 @@ impl Component for ErrorDialogModel {
                 root.present(Some(&window));
             }
         }
-        self.update_view(widgets, sender)
+        self.update_view(widgets, sender);
     }
 }

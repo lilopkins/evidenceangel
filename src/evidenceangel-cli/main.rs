@@ -2,6 +2,9 @@
 #![deny(missing_docs)]
 #![deny(clippy::missing_docs_in_private_items)]
 #![warn(clippy::pedantic)]
+#![allow(clippy::too_many_lines)]
+#![allow(clippy::doc_markdown)]
+#![allow(clippy::ref_option)]
 
 //! # EvidenceAngel CLI
 //!
@@ -69,8 +72,7 @@ fn main() {
     // Now handle the rest...
     let path = args.file().clone().unwrap();
     let result: CliData = match args.command() {
-        Command::ShellCompletions { .. } => unreachable!(),
-        Command::JsonSchema => unreachable!(),
+        Command::ShellCompletions { .. } | Command::JsonSchema => unreachable!(),
         Command::Package { command } => package::process(path, command),
         Command::TestCases { command } => test_cases::process(path, command),
         Command::Export { command } => export::process(path, command),
@@ -82,12 +84,7 @@ fn main() {
 /// Before triggering any activity, check that the provided combinations of command line arguments are valid.
 fn validate_cli_combinations(args: &Args) -> Option<CliData> {
     match args.command() {
-        Command::ShellCompletions { .. } => {
-            if *args.json() {
-                return Some(CliError::CannotBeSerialized.into());
-            }
-        }
-        Command::JsonSchema => {
+        Command::ShellCompletions { .. } | Command::JsonSchema => {
             if *args.json() {
                 return Some(CliError::CannotBeSerialized.into());
             }

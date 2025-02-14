@@ -72,7 +72,7 @@ impl Exporter for HtmlExporter {
         for (idx, test_case) in test_cases.iter().enumerate() {
             let mut tab_elem = HtmlElement::new(HtmlTag::ListElement)
                 .with_attribute("data-tab-index", idx)
-                .with_link(format!("#tab{}", idx), test_case.metadata().title());
+                .with_link(format!("#tab{idx}"), test_case.metadata().title());
             if first {
                 tab_elem.add_attribute("class", "selected");
             }
@@ -189,7 +189,7 @@ fn create_test_case_div(
                     elem.add_html(
                         HtmlElement::new(HtmlTag::Image)
                             .with_attribute("src", format!("data:{mime};base64,{data}")),
-                    )
+                    );
                 }
             }
             EvidenceKind::Http => {
@@ -197,7 +197,7 @@ fn create_test_case_div(
                 let data = String::from_utf8_lossy(data.as_slice());
                 let data_parts = data
                     .split('\x1e')
-                    .map(|s| s.to_string())
+                    .map(std::string::ToString::to_string)
                     .collect::<Vec<_>>();
                 let request = data_parts.first().cloned().unwrap_or_default();
                 let response = data_parts.get(1).cloned().unwrap_or_default();

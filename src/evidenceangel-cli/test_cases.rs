@@ -174,19 +174,13 @@ impl fmt::Display for CliTestCase {
                             for line in rich {
                                 match line {
                                     AngelmarkLine::Newline => rich_text.push('\n'),
-                                    AngelmarkLine::Heading1(txt) => rich_text
-                                        .push_str(&crate::angelmark::angelmark_to_term(&txt)),
-                                    AngelmarkLine::Heading2(txt) => rich_text
-                                        .push_str(&crate::angelmark::angelmark_to_term(&txt)),
-                                    AngelmarkLine::Heading3(txt) => rich_text
-                                        .push_str(&crate::angelmark::angelmark_to_term(&txt)),
-                                    AngelmarkLine::Heading4(txt) => rich_text
-                                        .push_str(&crate::angelmark::angelmark_to_term(&txt)),
-                                    AngelmarkLine::Heading5(txt) => rich_text
-                                        .push_str(&crate::angelmark::angelmark_to_term(&txt)),
-                                    AngelmarkLine::Heading6(txt) => rich_text
-                                        .push_str(&crate::angelmark::angelmark_to_term(&txt)),
-                                    AngelmarkLine::TextLine(txt) => rich_text
+                                    AngelmarkLine::Heading1(txt)
+                                    | AngelmarkLine::Heading2(txt)
+                                    | AngelmarkLine::Heading3(txt)
+                                    | AngelmarkLine::Heading4(txt)
+                                    | AngelmarkLine::Heading5(txt)
+                                    | AngelmarkLine::Heading6(txt)
+                                    | AngelmarkLine::TextLine(txt) => rich_text
                                         .push_str(&crate::angelmark::angelmark_to_term(&txt)),
                                 }
                             }
@@ -238,7 +232,7 @@ pub enum CliEvidence {
 
 /// Match a test case by a string, either a number (id) of the test case, or a
 /// partial text match to the title
-fn match_test_case(package: &mut EvidencePackage, case: String) -> Option<Uuid> {
+fn match_test_case(package: &mut EvidencePackage, case: &str) -> Option<Uuid> {
     let mut test_cases: Vec<_> = package
         .test_case_iter()
         .unwrap()
@@ -252,30 +246,27 @@ fn match_test_case(package: &mut EvidencePackage, case: String) -> Option<Uuid> 
         .collect();
     test_cases.sort_by(|(_, _, a), (_, _, b)| a.cmp(b));
 
-    match case.parse::<usize>() {
-        Ok(idx) => {
-            if idx == 0 || idx > test_cases.len() {
-                None
-            } else {
-                let idx = idx - 1;
-                Some(test_cases[idx].0)
-            }
+    if let Ok(idx) = case.parse::<usize>() {
+        if idx == 0 || idx > test_cases.len() {
+            None
+        } else {
+            let idx = idx - 1;
+            Some(test_cases[idx].0)
         }
-        Err(_) => {
-            // Try to match substring
-            let maybe_result: Vec<_> = test_cases
-                .iter()
-                .filter(|(_, title, _)| {
-                    title
-                        .to_ascii_lowercase()
-                        .contains(&case.to_ascii_lowercase())
-                })
-                .collect();
-            if maybe_result.len() == 1 {
-                Some(maybe_result[0].0)
-            } else {
-                None
-            }
+    } else {
+        // Try to match substring
+        let maybe_result: Vec<_> = test_cases
+            .iter()
+            .filter(|(_, title, _)| {
+                title
+                    .to_ascii_lowercase()
+                    .contains(&case.to_ascii_lowercase())
+            })
+            .collect();
+        if maybe_result.len() == 1 {
+            Some(maybe_result[0].0)
+        } else {
+            None
         }
     }
 }
@@ -283,7 +274,7 @@ fn match_test_case(package: &mut EvidencePackage, case: String) -> Option<Uuid> 
 /// Convert an [`EvidenceValue`] from the CLI args to an [`Evidence`] struct
 /// from EvidenceAngel.
 fn evidence_from_evidence_value(
-    evidence_value: EvidenceValue,
+    evidence_value: &EvidenceValue,
     package: &mut EvidencePackage,
 ) -> Result<Evidence, CliError> {
     match evidence_value.clone() {
@@ -418,7 +409,7 @@ pub fn process(path: PathBuf, command: &TestCasesSubcommand) -> CliData {
         },
         TestCasesSubcommand::Read { case } => match EvidencePackage::open(path) {
             Ok(mut package) => {
-                let case_id = match_test_case(&mut package, case.clone());
+                let case_id = match_test_case(&mut package, case);
                 if case_id.is_none() {
                     return CliError::CannotMatchTestCase(case.clone()).into();
                 }
@@ -456,7 +447,7 @@ pub fn process(path: PathBuf, command: &TestCasesSubcommand) -> CliData {
             executed_at,
         } => match EvidencePackage::open(path) {
             Ok(mut package) => {
-                let case_id = match_test_case(&mut package, case.clone());
+                let case_id = match_test_case(&mut package, case);
                 if case_id.is_none() {
                     return CliError::CannotMatchTestCase(case.clone()).into();
                 }
@@ -509,7 +500,7 @@ pub fn process(path: PathBuf, command: &TestCasesSubcommand) -> CliData {
         },
         TestCasesSubcommand::Delete { case } => match EvidencePackage::open(path) {
             Ok(mut package) => {
-                let case_id = match_test_case(&mut package, case.clone());
+                let case_id = match_test_case(&mut package, case);
                 if case_id.is_none() {
                     return CliError::CannotMatchTestCase(case.clone()).into();
                 }
@@ -528,13 +519,13 @@ pub fn process(path: PathBuf, command: &TestCasesSubcommand) -> CliData {
             evidence_value,
         } => match EvidencePackage::open(path) {
             Ok(mut package) => {
-                let case_id = match_test_case(&mut package, case.clone());
+                let case_id = match_test_case(&mut package, case);
                 if case_id.is_none() {
                     return CliError::CannotMatchTestCase(case.clone()).into();
                 }
                 let case_id = case_id.unwrap();
 
-                match evidence_from_evidence_value(evidence_value.clone(), &mut package) {
+                match evidence_from_evidence_value(evidence_value, &mut package) {
                     Ok(ev) => {
                         let test_case = package.test_case_mut(case_id).unwrap().unwrap();
                         test_case.evidence_mut().push(ev);
@@ -576,7 +567,7 @@ pub fn process(path: PathBuf, command: &TestCasesSubcommand) -> CliData {
         TestCasesSubcommand::ReadEvidence { case, evidence_id } => {
             match EvidencePackage::open(path) {
                 Ok(mut package) => {
-                    let case_id = match_test_case(&mut package, case.clone());
+                    let case_id = match_test_case(&mut package, case);
                     if case_id.is_none() {
                         return CliError::CannotMatchTestCase(case.clone()).into();
                     }
@@ -610,13 +601,13 @@ pub fn process(path: PathBuf, command: &TestCasesSubcommand) -> CliData {
             evidence_value,
         } => match EvidencePackage::open(path) {
             Ok(mut package) => {
-                let case_id = match_test_case(&mut package, case.clone());
+                let case_id = match_test_case(&mut package, case);
                 if case_id.is_none() {
                     return CliError::CannotMatchTestCase(case.clone()).into();
                 }
                 let case_id = case_id.unwrap();
 
-                match evidence_from_evidence_value(evidence_value.clone(), &mut package) {
+                match evidence_from_evidence_value(evidence_value, &mut package) {
                     Ok(ev) => {
                         let test_case = package.test_case_mut(case_id).unwrap().unwrap();
                         if *evidence_id < 1 || *evidence_id > test_case.evidence().len() {
@@ -662,7 +653,7 @@ pub fn process(path: PathBuf, command: &TestCasesSubcommand) -> CliData {
         TestCasesSubcommand::DeleteEvidence { case, evidence_id } => {
             match EvidencePackage::open(path) {
                 Ok(mut package) => {
-                    let case_id = match_test_case(&mut package, case.clone());
+                    let case_id = match_test_case(&mut package, case);
                     if case_id.is_none() {
                         return CliError::CannotMatchTestCase(case.clone()).into();
                     }

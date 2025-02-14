@@ -107,6 +107,6 @@ impl Component for NewAuthorDialogModel {
                 root.close();
             }
         }
-        self.update_view(widgets, sender)
+        self.update_view(widgets, sender);
     }
 }

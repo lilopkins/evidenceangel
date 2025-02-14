@@ -280,7 +280,7 @@ impl FactoryComponent for EvidenceFactoryModel {
                 let data = self.get_data_as_string();
                 let data_parts = data
                     .split(HTTP_SEPARATOR)
-                    .map(|s| s.to_string())
+                    .map(ToString::to_string)
                     .collect::<Vec<_>>();
                 let request = data_parts.first().cloned().unwrap_or_default();
                 let response = data_parts.get(1).cloned().unwrap_or_default();
@@ -341,7 +341,7 @@ impl FactoryComponent for EvidenceFactoryModel {
                 if let Some(filename) = self.evidence.read().unwrap().original_filename() {
                     label.set_markup(&lang::lookup_with_args(
                         "test-evidence-file-named",
-                        lang_args!("filename", filename),
+                        &lang_args!("filename", filename),
                     ));
                 } else {
                     label.set_markup(&lang::lookup("test-evidence-file-unnamed"));
@@ -380,7 +380,7 @@ impl FactoryComponent for EvidenceFactoryModel {
                     EvidenceData::Base64 { data } => {
                         *data = new_text.into_bytes();
                     }
-                    _ => panic!("cannot handle text of media type"),
+                    EvidenceData::Media { .. } => panic!("cannot handle text of media type"),
                 }
                 sender
                     .output(EvidenceFactoryOutput::UpdateEvidence(
@@ -397,7 +397,7 @@ impl FactoryComponent for EvidenceFactoryModel {
                     EvidenceData::Text { content } => {
                         let data_parts = content
                             .split(HTTP_SEPARATOR)
-                            .map(|s| s.to_string())
+                            .map(ToString::to_string)
                             .collect::<Vec<_>>();
                         let response = data_parts.get(1).cloned().unwrap_or_default();
 
@@ -408,7 +408,7 @@ impl FactoryComponent for EvidenceFactoryModel {
                     EvidenceData::Base64 { data } => {
                         let data_parts = String::from_utf8_lossy(data)
                             .split(HTTP_SEPARATOR)
-                            .map(|s| s.to_string())
+                            .map(ToString::to_string)
                             .collect::<Vec<_>>();
                         let response = data_parts.get(1).cloned().unwrap_or_default();
 
@@ -416,7 +416,7 @@ impl FactoryComponent for EvidenceFactoryModel {
                         new_req.push_str(&response);
                         *data = new_req.into_bytes();
                     }
-                    _ => panic!("cannot handle text of media type"),
+                    EvidenceData::Media { .. } => panic!("cannot handle text of media type"),
                 }
                 sender
                     .output(EvidenceFactoryOutput::UpdateEvidence(
@@ -433,7 +433,7 @@ impl FactoryComponent for EvidenceFactoryModel {
                     EvidenceData::Text { content } => {
                         let data_parts = content
                             .split(HTTP_SEPARATOR)
-                            .map(|s| s.to_string())
+                            .map(ToString::to_string)
                             .collect::<Vec<_>>();
                         let mut request = data_parts.first().cloned().unwrap_or_default();
 
@@ -444,7 +444,7 @@ impl FactoryComponent for EvidenceFactoryModel {
                     EvidenceData::Base64 { data } => {
                         let data_parts = String::from_utf8_lossy(data)
                             .split(HTTP_SEPARATOR)
-                            .map(|s| s.to_string())
+                            .map(ToString::to_string)
                             .collect::<Vec<_>>();
                         let mut request = data_parts.first().cloned().unwrap_or_default();
 
@@ -452,7 +452,7 @@ impl FactoryComponent for EvidenceFactoryModel {
                         request.push_str(&new_res);
                         *data = request.into_bytes();
                     }
-                    _ => panic!("cannot handle text of media type"),
+                    EvidenceData::Media { .. } => panic!("cannot handle text of media type"),
                 }
                 sender
                     .output(EvidenceFactoryOutput::UpdateEvidence(

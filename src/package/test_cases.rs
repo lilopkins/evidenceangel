@@ -91,7 +91,7 @@ pub struct Evidence {
 
 impl Evidence {
     /// Create a new evidence object.
-    pub fn new(kind: EvidenceKind, value: EvidenceData) -> Self {
+    #[must_use] pub fn new(kind: EvidenceKind, value: EvidenceData) -> Self {
         Self {
             kind,
             value,
@@ -106,7 +106,7 @@ impl Evidence {
 pub enum EvidenceKind {
     /// A text entry.
     Text,
-    /// A rich text (AngelMark) entry.
+    /// A rich text (`AngelMark`) entry.
     RichText,
     /// An image.
     Image,
@@ -139,6 +139,10 @@ pub enum EvidenceData {
 
 impl EvidenceData {
     /// Get the data from this object. This will fetch the media file if needed.
+    ///
+    /// # Errors
+    ///
+    /// - [`crate::Error::MediaMissing`] if the media referred to by the requested data is missing from the package.
     pub fn get_data(&self, package: &mut crate::EvidencePackage) -> crate::Result<Vec<u8>> {
         match self {
             Self::Text { content } => Ok(content.clone().into_bytes()),

@@ -85,6 +85,20 @@ impl Exporter for ZipOfFilesExporter {
         case: Uuid,
         path: std::path::PathBuf,
     ) -> crate::Result<()> {
+        fn inner(
+            mut zip: ZipWriter<BufWriter<fs::File>>,
+            package: &mut EvidencePackage,
+            case: &TestCase,
+        ) -> crate::Result<()> {
+            add_test_case_to_zip(&mut zip, package.clone(), case)
+                .map_err(crate::Error::OtherExportError)?;
+
+            zip.finish()
+                .map_err(|e| crate::Error::OtherExportError(Box::new(e)))?;
+
+            Ok(())
+        }
+
         let case = package
             .test_case(case)?
             .ok_or(crate::Error::OtherExportError(
@@ -101,20 +115,6 @@ impl Exporter for ZipOfFilesExporter {
         let file =
             fs::File::create(&path).map_err(|e| crate::Error::OtherExportError(Box::new(e)))?;
         let zip = ZipWriter::new(BufWriter::new(file));
-
-        fn inner(
-            mut zip: ZipWriter<BufWriter<fs::File>>,
-            package: &mut EvidencePackage,
-            case: &TestCase,
-        ) -> crate::Result<()> {
-            add_test_case_to_zip(&mut zip, package.clone(), case)
-                .map_err(crate::Error::OtherExportError)?;
-
-            zip.finish()
-                .map_err(|e| crate::Error::OtherExportError(Box::new(e)))?;
-
-            Ok(())
-        }
         if let Err(e) = inner(zip, package, &case) {
             // Delete file if exists
             let _ = fs::remove_file(path);
@@ -172,15 +172,15 @@ fn add_test_case_to_zip(
             let disambiguator = if let Some(count) = filename_count.get(&name) {
                 if *count > 1 {
                     if let Some(caption) = evidence.caption() {
-                        format!("({}) ", caption)
+                        format!("({caption}) ")
                     } else {
-                        "".to_string()
+                        String::new()
                     }
                 } else {
-                    "".to_string()
+                    String::new()
                 }
             } else {
-                "".to_string()
+                String::new()
             };
 
             // Add to ZIP file
