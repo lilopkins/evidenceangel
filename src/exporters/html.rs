@@ -183,10 +183,33 @@ fn create_test_case_div(
             }
             EvidenceKind::Http => {
                 let data = evidence.value().get_data(&mut package)?;
-                let text = String::from_utf8_lossy(data.as_slice());
+                let data = String::from_utf8_lossy(data.as_slice());
+                let data_parts = data
+                    .split('\x1e')
+                    .map(|s| s.to_string())
+                    .collect::<Vec<_>>();
+                let request = data_parts.first().cloned().unwrap_or_default();
+                let response = data_parts.get(1).cloned().unwrap_or_default();
+
                 elem.add_html(
-                    HtmlElement::new(HtmlTag::CodeText)
-                        .with_preformatted(html_escape::encode_text(&text)),
+                    HtmlElement::new(HtmlTag::Div)
+                        .with_attribute("class", "http-container")
+                        .with_html(
+                            HtmlElement::new(HtmlTag::Div)
+                                .with_attribute("class", "http-request")
+                                .with_html(
+                                    HtmlElement::new(HtmlTag::CodeText)
+                                        .with_preformatted(html_escape::encode_text(&request)),
+                                ),
+                        )
+                        .with_html(
+                            HtmlElement::new(HtmlTag::Div)
+                                .with_attribute("class", "http-response")
+                                .with_html(
+                                    HtmlElement::new(HtmlTag::CodeText)
+                                        .with_preformatted(html_escape::encode_text(&response)),
+                                ),
+                        ),
                 );
             }
             EvidenceKind::File => {
