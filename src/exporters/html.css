@@ -86,18 +86,35 @@ pre {
     }
 }
 
-.codeContainer {
+.http-container {
     display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
 }
 
-.codeContainer > div {
-    width: 50%;
+.http-container > div {
+    width: calc(50% - 4px);
 }
 
-.codeContainer > div > p {
+@media screen and (max-width: 800px) {
+    .http-container > div {
+        width: 100%;
+    }
+}
+
+.http-request:before {
+    content: "Request";
+}
+
+.http-response:before {
+    content: "Response";
+}
+
+.http-request:before,
+.http-response:before {
     font-variant: small-caps;
 }
 
-.codeContainer > div > code > pre {
+.http-container pre {
     padding-bottom: 10px;
 }
