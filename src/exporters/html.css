@@ -85,3 +85,19 @@ pre {
         border-top: 1px solid black;
     }
 }
+
+.codeContainer {
+    display: flex;
+}
+
+.codeContainer > div {
+    width: 50%;
+}
+
+.codeContainer > div > p {
+    font-variant: small-caps;
+}
+
+.codeContainer > div > code > pre {
+    padding-bottom: 10px;
+}
