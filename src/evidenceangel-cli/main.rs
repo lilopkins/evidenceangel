@@ -1,5 +1,7 @@
+#![deny(unsafe_code)]
 #![deny(missing_docs)]
 #![deny(clippy::missing_docs_in_private_items)]
+#![warn(clippy::pedantic)]
 
 //! # EvidenceAngel CLI
 //!
@@ -13,6 +15,8 @@ use arg_parser::{Args, Command};
 use clap::{CommandFactory, Parser};
 use result::{CliData, CliError, CliOutput};
 
+/// Module containing utility functions for working with angelmark.
+mod angelmark;
 /// Module containing the argument parser for this CLI tool.
 mod arg_parser;
 

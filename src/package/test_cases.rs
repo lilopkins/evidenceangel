@@ -9,9 +9,11 @@ use uuid::Uuid;
 
 /// The URL for $schema in the test case manifests
 const TESTCASE_SCHEMA_LOCATION: &str =
-    "https://evidenceangel-schemas.hpkns.uk/testcase.1.schema.json";
-/// The schema itself for test case manifests
+    "https://evidenceangel-schemas.hpkns.uk/testcase.2.schema.json";
+/// The schema itself for test case manifests (version 1)
 pub(crate) const TESTCASE_SCHEMA: &str = include_str!("../../schemas/testcase.1.schema.json");
+/// The schema itself for test case manifests (version 2)
+pub(crate) const TESTCASE_SCHEMA_2: &str = include_str!("../../schemas/testcase.2.schema.json");
 
 /// A test case stored within an [`EvidencePackage`](super::EvidencePackage).
 #[derive(Clone, Debug, Serialize, Deserialize, Getters, MutGetters, Setters)]
@@ -46,6 +48,11 @@ impl TestCase {
             },
             evidence: vec![],
         }
+    }
+
+    /// Update the JSON schema tag to the latest schema
+    pub(super) fn update_schema(&mut self) {
+        self.schema = TESTCASE_SCHEMA_LOCATION.to_string();
     }
 }
 
@@ -99,6 +106,8 @@ impl Evidence {
 pub enum EvidenceKind {
     /// A text entry.
     Text,
+    /// A rich text (AngelMark) entry.
+    RichText,
     /// An image.
     Image,
     /// An attached file.

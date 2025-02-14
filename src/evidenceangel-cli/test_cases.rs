@@ -6,6 +6,7 @@ use std::{
     rc::Rc,
 };
 
+use angelmark::{parse_angelmark, AngelmarkLine};
 use chrono::FixedOffset;
 use clap::Subcommand;
 use colored::Colorize;
@@ -101,6 +102,12 @@ pub enum EvidenceValue {
         #[arg(index = 1, default_value = "-")]
         value: String,
     },
+    /// Rich text-based evidence
+    RichText {
+        /// The text to add, or `-` to read from stdin.
+        #[arg(index = 1, default_value = "-")]
+        value: String,
+    },
     /// Image-based evidence
     Image {
         /// The image to add as evidence
@@ -161,6 +168,34 @@ impl fmt::Display for CliTestCase {
                         })
                         .trim_end()
                         .to_string(),
+                    CliEvidence::RichText { data } => {
+                        if let Ok(rich) = parse_angelmark(data) {
+                            let mut rich_text = String::new();
+                            for line in rich {
+                                match line {
+                                    AngelmarkLine::Newline => rich_text.push('\n'),
+                                    AngelmarkLine::Heading1(txt) => rich_text
+                                        .push_str(&crate::angelmark::angelmark_to_term(&txt)),
+                                    AngelmarkLine::Heading2(txt) => rich_text
+                                        .push_str(&crate::angelmark::angelmark_to_term(&txt)),
+                                    AngelmarkLine::Heading3(txt) => rich_text
+                                        .push_str(&crate::angelmark::angelmark_to_term(&txt)),
+                                    AngelmarkLine::Heading4(txt) => rich_text
+                                        .push_str(&crate::angelmark::angelmark_to_term(&txt)),
+                                    AngelmarkLine::Heading5(txt) => rich_text
+                                        .push_str(&crate::angelmark::angelmark_to_term(&txt)),
+                                    AngelmarkLine::Heading6(txt) => rich_text
+                                        .push_str(&crate::angelmark::angelmark_to_term(&txt)),
+                                    AngelmarkLine::TextLine(txt) => rich_text
+                                        .push_str(&crate::angelmark::angelmark_to_term(&txt)),
+                                }
+                            }
+
+                            rich_text
+                        } else {
+                            "Invalid rich text".italic().red().to_string()
+                        }
+                    }
                     CliEvidence::Http => "HTTP request".magenta().to_string(),
                     CliEvidence::Image => "Image".magenta().to_string(),
                     CliEvidence::File { original_filename } => format!(
@@ -182,6 +217,11 @@ impl fmt::Display for CliTestCase {
 pub enum CliEvidence {
     /// Text based evidence
     Text {
+        /// The data in this textual evidence
+        data: String,
+    },
+    /// Rich text evidence
+    RichText {
         /// The data in this textual evidence
         data: String,
     },
@@ -257,6 +297,19 @@ fn evidence_from_evidence_value(
             }
             Ok(Evidence::new(
                 EvidenceKind::Text,
+                EvidenceData::Text { content: value },
+            ))
+        }
+        EvidenceValue::RichText { mut value } => {
+            let mut buf = vec![];
+            if value == "-" {
+                io::stdin()
+                    .read_to_end(&mut buf)
+                    .expect("failed to read stdin");
+                value = String::from_utf8_lossy(&buf).into_owned();
+            }
+            Ok(Evidence::new(
+                EvidenceKind::RichText,
                 EvidenceData::Text { content: value },
             ))
         }
@@ -348,6 +401,10 @@ pub fn process(path: PathBuf, command: &TestCasesSubcommand) -> CliData {
                                 data: String::from_utf8(ev.value().get_data(&mut package).unwrap())
                                     .unwrap(),
                             },
+                            EvidenceKind::RichText => CliEvidence::RichText {
+                                data: String::from_utf8(ev.value().get_data(&mut package).unwrap())
+                                    .unwrap(),
+                            },
                             EvidenceKind::Image => CliEvidence::Image,
                             EvidenceKind::Http => CliEvidence::Http,
                             EvidenceKind::File => CliEvidence::File {
@@ -375,6 +432,10 @@ pub fn process(path: PathBuf, command: &TestCasesSubcommand) -> CliData {
                         .iter()
                         .map(|ev| match ev.kind() {
                             EvidenceKind::Text => CliEvidence::Text {
+                                data: String::from_utf8(ev.value().get_data(&mut package).unwrap())
+                                    .unwrap(),
+                            },
+                            EvidenceKind::RichText => CliEvidence::RichText {
                                 data: String::from_utf8(ev.value().get_data(&mut package).unwrap())
                                     .unwrap(),
                             },
@@ -428,6 +489,10 @@ pub fn process(path: PathBuf, command: &TestCasesSubcommand) -> CliData {
                         .iter()
                         .map(|ev| match ev.kind() {
                             EvidenceKind::Text => CliEvidence::Text {
+                                data: String::from_utf8(ev.value().get_data(&mut package).unwrap())
+                                    .unwrap(),
+                            },
+                            EvidenceKind::RichText => CliEvidence::RichText {
                                 data: String::from_utf8(ev.value().get_data(&mut package).unwrap())
                                     .unwrap(),
                             },
@@ -490,6 +555,10 @@ pub fn process(path: PathBuf, command: &TestCasesSubcommand) -> CliData {
                         .iter()
                         .map(|ev| match ev.kind() {
                             EvidenceKind::Text => CliEvidence::Text {
+                                data: String::from_utf8(ev.value().get_data(&mut package).unwrap())
+                                    .unwrap(),
+                            },
+                            EvidenceKind::RichText => CliEvidence::RichText {
                                 data: String::from_utf8(ev.value().get_data(&mut package).unwrap())
                                     .unwrap(),
                             },
@@ -575,6 +644,10 @@ pub fn process(path: PathBuf, command: &TestCasesSubcommand) -> CliData {
                                 data: String::from_utf8(ev.value().get_data(&mut package).unwrap())
                                     .unwrap(),
                             },
+                            EvidenceKind::RichText => CliEvidence::RichText {
+                                data: String::from_utf8(ev.value().get_data(&mut package).unwrap())
+                                    .unwrap(),
+                            },
                             EvidenceKind::Image => CliEvidence::Image,
                             EvidenceKind::Http => CliEvidence::Http,
                             EvidenceKind::File => CliEvidence::File {
@@ -616,6 +689,12 @@ pub fn process(path: PathBuf, command: &TestCasesSubcommand) -> CliData {
                             .iter()
                             .map(|ev| match ev.kind() {
                                 EvidenceKind::Text => CliEvidence::Text {
+                                    data: String::from_utf8(
+                                        ev.value().get_data(&mut package).unwrap(),
+                                    )
+                                    .unwrap(),
+                                },
+                                EvidenceKind::RichText => CliEvidence::RichText {
                                     data: String::from_utf8(
                                         ev.value().get_data(&mut package).unwrap(),
                                     )

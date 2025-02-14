@@ -170,6 +170,17 @@ fn create_test_case_div(
                     );
                 }
             }
+            EvidenceKind::RichText => {
+                // TODO
+                let data = evidence.value().get_data(&mut package)?;
+                let text = String::from_utf8_lossy(data.as_slice());
+                for line in text.lines() {
+                    elem.add_html(
+                        HtmlElement::new(HtmlTag::ParagraphText)
+                            .with_raw(html_escape::encode_text(line)),
+                    );
+                }
+            }
             EvidenceKind::Image => {
                 let data = evidence.value().get_data(&mut package)?;
                 let media = MediaFile::from(data);

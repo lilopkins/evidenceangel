@@ -11,7 +11,7 @@ use std::{
 use chrono::{DateTime, FixedOffset, Local};
 use getset::{Getters, MutGetters};
 use serde::{Deserialize, Serialize};
-use test_cases::TESTCASE_SCHEMA;
+use test_cases::{TESTCASE_SCHEMA, TESTCASE_SCHEMA_2};
 use uuid::Uuid;
 use zip::{result::ZipError, write::SimpleFileOptions};
 
@@ -173,7 +173,8 @@ impl EvidencePackage {
                 let data = serde_json::to_string(data)
                     .map_err(crate::result::Error::FailedToSaveTestCase)?;
                 if !jsonschema::is_valid(
-                    &serde_json::from_str(TESTCASE_SCHEMA).expect("Schema is validated statically"),
+                    &serde_json::from_str(TESTCASE_SCHEMA_2)
+                        .expect("Schema is validated statically"),
                     &serde_json::from_str(&data).expect("JSON just generated, shouldn't fail"),
                 ) {
                     let _ = self.zip.interrupt_write();
@@ -291,18 +292,31 @@ impl EvidencePackage {
             };
 
             // Validate test case against schema
-            if !jsonschema::is_valid(
+            if jsonschema::is_valid(
+                &serde_json::from_str(TESTCASE_SCHEMA_2).expect("Schema is validated statically"),
+                &serde_json::from_str(&test_case_data)
+                    .map_err(|_| Error::ManifestSchemaValidationFailed)?,
+            ) {
+                // Read as version 2
+                let mut test_case: TestCase = serde_json::from_str(&test_case_data)
+                    .map_err(|e| Error::InvalidTestCase(e, *id))?;
+                test_case.set_id(*id);
+                evidence_package.test_case_data.insert(*id, test_case);
+            } else if jsonschema::is_valid(
                 &serde_json::from_str(TESTCASE_SCHEMA).expect("Schema is validated statically"),
                 &serde_json::from_str(&test_case_data)
                     .map_err(|_| Error::ManifestSchemaValidationFailed)?,
             ) {
+                // Version 1 -> Version 2 migration
+                // Load as normal, but set new schema URL
+                let mut test_case: TestCase = serde_json::from_str(&test_case_data)
+                    .map_err(|e| Error::InvalidTestCase(e, *id))?;
+                test_case.set_id(*id);
+                test_case.update_schema();
+                evidence_package.test_case_data.insert(*id, test_case);
+            } else {
                 return Err(Error::TestCaseSchemaValidationFailed);
             }
-
-            let mut test_case: TestCase = serde_json::from_str(&test_case_data)
-                .map_err(|e| Error::InvalidTestCase(e, *id))?;
-            test_case.set_id(*id);
-            evidence_package.test_case_data.insert(*id, test_case);
         }
 
         evidence_package.zip = zip_rw;

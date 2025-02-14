@@ -156,6 +156,15 @@ fn create_test_case_sheet(
                     row += 1;
                 }
             }
+            EvidenceKind::RichText => {
+                // TODO
+                let data = evidence.value().get_data(&mut package)?;
+                let text = String::from_utf8_lossy(data.as_slice());
+                for line in text.lines() {
+                    worksheet.write_string(row, 1, line)?;
+                    row += 1;
+                }
+            }
             EvidenceKind::Image => {
                 let data = evidence.value().get_data(&mut package)?;
                 let image = Image::new_from_buffer(data.as_slice())?;
