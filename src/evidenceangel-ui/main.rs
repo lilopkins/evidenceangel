@@ -2,6 +2,10 @@
     all(not(debug_assertions), not(feature = "windows-keep-console-window")),
     windows_subsystem = "windows"
 )]
+#![deny(unsafe_code)]
+#![warn(clippy::pedantic)]
+#![allow(clippy::too_many_lines)]
+#![allow(clippy::used_underscore_items)]
 
 use std::{env, path::PathBuf, sync::Mutex};
 
@@ -49,7 +53,7 @@ fn main() {
             AnsiStripper::new(RotatingFile::new(
                 env::current_exe()
                     .ok()
-                    .and_then(|p| p.parent().map(|p| p.to_path_buf()))
+                    .and_then(|p| p.parent().map(std::path::Path::to_path_buf))
                     .unwrap_or(PathBuf::from("."))
                     .join("evidenceangel.log"),
                 AppendCount::new(3),

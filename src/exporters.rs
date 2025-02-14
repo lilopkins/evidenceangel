@@ -14,7 +14,7 @@ pub mod html;
 #[cfg(feature = "exporter-zip-of-files")]
 pub mod zip_of_files;
 
-/// Exporters can take an EvidencePackage and a target file path and export to other formats.
+/// Exporters can take an `EvidencePackage` and a target file path and export to other formats.
 pub trait Exporter {
     /// The name of this exporter.
     fn export_name() -> String;

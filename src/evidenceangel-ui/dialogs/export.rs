@@ -57,9 +57,9 @@ impl Component for ExportDialogModel {
                     #[wrap(Some)]
                     set_title_widget = &adw::WindowTitle {
                         set_title: &if let Some(name) = &model.test_case_name {
-                            lang::lookup_with_args("export-title", lang_args!("target", name.clone()))
+                            lang::lookup_with_args("export-title", &lang_args!("target", name.clone()))
                         } else {
-                            lang::lookup_with_args("export-title", lang_args!("target", lang::lookup("export-target-package")))
+                            lang::lookup_with_args("export-title", &lang_args!("target", lang::lookup("export-target-package")))
                         }
                     }
                 },
@@ -181,6 +181,6 @@ impl Component for ExportDialogModel {
                 widgets.file_row.set_text(path.to_str().unwrap_or_default());
             }
         }
-        self.update_view(widgets, sender)
+        self.update_view(widgets, sender);
     }
 }

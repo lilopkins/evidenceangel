@@ -108,7 +108,7 @@ impl Component for AddTextEvidenceDialogModel {
             }
             _ => (),
         }
-        self.update_view(widgets, sender)
+        self.update_view(widgets, sender);
     }
 }
 
@@ -153,7 +153,7 @@ impl Component for AddHttpEvidenceDialogModel {
 
                             gtk::Frame {
                                 set_label: Some(&lang::lookup("add-evidence-http-req-label")),
-                                #[name = "req_entry"]
+                                #[name = "request_entry"]
                                 gtk::TextView {
                                     set_monospace: true,
                                     set_top_margin: 4,
@@ -168,7 +168,7 @@ impl Component for AddHttpEvidenceDialogModel {
 
                             gtk::Frame {
                                 set_label: Some(&lang::lookup("add-evidence-http-res-label")),
-                                #[name = "res_entry"]
+                                #[name = "response_entry"]
                                 gtk::TextView {
                                     set_monospace: true,
                                     set_top_margin: 4,
@@ -221,15 +221,15 @@ impl Component for AddHttpEvidenceDialogModel {
                 root.present(Some(&window));
             }
             AddEvidenceInput::_AddEvidence => {
-                let req_buffer = widgets.req_entry.buffer();
-                let req_content = req_buffer
-                    .text(&req_buffer.start_iter(), &req_buffer.end_iter(), false)
+                let request_buffer = widgets.request_entry.buffer();
+                let request_content = request_buffer
+                    .text(&request_buffer.start_iter(), &request_buffer.end_iter(), false)
                     .to_string();
-                let res_buffer = widgets.res_entry.buffer();
-                let res_content = res_buffer
-                    .text(&res_buffer.start_iter(), &res_buffer.end_iter(), false)
+                let response_buffer = widgets.response_entry.buffer();
+                let response_content = response_buffer
+                    .text(&response_buffer.start_iter(), &response_buffer.end_iter(), false)
                     .to_string();
-                let content = format!("{req_content}\n\n\x1e{res_content}");
+                let content = format!("{request_content}\n\n\x1e{response_content}");
                 let mut ev = Evidence::new(
                     EvidenceKind::Http,
                     EvidenceData::Base64 {
@@ -245,7 +245,7 @@ impl Component for AddHttpEvidenceDialogModel {
             }
             _ => (),
         }
-        self.update_view(widgets, sender)
+        self.update_view(widgets, sender);
     }
 }
 
@@ -353,7 +353,7 @@ impl Component for AddImageEvidenceDialogModel {
                             title: lang::lookup("add-evidence-image-failed"),
                             message: lang::lookup_with_args(
                                 "add-evidence-image-failed-message",
-                                lang_args!("error", e.to_string()),
+                                &lang_args!("error", e.to_string()),
                             ),
                         })
                         .unwrap();
@@ -371,7 +371,7 @@ impl Component for AddImageEvidenceDialogModel {
                             title: lang::lookup("add-evidence-image-failed"),
                             message: lang::lookup_with_args(
                                 "add-evidence-image-failed-message",
-                                lang_args!("error", e.to_string()),
+                                &lang_args!("error", e.to_string()),
                             ),
                         })
                         .unwrap();
@@ -412,7 +412,7 @@ impl Component for AddImageEvidenceDialogModel {
                 widgets.file_row.set_text(path.to_str().unwrap_or_default());
             }
         }
-        self.update_view(widgets, sender)
+        self.update_view(widgets, sender);
     }
 }
 
@@ -521,7 +521,7 @@ impl Component for AddFileEvidenceDialogModel {
                             title: lang::lookup("add-evidence-file-failed"),
                             message: lang::lookup_with_args(
                                 "add-evidence-file-failed-message",
-                                lang_args!("error", e.to_string()),
+                                &lang_args!("error", e.to_string()),
                             ),
                         })
                         .unwrap();
@@ -539,7 +539,7 @@ impl Component for AddFileEvidenceDialogModel {
                             title: lang::lookup("add-evidence-file-failed"),
                             message: lang::lookup_with_args(
                                 "add-evidence-file-failed-message",
-                                lang_args!("error", e.to_string()),
+                                &lang_args!("error", e.to_string()),
                             ),
                         })
                         .unwrap();
@@ -584,6 +584,6 @@ impl Component for AddFileEvidenceDialogModel {
                 widgets.file_row.set_text(path.to_str().unwrap_or_default());
             }
         }
-        self.update_view(widgets, sender)
+        self.update_view(widgets, sender);
     }
 }

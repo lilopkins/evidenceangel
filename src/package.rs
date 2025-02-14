@@ -81,7 +81,7 @@ impl fmt::Debug for EvidencePackage {
             .field("metadata", &self.metadata)
             .field("media", &self.media)
             .field("test_cases", &self.test_cases)
-            .finish()
+            .finish_non_exhaustive()
     }
 }
 

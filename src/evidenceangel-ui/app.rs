@@ -75,7 +75,7 @@ impl AppModel {
             self.open_path
                 .as_ref()
                 .expect("Path must be set before calling open_new")
-                .to_path_buf(),
+                .clone(),
             title,
             authors,
         )?;
@@ -138,7 +138,6 @@ impl AppModel {
     }
 
     fn create_needs_saving_dialog(
-        &self,
         transient_for: &impl IsA<gtk::Window>,
     ) -> adw::MessageDialog {
         let dialog = adw::MessageDialog::builder()
@@ -160,7 +159,7 @@ impl AppModel {
     }
 
     fn get_package(&self) -> Option<Arc<RwLock<EvidencePackage>>> {
-        self.open_package.as_ref().map(|pkg| pkg.clone())
+        self.open_package.as_ref().map(Clone::clone)
     }
 }
 
@@ -183,7 +182,7 @@ pub enum AppInput {
     _SetPathThen(PathBuf, Box<AppInput>),
 
     #[allow(private_interfaces)]
-    /// NavigateTo ignores the index provided as part of OpenCase::Case and establishes
+    /// `NavigateTo` ignores the index provided as part of [`OpenCase::Case`] and establishes
     /// it automatically.
     NavigateTo(OpenCase),
     DeleteCase(Uuid),
@@ -824,7 +823,7 @@ impl Component for AppModel {
                             title: Box::new(lang::lookup("error-failed-new-title")),
                             body: Box::new(lang::lookup_with_args(
                                 "error-failed-new-body",
-                                lang_args!("error", e.to_string()),
+                                &lang_args!("error", e.to_string()),
                             )),
                         })
                         .forward(sender.input_sender(), |msg| match msg {});
@@ -863,7 +862,7 @@ impl Component for AppModel {
                             title: Box::new(lang::lookup("error-failed-open-title")),
                             body: Box::new(lang::lookup_with_args(
                                 "error-failed-open-body",
-                                lang_args!("error", e.to_string()),
+                                &lang_args!("error", e.to_string()),
                             )),
                         })
                         .forward(sender.input_sender(), |msg| match msg {});
@@ -873,7 +872,7 @@ impl Component for AppModel {
             }
             AppInput::SaveFileThen(then) => {
                 if let Some(package) = self.get_package() {
-                    self.latest_delete_toasts.iter().for_each(|t| t.dismiss());
+                    self.latest_delete_toasts.iter().for_each(adw::Toast::dismiss);
                     if let Err(e) = package.write().unwrap().save() {
                         // Show error dialog
                         let error_dlg = ErrorDialogModel::builder()
@@ -881,7 +880,7 @@ impl Component for AppModel {
                                 title: Box::new(lang::lookup("error-failed-save-title")),
                                 body: Box::new(lang::lookup_with_args(
                                     "error-failed-save-body",
-                                    lang_args!("error", e.to_string()),
+                                    &lang_args!("error", e.to_string()),
                                 )),
                             })
                             .forward(sender.input_sender(), |msg| match msg {});
@@ -900,7 +899,7 @@ impl Component for AppModel {
                 // Propose to save if needed
                 if self.needs_saving {
                     // Show dialog
-                    let dlg = self.create_needs_saving_dialog(root);
+                    let dlg = Self::create_needs_saving_dialog(root);
                     let sender_c = sender.clone();
                     dlg.connect_response(None, move |dlg, res| {
                         if res == "no" {
@@ -1097,7 +1096,13 @@ impl Component for AppModel {
                 widgets.nav_scrolled_window.set_vadjustment(Some(&adj));
             }
             AppInput::SetMetadataTitle(new_title) => {
-                if !new_title.trim().is_empty() {
+                if new_title.trim().is_empty() {
+                    widgets.metadata_title.add_css_class("error");
+                    widgets
+                        .metadata_title_error_popover_label
+                        .set_text(&lang::lookup("toast-name-cant-be-empty"));
+                    widgets.metadata_title_error_popover.set_visible(true);
+                } else {
                     if new_title.len() <= 30 {
                         widgets.metadata_title.remove_css_class("error");
                         widgets.metadata_title_error_popover.set_visible(false);
@@ -1112,12 +1117,6 @@ impl Component for AppModel {
                             .set_text(&lang::lookup("toast-name-too-long"));
                         widgets.metadata_title_error_popover.set_visible(true);
                     }
-                } else {
-                    widgets.metadata_title.add_css_class("error");
-                    widgets
-                        .metadata_title_error_popover_label
-                        .set_text(&lang::lookup("toast-name-cant-be-empty"));
-                    widgets.metadata_title_error_popover.set_visible(true);
                 }
             }
             AppInput::SetMetadataDescription(new_desc) => {
@@ -1140,7 +1139,7 @@ impl Component for AppModel {
                                 title: Box::new(lang::lookup("error-failed-delete-case-title")),
                                 body: Box::new(lang::lookup_with_args(
                                     "error-failed-delete-case-body",
-                                    lang_args!("error", e.to_string()),
+                                    &lang_args!("error", e.to_string()),
                                 )),
                             })
                             .forward(sender.input_sender(), |msg| match msg {});
@@ -1197,34 +1196,32 @@ impl Component for AppModel {
                 }
             }
             AppInput::SetTestCaseTitle(new_title) => {
-                if !new_title.trim().is_empty() {
-                    if new_title.len() <= 30 {
-                        widgets.test_title.remove_css_class("error");
-                        widgets.test_title_error_popover.set_visible(false);
-                        if let OpenCase::Case { index, id, .. } = &self.open_case {
-                            if let Some(pkg) = self.get_package() {
-                                if let Some(tc) =
-                                    pkg.write().unwrap().test_case_mut(*id).ok().flatten()
-                                {
-                                    tc.metadata_mut().set_title(new_title.clone());
-                                    self.needs_saving = true;
-                                    self.test_case_nav_factory
-                                        .send(*index, NavFactoryInput::UpdateTitle(new_title));
-                                }
+                if new_title.trim().is_empty() {
+                    widgets.test_title.add_css_class("error");
+                    widgets
+                        .test_title_error_popover_label
+                        .set_text(&lang::lookup("toast-name-cant-be-empty"));
+                    widgets.test_title_error_popover.set_visible(true);
+                } else if new_title.len() <= 30 {
+                    widgets.test_title.remove_css_class("error");
+                    widgets.test_title_error_popover.set_visible(false);
+                    if let OpenCase::Case { index, id, .. } = &self.open_case {
+                        if let Some(pkg) = self.get_package() {
+                            if let Some(tc) =
+                                pkg.write().unwrap().test_case_mut(*id).ok().flatten()
+                            {
+                                tc.metadata_mut().set_title(new_title.clone());
+                                self.needs_saving = true;
+                                self.test_case_nav_factory
+                                    .send(*index, NavFactoryInput::UpdateTitle(new_title));
                             }
                         }
-                    } else {
-                        widgets.test_title.add_css_class("error");
-                        widgets
-                            .test_title_error_popover_label
-                            .set_text(&lang::lookup("toast-name-too-long"));
-                        widgets.test_title_error_popover.set_visible(true);
                     }
                 } else {
                     widgets.test_title.add_css_class("error");
                     widgets
                         .test_title_error_popover_label
-                        .set_text(&lang::lookup("toast-name-cant-be-empty"));
+                        .set_text(&lang::lookup("toast-name-too-long"));
                     widgets.test_title_error_popover.set_visible(true);
                 }
             }
@@ -1282,15 +1279,15 @@ impl Component for AppModel {
                             .transient_for(root)
                             .title(lang::lookup_with_args(
                                 "delete-case-title",
-                                lang_args!("name", case.metadata().title()),
+                                &lang_args!("name", case.metadata().title()),
                             ))
                             .heading(lang::lookup_with_args(
                                 "delete-case-title",
-                                lang_args!("name", case.metadata().title()),
+                                &lang_args!("name", case.metadata().title()),
                             ))
                             .body(lang::lookup_with_args(
                                 "delete-case-message",
-                                lang_args!("name", case.metadata().title()),
+                                &lang_args!("name", case.metadata().title()),
                             ))
                             .modal(true)
                             .build();
@@ -1387,7 +1384,7 @@ impl Component for AppModel {
                                 .unwrap()
                                 .evidence_mut();
                             if let Some(pos) = &maybe_pos {
-                                evidence.insert(*pos, ev.clone())
+                                evidence.insert(*pos, ev.clone());
                             } else {
                                 evidence.push(ev.clone());
                             }
@@ -1586,7 +1583,7 @@ impl Component for AppModel {
                                 title: Box::new(lang::lookup("export-error-failed-title")),
                                 body: Box::new(lang::lookup_with_args(
                                     "export-error-failed-message",
-                                    lang_args!("error", e.to_string()),
+                                    &lang_args!("error", e.to_string()),
                                 )),
                             })
                             .forward(sender.input_sender(), |msg| match msg {});
@@ -1639,7 +1636,7 @@ impl Component for AppModel {
                                     title: Box::new(lang::lookup("export-error-failed-title")),
                                     body: Box::new(lang::lookup_with_args(
                                         "export-error-failed-message",
-                                        lang_args!("error", e.to_string()),
+                                        &lang_args!("error", e.to_string()),
                                     )),
                                 })
                                 .forward(sender.input_sender(), |msg| match msg {});
@@ -1761,7 +1758,7 @@ impl Component for AppModel {
                 widgets.toast_target.add_toast(toast);
             }
         }
-        self.update_view(widgets, sender)
+        self.update_view(widgets, sender);
     }
 }
 

@@ -75,8 +75,7 @@ impl From<&crate::MediaFile> for MediaFileManifestEntry {
             sha256_checksum: value.hash(),
             mime_type: value
                 .mime_type()
-                .map(|t| t.mime_type())
-                .unwrap_or("unknown")
+                .map_or("unknown", |t| t.mime_type())
                 .to_string(),
         }
     }
