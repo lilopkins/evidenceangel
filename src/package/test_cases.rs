@@ -91,7 +91,8 @@ pub struct Evidence {
 
 impl Evidence {
     /// Create a new evidence object.
-    #[must_use] pub fn new(kind: EvidenceKind, value: EvidenceData) -> Self {
+    #[must_use]
+    pub fn new(kind: EvidenceKind, value: EvidenceData) -> Self {
         Self {
             kind,
             value,
