@@ -54,8 +54,6 @@ pub struct AppModel {
     action_paste_evidence: RelmAction<PasteEvidenceAction>,
 
     latest_new_author_dlg: Option<Controller<NewAuthorDialogModel>>,
-    latest_add_evidence_text_dlg: Option<Controller<AddTextEvidenceDialogModel>>,
-    latest_add_evidence_http_dlg: Option<Controller<AddHttpEvidenceDialogModel>>,
     latest_add_evidence_image_dlg: Option<Controller<AddImageEvidenceDialogModel>>,
     latest_add_evidence_file_dlg: Option<Controller<AddFileEvidenceDialogModel>>,
     latest_error_dlg: Option<Controller<ErrorDialogModel>>,
@@ -719,8 +717,6 @@ impl Component for AppModel {
 
             latest_error_dlg: None,
             latest_new_author_dlg: None,
-            latest_add_evidence_text_dlg: None,
-            latest_add_evidence_http_dlg: None,
             latest_add_evidence_image_dlg: None,
             latest_add_evidence_file_dlg: None,
             latest_export_dlg: None,
@@ -1323,18 +1319,15 @@ impl Component for AppModel {
                 }
             }
             AppInput::AddTextEvidence => {
-                let add_evidence_text_dlg = AddTextEvidenceDialogModel::builder()
-                    .launch(self.get_package().unwrap())
-                    .forward(sender.input_sender(), |msg| match msg {
-                        AddEvidenceOutput::AddEvidence(ev) => AppInput::_AddEvidence(ev, None),
-                        AddEvidenceOutput::Error { title, message } => {
-                            AppInput::ShowError { title, message }
-                        }
-                        AddEvidenceOutput::Closed => AppInput::ReinstatePaste,
-                    });
-                add_evidence_text_dlg.emit(AddEvidenceInput::Present(root.clone()));
-                self.latest_add_evidence_text_dlg = Some(add_evidence_text_dlg);
-                self.action_paste_evidence.set_enabled(false);
+                sender.input(AppInput::_AddEvidence(
+                    Evidence::new(
+                        EvidenceKind::Text,
+                        EvidenceData::Text {
+                            content: String::new(),
+                        },
+                    ),
+                    None,
+                ));
             }
             AppInput::AddRichTextEvidence => {
                 sender.input(AppInput::_AddEvidence(
@@ -1348,18 +1341,13 @@ impl Component for AppModel {
                 ));
             }
             AppInput::AddHttpEvidence => {
-                let add_evidence_http_dlg = AddHttpEvidenceDialogModel::builder()
-                    .launch(self.get_package().unwrap())
-                    .forward(sender.input_sender(), |msg| match msg {
-                        AddEvidenceOutput::AddEvidence(ev) => AppInput::_AddEvidence(ev, None),
-                        AddEvidenceOutput::Error { title, message } => {
-                            AppInput::ShowError { title, message }
-                        }
-                        AddEvidenceOutput::Closed => AppInput::ReinstatePaste,
-                    });
-                add_evidence_http_dlg.emit(AddEvidenceInput::Present(root.clone()));
-                self.latest_add_evidence_http_dlg = Some(add_evidence_http_dlg);
-                self.action_paste_evidence.set_enabled(false);
+                sender.input(AppInput::_AddEvidence(
+                    Evidence::new(
+                        EvidenceKind::Http,
+                        EvidenceData::Base64 { data: vec![0x1e] },
+                    ),
+                    None,
+                ));
             }
             AppInput::AddImageEvidence => {
                 let add_evidence_image_dlg = AddImageEvidenceDialogModel::builder()

@@ -1,4 +1,7 @@
-use std::sync::{Arc, RwLock};
+use std::{
+    cmp::Ordering,
+    sync::{Arc, RwLock},
+};
 
 use adw::prelude::*;
 use evidenceangel::{Evidence, EvidenceData, EvidenceKind, EvidencePackage};
@@ -245,7 +248,36 @@ impl FactoryComponent for EvidenceFactoryModel {
                 widgets.evidence_child.append(&frame);
             }
             EvidenceKind::RichText => {
-                // TODO
+                let bx = gtk::Box::new(gtk::Orientation::Vertical, 4);
+
+                let toolbar = gtk::Box::new(gtk::Orientation::Horizontal, 4);
+
+                let btn_bold = gtk::Button::new();
+                btn_bold.set_icon_name("text-bold");
+                btn_bold.set_tooltip(&lang::lookup("rich-text-bold"));
+                toolbar.append(&btn_bold);
+                let btn_italic = gtk::Button::new();
+                btn_italic.set_icon_name("text-italic");
+                btn_italic.set_tooltip(&lang::lookup("rich-text-italic"));
+                toolbar.append(&btn_italic);
+                let btn_monospace = gtk::Button::new();
+                btn_monospace.set_icon_name("code");
+                btn_monospace.set_tooltip(&lang::lookup("rich-text-monospace"));
+                toolbar.append(&btn_monospace);
+                toolbar.append(&gtk::Separator::new(gtk::Orientation::Vertical));
+                let btn_h1 = gtk::Button::new();
+                btn_h1.set_icon_name("text-header-1-lines-caret-regular");
+                btn_h1.set_tooltip(&lang::lookup("rich-text-heading-1"));
+                toolbar.append(&btn_h1);
+                let btn_h2 = gtk::Button::new();
+                btn_h2.set_icon_name("text-header-2-lines-caret-regular");
+                btn_h2.set_tooltip(&lang::lookup("rich-text-heading-2"));
+                toolbar.append(&btn_h2);
+                let btn_h3 = gtk::Button::new();
+                btn_h3.set_icon_name("text-header-3-lines-caret-regular");
+                btn_h3.set_tooltip(&lang::lookup("rich-text-heading-3"));
+                toolbar.append(&btn_h3);
+
                 let scroll_window = gtk::ScrolledWindow::default();
                 scroll_window.set_height_request(100);
                 scroll_window.set_hexpand(true);
@@ -267,9 +299,54 @@ impl FactoryComponent for EvidenceFactoryModel {
                     ));
                 });
 
+                {
+                    let tv = text_view.clone();
+                    let buf = text_view.buffer();
+                    btn_bold.connect_clicked(move |_| {
+                        add_angelmark_tokens(&tv, &buf, "**");
+                    });
+                }
+                {
+                    let tv = text_view.clone();
+                    let buf = text_view.buffer();
+                    btn_italic.connect_clicked(move |_| {
+                        add_angelmark_tokens(&tv, &buf, "_");
+                    });
+                }
+                {
+                    let tv = text_view.clone();
+                    let buf = text_view.buffer();
+                    btn_monospace.connect_clicked(move |_| {
+                        add_angelmark_tokens(&tv, &buf, "`");
+                    });
+                }
+                {
+                    let tv = text_view.clone();
+                    let buf = text_view.buffer();
+                    btn_h1.connect_clicked(move |_| {
+                        set_angelmark_heading_level(&tv, &buf, 1);
+                    });
+                }
+                {
+                    let tv = text_view.clone();
+                    let buf = text_view.buffer();
+                    btn_h2.connect_clicked(move |_| {
+                        set_angelmark_heading_level(&tv, &buf, 2);
+                    });
+                }
+                {
+                    let tv = text_view.clone();
+                    let buf = text_view.buffer();
+                    btn_h3.connect_clicked(move |_| {
+                        set_angelmark_heading_level(&tv, &buf, 3);
+                    });
+                }
+
                 scroll_window.set_child(Some(&text_view));
                 frame.set_child(Some(&scroll_window));
-                widgets.evidence_child.append(&frame);
+                bx.append(&toolbar);
+                bx.append(&frame);
+                widgets.evidence_child.append(&bx);
             }
             EvidenceKind::Image => {
                 let img = gtk::Picture::new();
@@ -523,4 +600,108 @@ impl FactoryComponent for EvidenceFactoryModel {
             }
         }
     }
+}
+
+#[allow(clippy::cast_possible_wrap)]
+fn add_angelmark_tokens(text_view: &gtk::TextView, buf: &gtk::TextBuffer, token: &str) {
+    let token_len = token.len() as i32;
+    if let Some((start, end)) = buf.selection_bounds() {
+        // Check if already has token
+        let start_pos = start.offset();
+        let end_pos = end.offset();
+        let mut add_token = true;
+
+        if start_pos >= token_len
+            && end_pos <= (buf.end_iter().offset() - buf.start_iter().offset() - token_len)
+            && buf.text(
+                &buf.iter_at_offset(start_pos - token_len),
+                &buf.iter_at_offset(start_pos),
+                false,
+            ) == token
+            && buf.text(
+                &buf.iter_at_offset(start_pos - token_len),
+                &buf.iter_at_offset(start_pos),
+                false,
+            ) == token
+        {
+            add_token = false;
+        }
+
+        if add_token {
+            buf.insert(&mut buf.iter_at_offset(end_pos), token);
+            buf.insert(&mut buf.iter_at_offset(start_pos), token);
+            buf.select_range(
+                &buf.iter_at_offset(start_pos + token_len),
+                &buf.iter_at_offset(end_pos + token_len),
+            );
+        } else {
+            buf.delete(
+                &mut buf.iter_at_offset(end_pos),
+                &mut buf.iter_at_offset(end_pos + token_len),
+            );
+            buf.delete(
+                &mut buf.iter_at_offset(start_pos - token_len),
+                &mut buf.iter_at_offset(start_pos),
+            );
+        }
+    } else {
+        let mut iter = buf.iter_at_offset(buf.cursor_position());
+        buf.insert(&mut iter, &format!("{token}{token}"));
+        iter.backward_chars(token_len);
+        buf.place_cursor(&iter);
+    }
+    text_view.grab_focus();
+}
+
+#[allow(clippy::cast_possible_wrap)]
+fn set_angelmark_heading_level(text_view: &gtk::TextView, buf: &gtk::TextBuffer, level: usize) {
+    // Check number of "#" at beginning of line
+    let mut current_heading_level = 0;
+    let mut start_of_line = buf.iter_at_offset(buf.cursor_position());
+    start_of_line.set_line_offset(0);
+    let mut six_in = start_of_line;
+    for _ in 0..6 {
+        six_in.forward_char();
+        if six_in.ends_line() {
+            break;
+        }
+    }
+    let first_6 = buf.text(&start_of_line, &six_in, false);
+    for c in first_6.chars() {
+        if c == '#' {
+            current_heading_level += 1;
+        } else {
+            break;
+        }
+    }
+
+    tracing::trace!("heading level: target = {level}, curr = {current_heading_level}");
+
+    // Add or remove "#" as needed to meet `level`
+    match level.cmp(&current_heading_level) {
+        Ordering::Greater => {
+            // Add
+            let mut s = String::new();
+            for _ in current_heading_level..level {
+                s.push('#');
+            }
+            if current_heading_level == 0 {
+                s.push(' ');
+            }
+
+            tracing::trace!("Adding: {s:?}");
+            buf.insert(&mut start_of_line, &s);
+        }
+        Ordering::Less => {
+            // Remove
+            let num_to_delete = current_heading_level - level;
+            let mut delete_end = start_of_line;
+            delete_end.forward_chars(num_to_delete as i32);
+            tracing::trace!("Deleting {num_to_delete} chars");
+            buf.delete(&mut start_of_line, &mut delete_end);
+        }
+        Ordering::Equal => (),
+    }
+
+    text_view.grab_focus();
 }

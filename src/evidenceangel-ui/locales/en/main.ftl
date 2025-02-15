@@ -75,10 +75,6 @@ test-evidence-file-named = <b>File:</b> { $filename }
 
 add-evidence-title = Add Evidence
 add-evidence-submit = Add
-add-evidence-text-label = Text Evidence
-add-evidence-http-req-label = HTTP Raw Request
-add-evidence-http-res-label = HTTP Raw Response
-add-evidence-http-caption-label = Request Caption (optional)
 add-evidence-image-label = Image Path
 add-evidence-image-caption-label = Image Caption (optional)
 add-evidence-image-failed = Failed to Add Image
@@ -116,3 +112,10 @@ needs-saving-title = Save changes?
 needs-saving-message = The open package contains unsaved changes. Changes which are not saved will be permanently lost.
 needs-saving-yes = Save
 needs-saving-no = Discard
+
+rich-text-bold = Bold
+rich-text-italic = Italic
+rich-text-monospace = Monospace
+rich-text-heading-1 = Heading 1
+rich-text-heading-2 = Heading 2
+rich-text-heading-3 = Heading 3
