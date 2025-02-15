@@ -204,8 +204,10 @@ fn create_test_case_div(
                                 &angelmark,
                                 HtmlElement::new(HtmlTag::Heading6),
                             )),
-                            AngelmarkLine::TextLine(angelmark) => elem
-                                .add_html(angelmark_to_html(&angelmark, HtmlElement::new(HtmlTag::Span))),
+                            AngelmarkLine::TextLine(angelmark) => elem.add_html(angelmark_to_html(
+                                &angelmark,
+                                HtmlElement::new(HtmlTag::Span),
+                            )),
                         }
                     }
                     elem.add_html(HtmlElement::new(HtmlTag::LineBreak));
