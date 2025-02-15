@@ -298,6 +298,7 @@ impl EvidencePackage {
                     .map_err(|_| Error::ManifestSchemaValidationFailed)?,
             ) {
                 // Read as version 2
+                tracing::debug!("Test case {id} opened as version 2");
                 let mut test_case: TestCase = serde_json::from_str(&test_case_data)
                     .map_err(|e| Error::InvalidTestCase(e, *id))?;
                 test_case.set_id(*id);
@@ -309,6 +310,7 @@ impl EvidencePackage {
             ) {
                 // Version 1 -> Version 2 migration
                 // Load as normal, but set new schema URL
+                tracing::debug!("Test case {id} opened as version 1");
                 let mut test_case: TestCase = serde_json::from_str(&test_case_data)
                     .map_err(|e| Error::InvalidTestCase(e, *id))?;
                 test_case.set_id(*id);
