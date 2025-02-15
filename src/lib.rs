@@ -3,6 +3,8 @@
 #![deny(unsafe_code)]
 #![warn(clippy::pedantic)]
 #![allow(clippy::too_many_lines)]
+#![allow(clippy::cast_possible_truncation)]
+#![allow(clippy::cast_sign_loss)]
 
 //! # `EvidenceAngel`
 //!

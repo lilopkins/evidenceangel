@@ -180,12 +180,12 @@ fn create_test_case_sheet(
                                 line_buffer.clear();
                                 row += 1;
                             }
-                            AngelmarkLine::Heading1(txt) => {
+                            AngelmarkLine::Heading1(angelmark) => {
                                 worksheet.write_rich_string(
                                     row,
                                     1,
                                     &vec![angelmark_to_excel(
-                                        &txt,
+                                        &angelmark,
                                         Format::default().set_font_size(32),
                                     )]
                                     .iter()
@@ -194,12 +194,12 @@ fn create_test_case_sheet(
                                 )?;
                                 row += 1;
                             }
-                            AngelmarkLine::Heading2(txt) => {
+                            AngelmarkLine::Heading2(angelmark) => {
                                 worksheet.write_rich_string(
                                     row,
                                     1,
                                     &vec![angelmark_to_excel(
-                                        &txt,
+                                        &angelmark,
                                         Format::default().set_font_size(28),
                                     )]
                                     .iter()
@@ -208,12 +208,12 @@ fn create_test_case_sheet(
                                 )?;
                                 row += 1;
                             }
-                            AngelmarkLine::Heading3(txt) => {
+                            AngelmarkLine::Heading3(angelmark) => {
                                 worksheet.write_rich_string(
                                     row,
                                     1,
                                     &vec![angelmark_to_excel(
-                                        &txt,
+                                        &angelmark,
                                         Format::default().set_font_size(24),
                                     )]
                                     .iter()
@@ -222,12 +222,12 @@ fn create_test_case_sheet(
                                 )?;
                                 row += 1;
                             }
-                            AngelmarkLine::Heading4(txt) => {
+                            AngelmarkLine::Heading4(angelmark) => {
                                 worksheet.write_rich_string(
                                     row,
                                     1,
                                     &vec![angelmark_to_excel(
-                                        &txt,
+                                        &angelmark,
                                         Format::default().set_font_size(18),
                                     )]
                                     .iter()
@@ -236,12 +236,12 @@ fn create_test_case_sheet(
                                 )?;
                                 row += 1;
                             }
-                            AngelmarkLine::Heading5(txt) => {
+                            AngelmarkLine::Heading5(angelmark) => {
                                 worksheet.write_rich_string(
                                     row,
                                     1,
                                     &vec![angelmark_to_excel(
-                                        &txt,
+                                        &angelmark,
                                         Format::default().set_font_size(16),
                                     )]
                                     .iter()
@@ -250,12 +250,12 @@ fn create_test_case_sheet(
                                 )?;
                                 row += 1;
                             }
-                            AngelmarkLine::Heading6(txt) => {
+                            AngelmarkLine::Heading6(angelmark) => {
                                 worksheet.write_rich_string(
                                     row,
                                     1,
                                     &vec![angelmark_to_excel(
-                                        &txt,
+                                        &angelmark,
                                         Format::default().set_font_size(14),
                                     )]
                                     .iter()
@@ -264,14 +264,19 @@ fn create_test_case_sheet(
                                 )?;
                                 row += 1;
                             }
-                            AngelmarkLine::TextLine(txt) => {
-                                line_buffer.push(angelmark_to_excel(&txt, Format::default()))
+                            AngelmarkLine::TextLine(angelmark) => {
+                                line_buffer.push(angelmark_to_excel(&angelmark, Format::default()));
                             }
                         }
                     }
                 } else {
                     for line in text.lines() {
-                        worksheet.write_string_with_format(row, 1, line, &Format::default().set_font_name("Courier New"))?;
+                        worksheet.write_string_with_format(
+                            row,
+                            1,
+                            line,
+                            &Format::default().set_font_name("Courier New"),
+                        )?;
                         row += 1;
                     }
                 }
@@ -333,6 +338,7 @@ fn create_test_case_sheet(
     Ok(())
 }
 
+/// Convert Angelmark to Excel format data
 fn angelmark_to_excel(angelmark: &AngelmarkText, format: Format) -> (Format, String) {
     match angelmark {
         AngelmarkText::Raw(txt) => (format, txt.clone()),

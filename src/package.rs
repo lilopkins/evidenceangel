@@ -87,11 +87,31 @@ impl fmt::Debug for EvidencePackage {
 
 impl EvidencePackage {
     /// Create a new evidence package.
+    ///
+    /// # Panics
+    ///
+    /// All the potential panics are checked statically ahead of time, so should never trigger at runtime.
+    ///
+    /// # Errors
+    ///
+    /// - [`Error::Io`] if the evp couldn't be written at all.
+    /// - [`Error::Zip`] if the evp file couldn't be written correctly.
+    /// - [`Error::ManifestSchemaValidationFailed`] if the manifest is invalid.
     pub fn new(path: PathBuf, title: String, authors: Vec<Author>) -> Result<Self> {
         Self::new_with_description(path, title, None, authors)
     }
 
     /// Create a new evidence package with a specified description.
+    ///
+    /// # Panics
+    ///
+    /// All the potential panics are checked statically ahead of time, so should never trigger at runtime.
+    ///
+    /// # Errors
+    ///
+    /// - [`Error::Io`] if the evp couldn't be written at all.
+    /// - [`Error::Zip`] if the evp file couldn't be written correctly.
+    /// - [`Error::ManifestSchemaValidationFailed`] if the manifest is invalid.
     pub fn new_with_description(
         path: PathBuf,
         title: String,
@@ -141,6 +161,20 @@ impl EvidencePackage {
     }
 
     /// Save the package to disk.
+    ///
+    /// # Panics
+    ///
+    /// All the potential panics are checked statically ahead of time, so should never trigger at runtime.
+    ///
+    /// # Errors
+    ///
+    /// - [`Error::Io`] if the evp couldn't be written at all.
+    /// - [`Error::Zip`] if the evp file couldn't be written correctly.
+    /// - [`Error::FailedToSaveTestCase`] if one of the test cases couldn't be saved.
+    /// - [`Error::TestCaseSchemaValidationFailed`] if one of the test case manifests fails schema validation after saving.
+    /// - [`Error::MediaMissing`] if the package is missing media required to be saved.
+    /// - [`Error::FailedToCreatePackage`] if the package manifest couldn't be saved.
+    /// - [`Error::ManifestSchemaValidationFailed`] if the manifest is invalid.
     pub fn save(&mut self) -> Result<()> {
         let mut clone = self.clone_serde();
         {
@@ -249,6 +283,19 @@ impl EvidencePackage {
     }
 
     /// Open an evidence package, returning either the parsed evidence package for manipulation, or an error.
+    ///
+    /// # Panics
+    ///
+    /// All the potential panics are checked statically ahead of time, so should never trigger at runtime.
+    ///
+    /// # Errors
+    ///
+    /// - [`Error::Io`] if the evp couldn't be read at all.
+    /// - [`Error::Zip`] if the evp file couldn't be read correctly.
+    /// - [`Error::CorruptEvidencePackage`] if the evp is corrupt in it's internal structure.
+    /// - [`Error::ManifestSchemaValidationFailed`] if the manifest is invalid.
+    /// - [`Error::InvalidManifest`] if the manifest passes schema validation but is somehow still invalid.
+    /// - [`Error::TestCaseSchemaValidationFailed`] if one of the test case manifests fails schema validation.
     pub fn open(path: PathBuf) -> Result<Self> {
         // Open ZIP file
         let mut zip_rw = ZipReaderWriter::new(path);
@@ -271,7 +318,7 @@ impl EvidencePackage {
             &serde_json::from_str(&manifest_data)
                 .map_err(|_| Error::ManifestSchemaValidationFailed)?,
         ) {
-            return Err(Error::TestCaseSchemaValidationFailed);
+            return Err(Error::ManifestSchemaValidationFailed);
         }
 
         // Parse manifest
@@ -295,7 +342,7 @@ impl EvidencePackage {
             if jsonschema::is_valid(
                 &serde_json::from_str(TESTCASE_SCHEMA_2).expect("Schema is validated statically"),
                 &serde_json::from_str(&test_case_data)
-                    .map_err(|_| Error::ManifestSchemaValidationFailed)?,
+                    .map_err(|_| Error::TestCaseSchemaValidationFailed)?,
             ) {
                 // Read as version 2
                 tracing::debug!("Test case {id} opened as version 2");
@@ -306,7 +353,7 @@ impl EvidencePackage {
             } else if jsonschema::is_valid(
                 &serde_json::from_str(TESTCASE_SCHEMA).expect("Schema is validated statically"),
                 &serde_json::from_str(&test_case_data)
-                    .map_err(|_| Error::ManifestSchemaValidationFailed)?,
+                    .map_err(|_| Error::TestCaseSchemaValidationFailed)?,
             ) {
                 // Version 1 -> Version 2 migration
                 // Load as normal, but set new schema URL
@@ -341,17 +388,30 @@ impl EvidencePackage {
 
     /// Obtain an iterator over test cases.
     /// Note that this is unsorted.
+    ///
+    /// # Errors
+    ///
+    /// Currently cannot fail.
     pub fn test_case_iter(&self) -> Result<Values<Uuid, TestCase>> {
         Ok(self.test_case_data.values())
     }
 
     /// Obtain an iterator over test cases
     /// Note that this is unsorted.
+    ///
+    /// # Errors
+    ///
+    /// Currently cannot fail.
     pub fn test_case_iter_mut(&mut self) -> Result<ValuesMut<Uuid, TestCase>> {
         Ok(self.test_case_data.values_mut())
     }
 
     /// Create a new test case.
+    ///
+    /// # Errors
+    ///
+    /// Currently cannot fail.
+    #[allow(clippy::missing_panics_doc)]
     pub fn create_test_case<S>(&mut self, title: S) -> Result<&mut TestCase>
     where
         S: Into<String>,
@@ -360,6 +420,11 @@ impl EvidencePackage {
     }
 
     /// Create a new test case at a specified time.
+    ///
+    /// # Errors
+    ///
+    /// Currently cannot fail.
+    #[allow(clippy::missing_panics_doc)]
     pub fn create_test_case_at<S>(
         &mut self,
         title: S,
@@ -382,6 +447,11 @@ impl EvidencePackage {
 
     /// Delete a test case.
     /// Returns true if a case was deleted.
+    ///
+    /// # Errors
+    ///
+    /// Currently cannot fail.
+    #[allow(clippy::missing_panics_doc)]
     pub fn delete_test_case<U>(&mut self, id: U) -> Result<bool>
     where
         U: Into<Uuid>,
@@ -403,6 +473,10 @@ impl EvidencePackage {
     }
 
     /// Get a test case
+    ///
+    /// # Errors
+    ///
+    /// Currently cannot fail.
     pub fn test_case<U>(&self, id: U) -> Result<Option<&TestCase>>
     where
         U: Into<Uuid>,
@@ -417,6 +491,10 @@ impl EvidencePackage {
     }
 
     /// Mutably get a test case
+    ///
+    /// # Errors
+    ///
+    /// Currently cannot fail.
     pub fn test_case_mut<U>(&mut self, id: U) -> Result<Option<&mut TestCase>>
     where
         U: Into<Uuid>,
@@ -437,6 +515,12 @@ impl EvidencePackage {
     ///
     /// Media will remain in memory until [`EvidencePackage::save`] is called, at which point it will be
     /// written to disk. It will remain cached in memory until the [`EvidencePackage`] is dropped.
+    ///
+    /// # Errors
+    ///
+    /// - [`Error::Io`] if the evp couldn't be read at all.
+    /// - [`Error::Zip`] if the evp file couldn't be read correctly.
+    #[allow(clippy::missing_panics_doc)]
     pub fn add_media(&mut self, media_file: MediaFile) -> Result<&MediaFile> {
         let hash = media_file.hash();
 
@@ -462,6 +546,12 @@ impl EvidencePackage {
     /// The in-memory cache will be searched first, then the file will be read again to pull the media.
     ///
     /// Returns [`None`] if the media couldn't be found with that hash.
+    ///
+    /// # Errors
+    ///
+    /// - [`Error::Io`] if the evp couldn't be read at all.
+    /// - [`Error::Zip`] if the evp file couldn't be read correctly.
+    #[allow(clippy::missing_panics_doc)]
     pub fn get_media<S>(&mut self, hash: S) -> Result<Option<&MediaFile>>
     where
         S: Into<String>,

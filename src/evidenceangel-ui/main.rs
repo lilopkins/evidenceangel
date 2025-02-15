@@ -6,6 +6,9 @@
 #![warn(clippy::pedantic)]
 #![allow(clippy::too_many_lines)]
 #![allow(clippy::used_underscore_items)]
+#![allow(clippy::cast_possible_truncation)]
+#![allow(clippy::cast_sign_loss)]
+#![allow(clippy::wildcard_imports)]
 
 use std::{env, path::PathBuf, sync::Mutex};
 

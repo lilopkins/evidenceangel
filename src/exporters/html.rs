@@ -178,34 +178,34 @@ fn create_test_case_div(
                     for line in rich_text {
                         match line {
                             AngelmarkLine::Newline => {
-                                elem.add_html(HtmlElement::new(HtmlTag::LineBreak))
+                                elem.add_html(HtmlElement::new(HtmlTag::LineBreak));
                             }
-                            AngelmarkLine::Heading1(txt) => elem.add_html(angelmark_to_html(
-                                &txt,
+                            AngelmarkLine::Heading1(angelmark) => elem.add_html(angelmark_to_html(
+                                &angelmark,
                                 HtmlElement::new(HtmlTag::Heading1),
                             )),
-                            AngelmarkLine::Heading2(txt) => elem.add_html(angelmark_to_html(
-                                &txt,
+                            AngelmarkLine::Heading2(angelmark) => elem.add_html(angelmark_to_html(
+                                &angelmark,
                                 HtmlElement::new(HtmlTag::Heading2),
                             )),
-                            AngelmarkLine::Heading3(txt) => elem.add_html(angelmark_to_html(
-                                &txt,
+                            AngelmarkLine::Heading3(angelmark) => elem.add_html(angelmark_to_html(
+                                &angelmark,
                                 HtmlElement::new(HtmlTag::Heading3),
                             )),
-                            AngelmarkLine::Heading4(txt) => elem.add_html(angelmark_to_html(
-                                &txt,
+                            AngelmarkLine::Heading4(angelmark) => elem.add_html(angelmark_to_html(
+                                &angelmark,
                                 HtmlElement::new(HtmlTag::Heading4),
                             )),
-                            AngelmarkLine::Heading5(txt) => elem.add_html(angelmark_to_html(
-                                &txt,
+                            AngelmarkLine::Heading5(angelmark) => elem.add_html(angelmark_to_html(
+                                &angelmark,
                                 HtmlElement::new(HtmlTag::Heading5),
                             )),
-                            AngelmarkLine::Heading6(txt) => elem.add_html(angelmark_to_html(
-                                &txt,
+                            AngelmarkLine::Heading6(angelmark) => elem.add_html(angelmark_to_html(
+                                &angelmark,
                                 HtmlElement::new(HtmlTag::Heading6),
                             )),
-                            AngelmarkLine::TextLine(txt) => elem
-                                .add_html(angelmark_to_html(&txt, HtmlElement::new(HtmlTag::Span))),
+                            AngelmarkLine::TextLine(angelmark) => elem
+                                .add_html(angelmark_to_html(&angelmark, HtmlElement::new(HtmlTag::Span))),
                         }
                     }
                     elem.add_html(HtmlElement::new(HtmlTag::LineBreak));
@@ -297,6 +297,7 @@ fn create_test_case_div(
     Ok(elem)
 }
 
+/// Convert Angelmark to HTML elements
 fn angelmark_to_html(angelmark: &AngelmarkText, mut elem: HtmlElement) -> HtmlElement {
     match angelmark {
         AngelmarkText::Raw(txt) => elem.with_raw(html_escape::encode_text(txt)),
