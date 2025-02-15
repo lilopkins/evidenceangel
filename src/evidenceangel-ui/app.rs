@@ -8,7 +8,7 @@ use evidenceangel::{
     exporters::{
         excel::ExcelExporter, html::HtmlExporter, zip_of_files::ZipOfFilesExporter, Exporter,
     },
-    Author, Evidence, EvidenceKind, EvidencePackage, MediaFile,
+    Author, Evidence, EvidenceData, EvidenceKind, EvidencePackage, MediaFile,
 };
 #[allow(unused)]
 use gtk::prelude::*;
@@ -197,6 +197,7 @@ pub enum AppInput {
     DeleteSelectedCase,
     _DeleteSelectedCase,
     AddTextEvidence,
+    AddRichTextEvidence,
     AddHttpEvidence,
     AddImageEvidence,
     #[allow(dead_code)]
@@ -540,6 +541,15 @@ impl Component for AppModel {
                                                             adw::ButtonContent {
                                                                 set_icon_name: relm4_icons::icon_names::PLUS,
                                                                 set_label: &lang::lookup("evidence-text"),
+                                                            }
+                                                        },
+                                                        gtk::Button {
+                                                            connect_clicked => AppInput::AddRichTextEvidence,
+                                                            add_css_class: "pill",
+
+                                                            adw::ButtonContent {
+                                                                set_icon_name: relm4_icons::icon_names::PLUS,
+                                                                set_label: &lang::lookup("evidence-richtext"),
                                                             }
                                                         },
                                                         gtk::Button {
@@ -1325,6 +1335,17 @@ impl Component for AppModel {
                 add_evidence_text_dlg.emit(AddEvidenceInput::Present(root.clone()));
                 self.latest_add_evidence_text_dlg = Some(add_evidence_text_dlg);
                 self.action_paste_evidence.set_enabled(false);
+            }
+            AppInput::AddRichTextEvidence => {
+                sender.input(AppInput::_AddEvidence(
+                    Evidence::new(
+                        EvidenceKind::RichText,
+                        EvidenceData::Text {
+                            content: String::new(),
+                        },
+                    ),
+                    None,
+                ));
             }
             AppInput::AddHttpEvidence => {
                 let add_evidence_http_dlg = AddHttpEvidenceDialogModel::builder()
