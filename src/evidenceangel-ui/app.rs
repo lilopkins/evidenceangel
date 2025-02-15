@@ -1533,6 +1533,7 @@ impl Component for AppModel {
                             .metadata()
                             .title()
                             .clone(),
+                        package_path: self.open_path.clone().unwrap(),
                         test_case_name: None,
                     })
                     .forward(sender.input_sender(), |msg| match msg {
@@ -1558,6 +1559,7 @@ impl Component for AppModel {
                     let export_dlg = ExportDialogModel::builder()
                         .launch(ExportDialogInit {
                             package_name: pkg.metadata().title().clone(),
+                            package_path: self.open_path.clone().unwrap(),
                             test_case_name: Some(case_name),
                         })
                         .forward(sender.input_sender(), |msg| match msg {

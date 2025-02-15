@@ -89,6 +89,7 @@ export-target-package = Hela Paketet
 export-file-label = Exportera till...
 export-format-label = Exportformat
 export-submit = Exportera
+export-submit-replace = Exportera, skriva över fil
 export-error-nothing-open-title = Inget öppet att exportera
 export-error-nothing-open-message = Inget är öppet att exportera.
 export-error-failed-title = Misslyckades att Exportera
