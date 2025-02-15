@@ -11,7 +11,7 @@ use std::{
 use chrono::{DateTime, FixedOffset, Local};
 use getset::{Getters, MutGetters};
 use serde::{Deserialize, Serialize};
-use test_cases::{TESTCASE_SCHEMA, TESTCASE_SCHEMA_2};
+use test_cases::TESTCASE_SCHEMA_2;
 use uuid::Uuid;
 use zip::{result::ZipError, write::SimpleFileOptions};
 
@@ -344,20 +344,9 @@ impl EvidencePackage {
                 &serde_json::from_str(&test_case_data)
                     .map_err(|_| Error::TestCaseSchemaValidationFailed)?,
             ) {
-                // Read as version 2
+                // Read as version 2/1
+                // The version 2 schema can read version 1 (fully backwards compatible)
                 tracing::debug!("Test case {id} opened as version 2");
-                let mut test_case: TestCase = serde_json::from_str(&test_case_data)
-                    .map_err(|e| Error::InvalidTestCase(e, *id))?;
-                test_case.set_id(*id);
-                evidence_package.test_case_data.insert(*id, test_case);
-            } else if jsonschema::is_valid(
-                &serde_json::from_str(TESTCASE_SCHEMA).expect("Schema is validated statically"),
-                &serde_json::from_str(&test_case_data)
-                    .map_err(|_| Error::TestCaseSchemaValidationFailed)?,
-            ) {
-                // Version 1 -> Version 2 migration
-                // Load as normal, but set new schema URL
-                tracing::debug!("Test case {id} opened as version 1");
                 let mut test_case: TestCase = serde_json::from_str(&test_case_data)
                     .map_err(|e| Error::InvalidTestCase(e, *id))?;
                 test_case.set_id(*id);

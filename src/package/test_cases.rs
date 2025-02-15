@@ -10,8 +10,6 @@ use uuid::Uuid;
 /// The URL for $schema in the test case manifests
 const TESTCASE_SCHEMA_LOCATION: &str =
     "https://evidenceangel-schemas.hpkns.uk/testcase.2.schema.json";
-/// The schema itself for test case manifests (version 1)
-pub(crate) const TESTCASE_SCHEMA: &str = include_str!("../../schemas/testcase.1.schema.json");
 /// The schema itself for test case manifests (version 2)
 pub(crate) const TESTCASE_SCHEMA_2: &str = include_str!("../../schemas/testcase.2.schema.json");
 
