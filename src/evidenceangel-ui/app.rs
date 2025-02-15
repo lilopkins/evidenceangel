@@ -1102,21 +1102,19 @@ impl Component for AppModel {
                         .metadata_title_error_popover_label
                         .set_text(&lang::lookup("toast-name-cant-be-empty"));
                     widgets.metadata_title_error_popover.set_visible(true);
-                } else {
-                    if new_title.len() <= 30 {
-                        widgets.metadata_title.remove_css_class("error");
-                        widgets.metadata_title_error_popover.set_visible(false);
-                        if let Some(pkg) = self.get_package() {
-                            pkg.write().unwrap().metadata_mut().set_title(new_title);
-                            self.needs_saving = true;
-                        }
-                    } else {
-                        widgets.metadata_title.add_css_class("error");
-                        widgets
-                            .metadata_title_error_popover_label
-                            .set_text(&lang::lookup("toast-name-too-long"));
-                        widgets.metadata_title_error_popover.set_visible(true);
+                } else if new_title.len() <= 30 {
+                    widgets.metadata_title.remove_css_class("error");
+                    widgets.metadata_title_error_popover.set_visible(false);
+                    if let Some(pkg) = self.get_package() {
+                        pkg.write().unwrap().metadata_mut().set_title(new_title);
+                        self.needs_saving = true;
                     }
+                } else {
+                    widgets.metadata_title.add_css_class("error");
+                    widgets
+                        .metadata_title_error_popover_label
+                        .set_text(&lang::lookup("toast-name-too-long"));
+                    widgets.metadata_title_error_popover.set_visible(true);
                 }
             }
             AppInput::SetMetadataDescription(new_desc) => {

@@ -22,8 +22,16 @@ pub trait Exporter {
     fn export_extension() -> String;
 
     /// Export a package.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the export failed for any reason.
     fn export_package(&mut self, package: &mut EvidencePackage, path: PathBuf) -> Result<()>;
     /// Export a test case.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the export failed for any reason.
     fn export_case(
         &mut self,
         package: &mut EvidencePackage,
