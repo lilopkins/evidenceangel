@@ -8,7 +8,7 @@ use evidenceangel::{
     exporters::{
         excel::ExcelExporter, html::HtmlExporter, zip_of_files::ZipOfFilesExporter, Exporter,
     },
-    Author, Evidence, EvidenceKind, EvidencePackage, MediaFile,
+    Author, Evidence, EvidenceData, EvidenceKind, EvidencePackage, MediaFile,
 };
 #[allow(unused)]
 use gtk::prelude::*;
@@ -54,8 +54,6 @@ pub struct AppModel {
     action_paste_evidence: RelmAction<PasteEvidenceAction>,
 
     latest_new_author_dlg: Option<Controller<NewAuthorDialogModel>>,
-    latest_add_evidence_text_dlg: Option<Controller<AddTextEvidenceDialogModel>>,
-    latest_add_evidence_http_dlg: Option<Controller<AddHttpEvidenceDialogModel>>,
     latest_add_evidence_image_dlg: Option<Controller<AddImageEvidenceDialogModel>>,
     latest_add_evidence_file_dlg: Option<Controller<AddFileEvidenceDialogModel>>,
     latest_error_dlg: Option<Controller<ErrorDialogModel>>,
@@ -75,7 +73,7 @@ impl AppModel {
             self.open_path
                 .as_ref()
                 .expect("Path must be set before calling open_new")
-                .to_path_buf(),
+                .clone(),
             title,
             authors,
         )?;
@@ -137,10 +135,7 @@ impl AppModel {
         Ok(())
     }
 
-    fn create_needs_saving_dialog(
-        &self,
-        transient_for: &impl IsA<gtk::Window>,
-    ) -> adw::MessageDialog {
+    fn create_needs_saving_dialog(transient_for: &impl IsA<gtk::Window>) -> adw::MessageDialog {
         let dialog = adw::MessageDialog::builder()
             .transient_for(transient_for)
             .title(lang::lookup("needs-saving-title"))
@@ -160,7 +155,7 @@ impl AppModel {
     }
 
     fn get_package(&self) -> Option<Arc<RwLock<EvidencePackage>>> {
-        self.open_package.as_ref().map(|pkg| pkg.clone())
+        self.open_package.as_ref().map(Clone::clone)
     }
 }
 
@@ -183,7 +178,7 @@ pub enum AppInput {
     _SetPathThen(PathBuf, Box<AppInput>),
 
     #[allow(private_interfaces)]
-    /// NavigateTo ignores the index provided as part of OpenCase::Case and establishes
+    /// `NavigateTo` ignores the index provided as part of [`OpenCase::Case`] and establishes
     /// it automatically.
     NavigateTo(OpenCase),
     DeleteCase(Uuid),
@@ -200,6 +195,7 @@ pub enum AppInput {
     DeleteSelectedCase,
     _DeleteSelectedCase,
     AddTextEvidence,
+    AddRichTextEvidence,
     AddHttpEvidence,
     AddImageEvidence,
     #[allow(dead_code)]
@@ -546,6 +542,15 @@ impl Component for AppModel {
                                                             }
                                                         },
                                                         gtk::Button {
+                                                            connect_clicked => AppInput::AddRichTextEvidence,
+                                                            add_css_class: "pill",
+
+                                                            adw::ButtonContent {
+                                                                set_icon_name: relm4_icons::icon_names::PLUS,
+                                                                set_label: &lang::lookup("evidence-richtext"),
+                                                            }
+                                                        },
+                                                        gtk::Button {
                                                             connect_clicked => AppInput::AddHttpEvidence,
                                                             add_css_class: "pill",
 
@@ -712,8 +717,6 @@ impl Component for AppModel {
 
             latest_error_dlg: None,
             latest_new_author_dlg: None,
-            latest_add_evidence_text_dlg: None,
-            latest_add_evidence_http_dlg: None,
             latest_add_evidence_image_dlg: None,
             latest_add_evidence_file_dlg: None,
             latest_export_dlg: None,
@@ -824,7 +827,7 @@ impl Component for AppModel {
                             title: Box::new(lang::lookup("error-failed-new-title")),
                             body: Box::new(lang::lookup_with_args(
                                 "error-failed-new-body",
-                                lang_args!("error", e.to_string()),
+                                &lang_args!("error", e.to_string()),
                             )),
                         })
                         .forward(sender.input_sender(), |msg| match msg {});
@@ -863,7 +866,7 @@ impl Component for AppModel {
                             title: Box::new(lang::lookup("error-failed-open-title")),
                             body: Box::new(lang::lookup_with_args(
                                 "error-failed-open-body",
-                                lang_args!("error", e.to_string()),
+                                &lang_args!("error", e.to_string()),
                             )),
                         })
                         .forward(sender.input_sender(), |msg| match msg {});
@@ -873,7 +876,9 @@ impl Component for AppModel {
             }
             AppInput::SaveFileThen(then) => {
                 if let Some(package) = self.get_package() {
-                    self.latest_delete_toasts.iter().for_each(|t| t.dismiss());
+                    self.latest_delete_toasts
+                        .iter()
+                        .for_each(adw::Toast::dismiss);
                     if let Err(e) = package.write().unwrap().save() {
                         // Show error dialog
                         let error_dlg = ErrorDialogModel::builder()
@@ -881,7 +886,7 @@ impl Component for AppModel {
                                 title: Box::new(lang::lookup("error-failed-save-title")),
                                 body: Box::new(lang::lookup_with_args(
                                     "error-failed-save-body",
-                                    lang_args!("error", e.to_string()),
+                                    &lang_args!("error", e.to_string()),
                                 )),
                             })
                             .forward(sender.input_sender(), |msg| match msg {});
@@ -900,7 +905,7 @@ impl Component for AppModel {
                 // Propose to save if needed
                 if self.needs_saving {
                     // Show dialog
-                    let dlg = self.create_needs_saving_dialog(root);
+                    let dlg = Self::create_needs_saving_dialog(root);
                     let sender_c = sender.clone();
                     dlg.connect_response(None, move |dlg, res| {
                         if res == "no" {
@@ -1097,26 +1102,24 @@ impl Component for AppModel {
                 widgets.nav_scrolled_window.set_vadjustment(Some(&adj));
             }
             AppInput::SetMetadataTitle(new_title) => {
-                if !new_title.trim().is_empty() {
-                    if new_title.len() <= 30 {
-                        widgets.metadata_title.remove_css_class("error");
-                        widgets.metadata_title_error_popover.set_visible(false);
-                        if let Some(pkg) = self.get_package() {
-                            pkg.write().unwrap().metadata_mut().set_title(new_title);
-                            self.needs_saving = true;
-                        }
-                    } else {
-                        widgets.metadata_title.add_css_class("error");
-                        widgets
-                            .metadata_title_error_popover_label
-                            .set_text(&lang::lookup("toast-name-too-long"));
-                        widgets.metadata_title_error_popover.set_visible(true);
+                if new_title.trim().is_empty() {
+                    widgets.metadata_title.add_css_class("error");
+                    widgets
+                        .metadata_title_error_popover_label
+                        .set_text(&lang::lookup("toast-name-cant-be-empty"));
+                    widgets.metadata_title_error_popover.set_visible(true);
+                } else if new_title.len() <= 30 {
+                    widgets.metadata_title.remove_css_class("error");
+                    widgets.metadata_title_error_popover.set_visible(false);
+                    if let Some(pkg) = self.get_package() {
+                        pkg.write().unwrap().metadata_mut().set_title(new_title);
+                        self.needs_saving = true;
                     }
                 } else {
                     widgets.metadata_title.add_css_class("error");
                     widgets
                         .metadata_title_error_popover_label
-                        .set_text(&lang::lookup("toast-name-cant-be-empty"));
+                        .set_text(&lang::lookup("toast-name-too-long"));
                     widgets.metadata_title_error_popover.set_visible(true);
                 }
             }
@@ -1140,7 +1143,7 @@ impl Component for AppModel {
                                 title: Box::new(lang::lookup("error-failed-delete-case-title")),
                                 body: Box::new(lang::lookup_with_args(
                                     "error-failed-delete-case-body",
-                                    lang_args!("error", e.to_string()),
+                                    &lang_args!("error", e.to_string()),
                                 )),
                             })
                             .forward(sender.input_sender(), |msg| match msg {});
@@ -1197,34 +1200,31 @@ impl Component for AppModel {
                 }
             }
             AppInput::SetTestCaseTitle(new_title) => {
-                if !new_title.trim().is_empty() {
-                    if new_title.len() <= 30 {
-                        widgets.test_title.remove_css_class("error");
-                        widgets.test_title_error_popover.set_visible(false);
-                        if let OpenCase::Case { index, id, .. } = &self.open_case {
-                            if let Some(pkg) = self.get_package() {
-                                if let Some(tc) =
-                                    pkg.write().unwrap().test_case_mut(*id).ok().flatten()
-                                {
-                                    tc.metadata_mut().set_title(new_title.clone());
-                                    self.needs_saving = true;
-                                    self.test_case_nav_factory
-                                        .send(*index, NavFactoryInput::UpdateTitle(new_title));
-                                }
+                if new_title.trim().is_empty() {
+                    widgets.test_title.add_css_class("error");
+                    widgets
+                        .test_title_error_popover_label
+                        .set_text(&lang::lookup("toast-name-cant-be-empty"));
+                    widgets.test_title_error_popover.set_visible(true);
+                } else if new_title.len() <= 30 {
+                    widgets.test_title.remove_css_class("error");
+                    widgets.test_title_error_popover.set_visible(false);
+                    if let OpenCase::Case { index, id, .. } = &self.open_case {
+                        if let Some(pkg) = self.get_package() {
+                            if let Some(tc) = pkg.write().unwrap().test_case_mut(*id).ok().flatten()
+                            {
+                                tc.metadata_mut().set_title(new_title.clone());
+                                self.needs_saving = true;
+                                self.test_case_nav_factory
+                                    .send(*index, NavFactoryInput::UpdateTitle(new_title));
                             }
                         }
-                    } else {
-                        widgets.test_title.add_css_class("error");
-                        widgets
-                            .test_title_error_popover_label
-                            .set_text(&lang::lookup("toast-name-too-long"));
-                        widgets.test_title_error_popover.set_visible(true);
                     }
                 } else {
                     widgets.test_title.add_css_class("error");
                     widgets
                         .test_title_error_popover_label
-                        .set_text(&lang::lookup("toast-name-cant-be-empty"));
+                        .set_text(&lang::lookup("toast-name-too-long"));
                     widgets.test_title_error_popover.set_visible(true);
                 }
             }
@@ -1282,15 +1282,15 @@ impl Component for AppModel {
                             .transient_for(root)
                             .title(lang::lookup_with_args(
                                 "delete-case-title",
-                                lang_args!("name", case.metadata().title()),
+                                &lang_args!("name", case.metadata().title()),
                             ))
                             .heading(lang::lookup_with_args(
                                 "delete-case-title",
-                                lang_args!("name", case.metadata().title()),
+                                &lang_args!("name", case.metadata().title()),
                             ))
                             .body(lang::lookup_with_args(
                                 "delete-case-message",
-                                lang_args!("name", case.metadata().title()),
+                                &lang_args!("name", case.metadata().title()),
                             ))
                             .modal(true)
                             .build();
@@ -1319,32 +1319,35 @@ impl Component for AppModel {
                 }
             }
             AppInput::AddTextEvidence => {
-                let add_evidence_text_dlg = AddTextEvidenceDialogModel::builder()
-                    .launch(self.get_package().unwrap())
-                    .forward(sender.input_sender(), |msg| match msg {
-                        AddEvidenceOutput::AddEvidence(ev) => AppInput::_AddEvidence(ev, None),
-                        AddEvidenceOutput::Error { title, message } => {
-                            AppInput::ShowError { title, message }
-                        }
-                        AddEvidenceOutput::Closed => AppInput::ReinstatePaste,
-                    });
-                add_evidence_text_dlg.emit(AddEvidenceInput::Present(root.clone()));
-                self.latest_add_evidence_text_dlg = Some(add_evidence_text_dlg);
-                self.action_paste_evidence.set_enabled(false);
+                sender.input(AppInput::_AddEvidence(
+                    Evidence::new(
+                        EvidenceKind::Text,
+                        EvidenceData::Text {
+                            content: String::new(),
+                        },
+                    ),
+                    None,
+                ));
+            }
+            AppInput::AddRichTextEvidence => {
+                sender.input(AppInput::_AddEvidence(
+                    Evidence::new(
+                        EvidenceKind::RichText,
+                        EvidenceData::Text {
+                            content: String::new(),
+                        },
+                    ),
+                    None,
+                ));
             }
             AppInput::AddHttpEvidence => {
-                let add_evidence_http_dlg = AddHttpEvidenceDialogModel::builder()
-                    .launch(self.get_package().unwrap())
-                    .forward(sender.input_sender(), |msg| match msg {
-                        AddEvidenceOutput::AddEvidence(ev) => AppInput::_AddEvidence(ev, None),
-                        AddEvidenceOutput::Error { title, message } => {
-                            AppInput::ShowError { title, message }
-                        }
-                        AddEvidenceOutput::Closed => AppInput::ReinstatePaste,
-                    });
-                add_evidence_http_dlg.emit(AddEvidenceInput::Present(root.clone()));
-                self.latest_add_evidence_http_dlg = Some(add_evidence_http_dlg);
-                self.action_paste_evidence.set_enabled(false);
+                sender.input(AppInput::_AddEvidence(
+                    Evidence::new(
+                        EvidenceKind::Http,
+                        EvidenceData::Base64 { data: vec![0x1e] },
+                    ),
+                    None,
+                ));
             }
             AppInput::AddImageEvidence => {
                 let add_evidence_image_dlg = AddImageEvidenceDialogModel::builder()
@@ -1387,7 +1390,7 @@ impl Component for AppModel {
                                 .unwrap()
                                 .evidence_mut();
                             if let Some(pos) = &maybe_pos {
-                                evidence.insert(*pos, ev.clone())
+                                evidence.insert(*pos, ev.clone());
                             } else {
                                 evidence.push(ev.clone());
                             }
@@ -1586,7 +1589,7 @@ impl Component for AppModel {
                                 title: Box::new(lang::lookup("export-error-failed-title")),
                                 body: Box::new(lang::lookup_with_args(
                                     "export-error-failed-message",
-                                    lang_args!("error", e.to_string()),
+                                    &lang_args!("error", e.to_string()),
                                 )),
                             })
                             .forward(sender.input_sender(), |msg| match msg {});
@@ -1639,7 +1642,7 @@ impl Component for AppModel {
                                     title: Box::new(lang::lookup("export-error-failed-title")),
                                     body: Box::new(lang::lookup_with_args(
                                         "export-error-failed-message",
-                                        lang_args!("error", e.to_string()),
+                                        &lang_args!("error", e.to_string()),
                                     )),
                                 })
                                 .forward(sender.input_sender(), |msg| match msg {});
@@ -1761,7 +1764,7 @@ impl Component for AppModel {
                 widgets.toast_target.add_toast(toast);
             }
         }
-        self.update_view(widgets, sender)
+        self.update_view(widgets, sender);
     }
 }
 

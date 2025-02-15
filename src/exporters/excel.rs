@@ -1,3 +1,4 @@
+use angelmark::{parse_angelmark, AngelmarkLine, AngelmarkText};
 use rust_xlsxwriter::{Format, FormatBorder, Image, Workbook, Worksheet};
 use uuid::Uuid;
 
@@ -156,6 +157,130 @@ fn create_test_case_sheet(
                     row += 1;
                 }
             }
+            EvidenceKind::RichText => {
+                let data = evidence.value().get_data(&mut package)?;
+                let text = String::from_utf8_lossy(data.as_slice());
+
+                if let Ok(mut rich_text) = parse_angelmark(&text) {
+                    if rich_text.last() != Some(&AngelmarkLine::Newline) {
+                        rich_text.push(AngelmarkLine::Newline);
+                    }
+                    let mut line_buffer: Vec<(Format, String)> = vec![];
+                    for line in rich_text {
+                        match line {
+                            AngelmarkLine::Newline => {
+                                worksheet.write_rich_string(
+                                    row,
+                                    1,
+                                    &line_buffer
+                                        .iter()
+                                        .map(|(f, s)| (f, s.as_str()))
+                                        .collect::<Vec<_>>(),
+                                )?;
+                                line_buffer.clear();
+                                row += 1;
+                            }
+                            AngelmarkLine::Heading1(angelmark) => {
+                                worksheet.write_rich_string(
+                                    row,
+                                    1,
+                                    &vec![angelmark_to_excel(
+                                        &angelmark,
+                                        Format::default().set_font_size(32),
+                                    )]
+                                    .iter()
+                                    .map(|(f, s)| (f, s.as_str()))
+                                    .collect::<Vec<_>>(),
+                                )?;
+                                row += 1;
+                            }
+                            AngelmarkLine::Heading2(angelmark) => {
+                                worksheet.write_rich_string(
+                                    row,
+                                    1,
+                                    &vec![angelmark_to_excel(
+                                        &angelmark,
+                                        Format::default().set_font_size(28),
+                                    )]
+                                    .iter()
+                                    .map(|(f, s)| (f, s.as_str()))
+                                    .collect::<Vec<_>>(),
+                                )?;
+                                row += 1;
+                            }
+                            AngelmarkLine::Heading3(angelmark) => {
+                                worksheet.write_rich_string(
+                                    row,
+                                    1,
+                                    &vec![angelmark_to_excel(
+                                        &angelmark,
+                                        Format::default().set_font_size(24),
+                                    )]
+                                    .iter()
+                                    .map(|(f, s)| (f, s.as_str()))
+                                    .collect::<Vec<_>>(),
+                                )?;
+                                row += 1;
+                            }
+                            AngelmarkLine::Heading4(angelmark) => {
+                                worksheet.write_rich_string(
+                                    row,
+                                    1,
+                                    &vec![angelmark_to_excel(
+                                        &angelmark,
+                                        Format::default().set_font_size(18),
+                                    )]
+                                    .iter()
+                                    .map(|(f, s)| (f, s.as_str()))
+                                    .collect::<Vec<_>>(),
+                                )?;
+                                row += 1;
+                            }
+                            AngelmarkLine::Heading5(angelmark) => {
+                                worksheet.write_rich_string(
+                                    row,
+                                    1,
+                                    &vec![angelmark_to_excel(
+                                        &angelmark,
+                                        Format::default().set_font_size(16),
+                                    )]
+                                    .iter()
+                                    .map(|(f, s)| (f, s.as_str()))
+                                    .collect::<Vec<_>>(),
+                                )?;
+                                row += 1;
+                            }
+                            AngelmarkLine::Heading6(angelmark) => {
+                                worksheet.write_rich_string(
+                                    row,
+                                    1,
+                                    &vec![angelmark_to_excel(
+                                        &angelmark,
+                                        Format::default().set_font_size(14),
+                                    )]
+                                    .iter()
+                                    .map(|(f, s)| (f, s.as_str()))
+                                    .collect::<Vec<_>>(),
+                                )?;
+                                row += 1;
+                            }
+                            AngelmarkLine::TextLine(angelmark) => {
+                                line_buffer.push(angelmark_to_excel(&angelmark, Format::default()));
+                            }
+                        }
+                    }
+                } else {
+                    for line in text.lines() {
+                        worksheet.write_string_with_format(
+                            row,
+                            1,
+                            line,
+                            &Format::default().set_font_name("Courier New"),
+                        )?;
+                        row += 1;
+                    }
+                }
+            }
             EvidenceKind::Image => {
                 let data = evidence.value().get_data(&mut package)?;
                 let image = Image::new_from_buffer(data.as_slice())?;
@@ -211,4 +336,16 @@ fn create_test_case_sheet(
     }
 
     Ok(())
+}
+
+/// Convert Angelmark to Excel format data
+fn angelmark_to_excel(angelmark: &AngelmarkText, format: Format) -> (Format, String) {
+    match angelmark {
+        AngelmarkText::Raw(txt) => (format, txt.clone()),
+        AngelmarkText::Bold(content) => angelmark_to_excel(content, format.set_bold()),
+        AngelmarkText::Italic(content) => angelmark_to_excel(content, format.set_italic()),
+        AngelmarkText::Monospace(content) => {
+            angelmark_to_excel(content, format.set_font_name("Courier New"))
+        }
+    }
 }

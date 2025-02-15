@@ -21,7 +21,7 @@ pub fn initialise_i18n() -> LanguageIdentifier {
         tracing::info!("System offers locale: {locale}");
 
         if let Ok(lang_id) = locale.parse::<LanguageIdentifier>() {
-            for possible_locale in avail_locales.iter() {
+            for possible_locale in &avail_locales {
                 if possible_locale == &&lang_id {
                     tracing::info!("This locale is available! Using: {locale}");
                     let mut use_locale = USE_LOCALE.lock().unwrap();
@@ -65,12 +65,12 @@ where
 /// Lookup a string with args
 pub(crate) fn lookup_with_args<S>(
     text_id: S,
-    args: HashMap<Cow<'static, str>, FluentValue<'_>>,
+    args: &HashMap<Cow<'static, str>, FluentValue<'_>>,
 ) -> String
 where
     S: AsRef<str> + Display,
 {
-    LOCALES.lookup_with_args(&current_locale(), text_id.as_ref(), &args)
+    LOCALES.lookup_with_args(&current_locale(), text_id.as_ref(), args)
 }
 
 #[macro_export]

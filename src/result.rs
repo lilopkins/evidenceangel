@@ -1,7 +1,7 @@
 use thiserror::Error;
 use uuid::Uuid;
 
-/// An error raised by EvidenceAngel.
+/// An error raised by `EvidenceAngel`.
 #[derive(Debug, Error)]
 pub enum Error {
     /// An I/O error from the system.
@@ -49,5 +49,5 @@ pub enum Error {
     OtherExportError(Box<dyn std::error::Error>),
 }
 
-/// A result from EvidenceAngel.
+/// A result from `EvidenceAngel`.
 pub type Result<T> = std::result::Result<T, Error>;

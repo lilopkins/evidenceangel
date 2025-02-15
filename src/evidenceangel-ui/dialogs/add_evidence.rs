@@ -28,227 +28,6 @@ pub enum AddEvidenceOutput {
     Closed,
 }
 
-pub struct AddTextEvidenceDialogModel {}
-
-#[relm4::component(pub)]
-impl Component for AddTextEvidenceDialogModel {
-    type Input = AddEvidenceInput;
-    type Output = AddEvidenceOutput;
-    type CommandOutput = ();
-    type Init = Arc<RwLock<EvidencePackage>>;
-
-    view! {
-        #[root]
-        adw::Dialog {
-            connect_closed[sender] => move |_dlg| {
-                let _ = sender.output(AddEvidenceOutput::Closed);
-            },
-
-            #[wrap(Some)]
-            set_child = &adw::ToolbarView {
-                add_top_bar = &adw::HeaderBar {
-                    #[wrap(Some)]
-                    set_title_widget = &adw::WindowTitle {
-                        set_title: &lang::lookup("add-evidence-title"),
-                    }
-                },
-                set_width_request: 400,
-
-                gtk::Box {
-                    set_orientation: gtk::Orientation::Vertical,
-                    set_spacing: 8,
-                    set_margin_all: 16,
-
-                    adw::PreferencesGroup {
-                        #[name = "text_entry"]
-                        adw::EntryRow {
-                            set_title: &lang::lookup("add-evidence-text-label"),
-                            connect_entry_activated => AddEvidenceInput::_AddEvidence,
-                        },
-                    },
-                    gtk::Button {
-                        set_label: &lang::lookup("add-evidence-submit"),
-                        add_css_class: "pill",
-                        add_css_class: "suggested-action",
-                        set_halign: gtk::Align::Center,
-
-                        connect_clicked => AddEvidenceInput::_AddEvidence,
-                    }
-                }
-            }
-        }
-    }
-
-    fn init(
-        _init: Self::Init,
-        root: Self::Root,
-        sender: ComponentSender<Self>,
-    ) -> ComponentParts<Self> {
-        let model = AddTextEvidenceDialogModel {};
-        let widgets = view_output!();
-        ComponentParts { model, widgets }
-    }
-
-    fn update_with_view(
-        &mut self,
-        widgets: &mut Self::Widgets,
-        message: Self::Input,
-        sender: ComponentSender<Self>,
-        root: &Self::Root,
-    ) {
-        match message {
-            AddEvidenceInput::Present(window) => {
-                root.present(Some(&window));
-            }
-            AddEvidenceInput::_AddEvidence => {
-                let content = widgets.text_entry.text().to_string();
-                let ev = Evidence::new(EvidenceKind::Text, EvidenceData::Text { content });
-                let _ = sender.output(AddEvidenceOutput::AddEvidence(ev));
-                root.close();
-            }
-            _ => (),
-        }
-        self.update_view(widgets, sender)
-    }
-}
-
-pub struct AddHttpEvidenceDialogModel {}
-
-#[relm4::component(pub)]
-impl Component for AddHttpEvidenceDialogModel {
-    type Input = AddEvidenceInput;
-    type Output = AddEvidenceOutput;
-    type CommandOutput = ();
-    type Init = Arc<RwLock<EvidencePackage>>;
-
-    view! {
-        #[root]
-        adw::Dialog {
-            connect_closed[sender] => move |_dlg| {
-                let _ = sender.output(AddEvidenceOutput::Closed);
-            },
-
-            #[wrap(Some)]
-            set_child = &adw::ToolbarView {
-                add_top_bar = &adw::HeaderBar {
-                    #[wrap(Some)]
-                    set_title_widget = &adw::WindowTitle {
-                        set_title: &lang::lookup("add-evidence-title"),
-                    }
-                },
-                set_width_request: 400,
-
-                gtk::Box {
-                    set_orientation: gtk::Orientation::Vertical,
-                    set_spacing: 8,
-                    set_margin_all: 16,
-
-                    gtk::Box {
-                        set_spacing: 8,
-                        set_height_request: 300,
-                        set_width_request: 500,
-
-                        gtk::ScrolledWindow {
-                            set_hexpand: true,
-
-                            gtk::Frame {
-                                set_label: Some(&lang::lookup("add-evidence-http-req-label")),
-                                #[name = "req_entry"]
-                                gtk::TextView {
-                                    set_monospace: true,
-                                    set_top_margin: 4,
-                                    set_left_margin: 4,
-                                    set_right_margin: 4,
-                                    set_bottom_margin: 4,
-                                },
-                            },
-                        },
-                        gtk::ScrolledWindow {
-                            set_hexpand: true,
-
-                            gtk::Frame {
-                                set_label: Some(&lang::lookup("add-evidence-http-res-label")),
-                                #[name = "res_entry"]
-                                gtk::TextView {
-                                    set_monospace: true,
-                                    set_top_margin: 4,
-                                    set_left_margin: 4,
-                                    set_right_margin: 4,
-                                    set_bottom_margin: 4,
-                                },
-                            },
-                        },
-                    },
-                    adw::PreferencesGroup {
-                        #[name = "caption_entry"]
-                        adw::EntryRow {
-                            set_title: &lang::lookup("add-evidence-http-caption-label"),
-                            connect_entry_activated => AddEvidenceInput::_AddEvidence,
-                        },
-                    },
-                    gtk::Button {
-                        set_label: &lang::lookup("add-evidence-submit"),
-                        add_css_class: "pill",
-                        add_css_class: "suggested-action",
-                        set_halign: gtk::Align::Center,
-
-                        connect_clicked => AddEvidenceInput::_AddEvidence,
-                    }
-                }
-            }
-        }
-    }
-
-    fn init(
-        _init: Self::Init,
-        root: Self::Root,
-        sender: ComponentSender<Self>,
-    ) -> ComponentParts<Self> {
-        let model = AddHttpEvidenceDialogModel {};
-        let widgets = view_output!();
-        ComponentParts { model, widgets }
-    }
-
-    fn update_with_view(
-        &mut self,
-        widgets: &mut Self::Widgets,
-        message: Self::Input,
-        sender: ComponentSender<Self>,
-        root: &Self::Root,
-    ) {
-        match message {
-            AddEvidenceInput::Present(window) => {
-                root.present(Some(&window));
-            }
-            AddEvidenceInput::_AddEvidence => {
-                let req_buffer = widgets.req_entry.buffer();
-                let req_content = req_buffer
-                    .text(&req_buffer.start_iter(), &req_buffer.end_iter(), false)
-                    .to_string();
-                let res_buffer = widgets.res_entry.buffer();
-                let res_content = res_buffer
-                    .text(&res_buffer.start_iter(), &res_buffer.end_iter(), false)
-                    .to_string();
-                let content = format!("{req_content}\n\n\x1e{res_content}");
-                let mut ev = Evidence::new(
-                    EvidenceKind::Http,
-                    EvidenceData::Base64 {
-                        data: content.into_bytes(),
-                    },
-                );
-                let caption_text = widgets.caption_entry.text().to_string();
-                if !caption_text.trim().is_empty() {
-                    ev.set_caption(Some(caption_text.trim().to_string()));
-                }
-                let _ = sender.output(AddEvidenceOutput::AddEvidence(ev));
-                root.close();
-            }
-            _ => (),
-        }
-        self.update_view(widgets, sender)
-    }
-}
-
 pub struct AddImageEvidenceDialogModel {
     package: Arc<RwLock<EvidencePackage>>,
 }
@@ -353,7 +132,7 @@ impl Component for AddImageEvidenceDialogModel {
                             title: lang::lookup("add-evidence-image-failed"),
                             message: lang::lookup_with_args(
                                 "add-evidence-image-failed-message",
-                                lang_args!("error", e.to_string()),
+                                &lang_args!("error", e.to_string()),
                             ),
                         })
                         .unwrap();
@@ -371,7 +150,7 @@ impl Component for AddImageEvidenceDialogModel {
                             title: lang::lookup("add-evidence-image-failed"),
                             message: lang::lookup_with_args(
                                 "add-evidence-image-failed-message",
-                                lang_args!("error", e.to_string()),
+                                &lang_args!("error", e.to_string()),
                             ),
                         })
                         .unwrap();
@@ -412,7 +191,7 @@ impl Component for AddImageEvidenceDialogModel {
                 widgets.file_row.set_text(path.to_str().unwrap_or_default());
             }
         }
-        self.update_view(widgets, sender)
+        self.update_view(widgets, sender);
     }
 }
 
@@ -521,7 +300,7 @@ impl Component for AddFileEvidenceDialogModel {
                             title: lang::lookup("add-evidence-file-failed"),
                             message: lang::lookup_with_args(
                                 "add-evidence-file-failed-message",
-                                lang_args!("error", e.to_string()),
+                                &lang_args!("error", e.to_string()),
                             ),
                         })
                         .unwrap();
@@ -539,7 +318,7 @@ impl Component for AddFileEvidenceDialogModel {
                             title: lang::lookup("add-evidence-file-failed"),
                             message: lang::lookup_with_args(
                                 "add-evidence-file-failed-message",
-                                lang_args!("error", e.to_string()),
+                                &lang_args!("error", e.to_string()),
                             ),
                         })
                         .unwrap();
@@ -584,6 +363,6 @@ impl Component for AddFileEvidenceDialogModel {
                 widgets.file_row.set_text(path.to_str().unwrap_or_default());
             }
         }
-        self.update_view(widgets, sender)
+        self.update_view(widgets, sender);
     }
 }

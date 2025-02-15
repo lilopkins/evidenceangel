@@ -1,4 +1,7 @@
-use std::sync::{Arc, RwLock};
+use std::{
+    cmp::Ordering,
+    sync::{Arc, RwLock},
+};
 
 use adw::prelude::*;
 use evidenceangel::{Evidence, EvidenceData, EvidenceKind, EvidencePackage};
@@ -63,6 +66,8 @@ impl EvidenceFactoryModel {
 pub enum EvidenceFactoryInput {
     /// Set the text for a text evidence object. If not text evidence, ignore.
     TextSetText(String),
+    /// Set the text for a rich text evidence object. If not rich text evidence, ignore.
+    RichTextSetText(String),
     /// Set the HTTP request text. If not HTTP evidence, ignore.
     HttpSetRequest(String),
     /// Set the HTTP response text. If not HTTP evidence, ignore.
@@ -242,6 +247,107 @@ impl FactoryComponent for EvidenceFactoryModel {
                 frame.set_child(Some(&scroll_window));
                 widgets.evidence_child.append(&frame);
             }
+            EvidenceKind::RichText => {
+                let bx = gtk::Box::new(gtk::Orientation::Vertical, 4);
+
+                let toolbar = gtk::Box::new(gtk::Orientation::Horizontal, 4);
+
+                let btn_bold = gtk::Button::new();
+                btn_bold.set_icon_name("text-bold");
+                btn_bold.set_tooltip(&lang::lookup("rich-text-bold"));
+                toolbar.append(&btn_bold);
+                let btn_italic = gtk::Button::new();
+                btn_italic.set_icon_name("text-italic");
+                btn_italic.set_tooltip(&lang::lookup("rich-text-italic"));
+                toolbar.append(&btn_italic);
+                let btn_monospace = gtk::Button::new();
+                btn_monospace.set_icon_name("code");
+                btn_monospace.set_tooltip(&lang::lookup("rich-text-monospace"));
+                toolbar.append(&btn_monospace);
+                toolbar.append(&gtk::Separator::new(gtk::Orientation::Vertical));
+                let btn_h1 = gtk::Button::new();
+                btn_h1.set_icon_name("text-header-1-lines-caret-regular");
+                btn_h1.set_tooltip(&lang::lookup("rich-text-heading-1"));
+                toolbar.append(&btn_h1);
+                let btn_h2 = gtk::Button::new();
+                btn_h2.set_icon_name("text-header-2-lines-caret-regular");
+                btn_h2.set_tooltip(&lang::lookup("rich-text-heading-2"));
+                toolbar.append(&btn_h2);
+                let btn_h3 = gtk::Button::new();
+                btn_h3.set_icon_name("text-header-3-lines-caret-regular");
+                btn_h3.set_tooltip(&lang::lookup("rich-text-heading-3"));
+                toolbar.append(&btn_h3);
+
+                let scroll_window = gtk::ScrolledWindow::default();
+                scroll_window.set_height_request(100);
+                scroll_window.set_hexpand(true);
+
+                let frame = gtk::Frame::new(None);
+
+                let text_view = gtk::TextView::new();
+                text_view.set_top_margin(8);
+                text_view.set_bottom_margin(8);
+                text_view.set_left_margin(8);
+                text_view.set_right_margin(8);
+
+                text_view.buffer().set_text(&self.get_data_as_string());
+                let sender_c = sender.clone();
+                text_view.buffer().connect_changed(move |buf| {
+                    sender_c.input(EvidenceFactoryInput::RichTextSetText(
+                        buf.text(&buf.start_iter(), &buf.end_iter(), false)
+                            .to_string(),
+                    ));
+                });
+
+                {
+                    let tv = text_view.clone();
+                    let buf = text_view.buffer();
+                    btn_bold.connect_clicked(move |_| {
+                        add_angelmark_tokens(&tv, &buf, "**");
+                    });
+                }
+                {
+                    let tv = text_view.clone();
+                    let buf = text_view.buffer();
+                    btn_italic.connect_clicked(move |_| {
+                        add_angelmark_tokens(&tv, &buf, "_");
+                    });
+                }
+                {
+                    let tv = text_view.clone();
+                    let buf = text_view.buffer();
+                    btn_monospace.connect_clicked(move |_| {
+                        add_angelmark_tokens(&tv, &buf, "`");
+                    });
+                }
+                {
+                    let tv = text_view.clone();
+                    let buf = text_view.buffer();
+                    btn_h1.connect_clicked(move |_| {
+                        set_angelmark_heading_level(&tv, &buf, 1);
+                    });
+                }
+                {
+                    let tv = text_view.clone();
+                    let buf = text_view.buffer();
+                    btn_h2.connect_clicked(move |_| {
+                        set_angelmark_heading_level(&tv, &buf, 2);
+                    });
+                }
+                {
+                    let tv = text_view.clone();
+                    let buf = text_view.buffer();
+                    btn_h3.connect_clicked(move |_| {
+                        set_angelmark_heading_level(&tv, &buf, 3);
+                    });
+                }
+
+                scroll_window.set_child(Some(&text_view));
+                frame.set_child(Some(&scroll_window));
+                bx.append(&toolbar);
+                bx.append(&frame);
+                widgets.evidence_child.append(&bx);
+            }
             EvidenceKind::Image => {
                 let img = gtk::Picture::new();
                 img.set_paintable(self.get_data_as_texture().as_ref());
@@ -253,7 +359,7 @@ impl FactoryComponent for EvidenceFactoryModel {
                 let data = self.get_data_as_string();
                 let data_parts = data
                     .split(HTTP_SEPARATOR)
-                    .map(|s| s.to_string())
+                    .map(ToString::to_string)
                     .collect::<Vec<_>>();
                 let request = data_parts.first().cloned().unwrap_or_default();
                 let response = data_parts.get(1).cloned().unwrap_or_default();
@@ -314,7 +420,7 @@ impl FactoryComponent for EvidenceFactoryModel {
                 if let Some(filename) = self.evidence.read().unwrap().original_filename() {
                     label.set_markup(&lang::lookup_with_args(
                         "test-evidence-file-named",
-                        lang_args!("filename", filename),
+                        &lang_args!("filename", filename),
                     ));
                 } else {
                     label.set_markup(&lang::lookup("test-evidence-file-unnamed"));
@@ -353,7 +459,27 @@ impl FactoryComponent for EvidenceFactoryModel {
                     EvidenceData::Base64 { data } => {
                         *data = new_text.into_bytes();
                     }
-                    _ => panic!("cannot handle text of media type"),
+                    EvidenceData::Media { .. } => panic!("cannot handle text of media type"),
+                }
+                sender
+                    .output(EvidenceFactoryOutput::UpdateEvidence(
+                        self.index.clone(),
+                        self.evidence.read().unwrap().clone(),
+                    ))
+                    .unwrap();
+            }
+            EvidenceFactoryInput::RichTextSetText(new_text) => {
+                if *self.evidence.read().unwrap().kind() != EvidenceKind::RichText {
+                    return;
+                }
+                match self.evidence.write().unwrap().value_mut() {
+                    EvidenceData::Text { content } => {
+                        *content = new_text;
+                    }
+                    EvidenceData::Base64 { data } => {
+                        *data = new_text.into_bytes();
+                    }
+                    EvidenceData::Media { .. } => panic!("cannot handle text of media type"),
                 }
                 sender
                     .output(EvidenceFactoryOutput::UpdateEvidence(
@@ -370,7 +496,7 @@ impl FactoryComponent for EvidenceFactoryModel {
                     EvidenceData::Text { content } => {
                         let data_parts = content
                             .split(HTTP_SEPARATOR)
-                            .map(|s| s.to_string())
+                            .map(ToString::to_string)
                             .collect::<Vec<_>>();
                         let response = data_parts.get(1).cloned().unwrap_or_default();
 
@@ -381,7 +507,7 @@ impl FactoryComponent for EvidenceFactoryModel {
                     EvidenceData::Base64 { data } => {
                         let data_parts = String::from_utf8_lossy(data)
                             .split(HTTP_SEPARATOR)
-                            .map(|s| s.to_string())
+                            .map(ToString::to_string)
                             .collect::<Vec<_>>();
                         let response = data_parts.get(1).cloned().unwrap_or_default();
 
@@ -389,7 +515,7 @@ impl FactoryComponent for EvidenceFactoryModel {
                         new_req.push_str(&response);
                         *data = new_req.into_bytes();
                     }
-                    _ => panic!("cannot handle text of media type"),
+                    EvidenceData::Media { .. } => panic!("cannot handle text of media type"),
                 }
                 sender
                     .output(EvidenceFactoryOutput::UpdateEvidence(
@@ -406,7 +532,7 @@ impl FactoryComponent for EvidenceFactoryModel {
                     EvidenceData::Text { content } => {
                         let data_parts = content
                             .split(HTTP_SEPARATOR)
-                            .map(|s| s.to_string())
+                            .map(ToString::to_string)
                             .collect::<Vec<_>>();
                         let mut request = data_parts.first().cloned().unwrap_or_default();
 
@@ -417,7 +543,7 @@ impl FactoryComponent for EvidenceFactoryModel {
                     EvidenceData::Base64 { data } => {
                         let data_parts = String::from_utf8_lossy(data)
                             .split(HTTP_SEPARATOR)
-                            .map(|s| s.to_string())
+                            .map(ToString::to_string)
                             .collect::<Vec<_>>();
                         let mut request = data_parts.first().cloned().unwrap_or_default();
 
@@ -425,7 +551,7 @@ impl FactoryComponent for EvidenceFactoryModel {
                         request.push_str(&new_res);
                         *data = request.into_bytes();
                     }
-                    _ => panic!("cannot handle text of media type"),
+                    EvidenceData::Media { .. } => panic!("cannot handle text of media type"),
                 }
                 sender
                     .output(EvidenceFactoryOutput::UpdateEvidence(
@@ -474,4 +600,108 @@ impl FactoryComponent for EvidenceFactoryModel {
             }
         }
     }
+}
+
+#[allow(clippy::cast_possible_wrap)]
+fn add_angelmark_tokens(text_view: &gtk::TextView, buf: &gtk::TextBuffer, token: &str) {
+    let token_len = token.len() as i32;
+    if let Some((start, end)) = buf.selection_bounds() {
+        // Check if already has token
+        let start_pos = start.offset();
+        let end_pos = end.offset();
+        let mut add_token = true;
+
+        if start_pos >= token_len
+            && end_pos <= (buf.end_iter().offset() - buf.start_iter().offset() - token_len)
+            && buf.text(
+                &buf.iter_at_offset(start_pos - token_len),
+                &buf.iter_at_offset(start_pos),
+                false,
+            ) == token
+            && buf.text(
+                &buf.iter_at_offset(start_pos - token_len),
+                &buf.iter_at_offset(start_pos),
+                false,
+            ) == token
+        {
+            add_token = false;
+        }
+
+        if add_token {
+            buf.insert(&mut buf.iter_at_offset(end_pos), token);
+            buf.insert(&mut buf.iter_at_offset(start_pos), token);
+            buf.select_range(
+                &buf.iter_at_offset(start_pos + token_len),
+                &buf.iter_at_offset(end_pos + token_len),
+            );
+        } else {
+            buf.delete(
+                &mut buf.iter_at_offset(end_pos),
+                &mut buf.iter_at_offset(end_pos + token_len),
+            );
+            buf.delete(
+                &mut buf.iter_at_offset(start_pos - token_len),
+                &mut buf.iter_at_offset(start_pos),
+            );
+        }
+    } else {
+        let mut iter = buf.iter_at_offset(buf.cursor_position());
+        buf.insert(&mut iter, &format!("{token}{token}"));
+        iter.backward_chars(token_len);
+        buf.place_cursor(&iter);
+    }
+    text_view.grab_focus();
+}
+
+#[allow(clippy::cast_possible_wrap)]
+fn set_angelmark_heading_level(text_view: &gtk::TextView, buf: &gtk::TextBuffer, level: usize) {
+    // Check number of "#" at beginning of line
+    let mut current_heading_level = 0;
+    let mut start_of_line = buf.iter_at_offset(buf.cursor_position());
+    start_of_line.set_line_offset(0);
+    let mut six_in = start_of_line;
+    for _ in 0..6 {
+        six_in.forward_char();
+        if six_in.ends_line() {
+            break;
+        }
+    }
+    let first_6 = buf.text(&start_of_line, &six_in, false);
+    for c in first_6.chars() {
+        if c == '#' {
+            current_heading_level += 1;
+        } else {
+            break;
+        }
+    }
+
+    tracing::trace!("heading level: target = {level}, curr = {current_heading_level}");
+
+    // Add or remove "#" as needed to meet `level`
+    match level.cmp(&current_heading_level) {
+        Ordering::Greater => {
+            // Add
+            let mut s = String::new();
+            for _ in current_heading_level..level {
+                s.push('#');
+            }
+            if current_heading_level == 0 {
+                s.push(' ');
+            }
+
+            tracing::trace!("Adding: {s:?}");
+            buf.insert(&mut start_of_line, &s);
+        }
+        Ordering::Less => {
+            // Remove
+            let num_to_delete = current_heading_level - level;
+            let mut delete_end = start_of_line;
+            delete_end.forward_chars(num_to_delete as i32);
+            tracing::trace!("Deleting {num_to_delete} chars");
+            buf.delete(&mut start_of_line, &mut delete_end);
+        }
+        Ordering::Equal => (),
+    }
+
+    text_view.grab_focus();
 }

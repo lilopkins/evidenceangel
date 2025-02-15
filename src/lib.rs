@@ -1,9 +1,14 @@
 #![deny(missing_docs)]
 #![deny(clippy::missing_docs_in_private_items)]
+#![deny(unsafe_code)]
+#![warn(clippy::pedantic)]
+#![allow(clippy::too_many_lines)]
+#![allow(clippy::cast_possible_truncation)]
+#![allow(clippy::cast_sign_loss)]
 
-//! # EvidenceAngel
+//! # `EvidenceAngel`
 //!
-//! EvidenceAngel is a new tool in the Angel-suite to collect test evidence
+//! `EvidenceAngel` is a new tool in the Angel-suite to collect test evidence
 //! from both manual and automated testing.
 
 /// The types of data in a package

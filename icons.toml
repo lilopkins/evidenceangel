@@ -12,5 +12,11 @@ icons = [
     "lightbulb",
     "menu",
     "plus",
+    "text-bold",
+    "text-italic",
+    "code",
+    "text-header-1-lines-caret-regular",
+    "text-header-2-lines-caret-regular",
+    "text-header-3-lines-caret-regular",
 ]
 icon_folder = "icons"
