@@ -75,9 +75,8 @@ impl CliPackage {
         name: String,
         authors: Vec<String>,
         description: Option<String>,
-        mut test_cases: Vec<PackageTestCase>,
+        test_cases: Vec<PackageTestCase>,
     ) -> Self {
-        test_cases.sort_by(|a, b| a.executed_at.cmp(&b.executed_at));
         CliPackage {
             name,
             description,

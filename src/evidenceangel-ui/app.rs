@@ -28,7 +28,7 @@ use crate::{
     evidence_factory::{EvidenceFactoryInit, EvidenceFactoryModel, EvidenceFactoryOutput},
     filter, lang, lang_args,
     nav_factory::{NavFactoryInit, NavFactoryInput, NavFactoryModel, NavFactoryOutput},
-    util::BoxedEvidenceJson,
+    util::{BoxedEvidenceJson, BoxedTestCaseById},
 };
 
 relm4::new_action_group!(MenuActionGroup, "menu");
@@ -126,8 +126,6 @@ impl AppModel {
                     },
                 ));
             }
-            // Sort
-            ordered_cases.sort_by(|(a, _), (b, _)| b.cmp(a));
             for (_exdt, case) in ordered_cases {
                 test_case_data.push_back(case);
             }
@@ -181,6 +179,11 @@ pub enum AppInput {
     /// `NavigateTo` ignores the index provided as part of [`OpenCase::Case`] and establishes
     /// it automatically.
     NavigateTo(OpenCase),
+    MoveTestCase {
+        case_to_move: Uuid,
+        /// Move the test case before the specified UUID, or if set to none, move to end
+        before: Option<Uuid>,
+    },
     DeleteCase(Uuid),
     CreateCaseAndSelect,
     SetMetadataTitle(String),
@@ -292,6 +295,26 @@ impl Component for AppModel {
                                     set_orientation: gtk::Orientation::Vertical,
                                     set_spacing: 2,
                                 },
+
+                                gtk::Box {
+                                    set_height_request: 34, // gtk::Button is 34 high
+
+                                    add_controller = gtk::DropTarget {
+                                        set_actions: gtk::gdk::DragAction::MOVE,
+                                        set_types: &[BoxedTestCaseById::static_type()],
+
+                                        connect_drop[sender] => move |_slf, val, _x, _y| {
+                                            tracing::debug!("Dropped type: {:?}", val.type_());
+                                            if let Ok(data) = val.get::<BoxedTestCaseById>() {
+                                                let dropped_case = data.inner();
+                                                tracing::debug!("Dropped case: {dropped_case:?}");
+                                                sender.input(AppInput::MoveTestCase { case_to_move: dropped_case, before: None });
+                                                return true;
+                                            }
+                                            false
+                                        },
+                                    },
+                                }
                             }
                         }
                     },
@@ -728,6 +751,13 @@ impl Component for AppModel {
                     NavFactoryOutput::NavigateTo(index, id) => {
                         AppInput::NavigateTo(OpenCase::Case { index, id })
                     }
+                    NavFactoryOutput::MoveBefore {
+                        case_to_move,
+                        before,
+                    } => AppInput::MoveTestCase {
+                        case_to_move,
+                        before: Some(before),
+                    },
                 },
             ),
             authors_factory: FactoryVecDeque::builder().launch_default().forward(
@@ -1013,8 +1043,6 @@ impl Component for AppModel {
                                 ordered_cases
                                     .push((case.metadata().execution_datetime(), *case.id()));
                             }
-                            // Sort
-                            ordered_cases.sort_by(|(a, _), (b, _)| b.cmp(a));
                             ordered_cases
                                 .iter()
                                 .position(|(_dt, ocid)| *ocid == id)
@@ -1152,6 +1180,45 @@ impl Component for AppModel {
                     }
                     self.update_nav_menu().unwrap(); // doesn't fail
                     sender.input(AppInput::NavigateTo(OpenCase::Metadata));
+                    self.needs_saving = true;
+                }
+            }
+            AppInput::MoveTestCase {
+                case_to_move,
+                before,
+            } => {
+                if before == Some(case_to_move) {
+                    return;
+                }
+
+                if let Some(pkg) = self.get_package() {
+                    let mut new_order = pkg
+                        .read()
+                        .unwrap()
+                        .test_case_iter()
+                        .unwrap()
+                        .map(|tc| *tc.id())
+                        .collect::<Vec<_>>();
+                    let pos = new_order.iter().position(|id| *id == case_to_move).unwrap();
+                    new_order.remove(pos);
+
+                    match before {
+                        None => {
+                            // add to end
+                            new_order.push(case_to_move);
+                        }
+                        Some(other_case_id) => {
+                            let other_pos = new_order
+                                .iter()
+                                .position(|id| *id == other_case_id)
+                                .unwrap();
+                            new_order.insert(other_pos, case_to_move);
+                        }
+                    }
+
+                    pkg.write().unwrap().set_test_case_order(new_order).unwrap();
+
+                    self.update_nav_menu().unwrap(); // doesn't fail
                     self.needs_saving = true;
                 }
             }
@@ -1533,6 +1600,7 @@ impl Component for AppModel {
                             .metadata()
                             .title()
                             .clone(),
+                        package_path: self.open_path.clone().unwrap(),
                         test_case_name: None,
                     })
                     .forward(sender.input_sender(), |msg| match msg {
@@ -1558,6 +1626,7 @@ impl Component for AppModel {
                     let export_dlg = ExportDialogModel::builder()
                         .launch(ExportDialogInit {
                             package_name: pkg.metadata().title().clone(),
+                            package_path: self.open_path.clone().unwrap(),
                             test_case_name: Some(case_name),
                         })
                         .forward(sender.input_sender(), |msg| match msg {

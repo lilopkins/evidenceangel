@@ -89,6 +89,7 @@ export-target-package = Entire Package
 export-file-label = Export to...
 export-format-label = Export Format
 export-submit = Export
+export-submit-replace = Export, overwriting file
 export-error-nothing-open-title = Nothing Open to Export
 export-error-nothing-open-message = Nothing is open to export.
 export-error-failed-title = Failed to Export

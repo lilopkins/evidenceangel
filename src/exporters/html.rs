@@ -60,12 +60,7 @@ impl Exporter for HtmlExporter {
             );
         }
 
-        let mut test_cases: Vec<&TestCase> = package.test_case_iter()?.collect();
-        test_cases.sort_by(|a, b| {
-            a.metadata()
-                .execution_datetime()
-                .cmp(b.metadata().execution_datetime())
-        });
+        let test_cases: Vec<&TestCase> = package.test_case_iter()?.collect();
         let mut first = true;
         let mut test_case_elems = vec![];
         let mut tab_container =

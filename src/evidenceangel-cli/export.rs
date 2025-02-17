@@ -140,7 +140,7 @@ pub fn process(path: PathBuf, command: &ExportSubcommand) -> CliData {
         } => match EvidencePackage::open(path) {
             Ok(mut package) => {
                 // match against a test case
-                let mut test_cases: Vec<_> = package
+                let test_cases: Vec<_> = package
                     .test_case_iter()
                     .unwrap()
                     .map(|tc| {
@@ -151,7 +151,6 @@ pub fn process(path: PathBuf, command: &ExportSubcommand) -> CliData {
                         )
                     })
                     .collect();
-                test_cases.sort_by(|(_, _, a), (_, _, b)| a.cmp(b));
 
                 let case_id = if let Ok(idx) = case.parse::<usize>() {
                     if idx == 0 || idx > test_cases.len() {
