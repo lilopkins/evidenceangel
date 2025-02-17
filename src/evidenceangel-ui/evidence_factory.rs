@@ -367,6 +367,7 @@ impl FactoryComponent for EvidenceFactoryModel {
 
                 let frame = gtk::Frame::default();
                 frame.set_height_request(EVIDENCE_HEIGHT_REQUEST);
+                frame.set_label(Some(&lang::lookup("evidence-http-request")));
                 let scrolled = gtk::ScrolledWindow::new();
                 scrolled.set_hexpand(true);
                 let txt_request = gtk::TextView::default();
@@ -393,6 +394,7 @@ impl FactoryComponent for EvidenceFactoryModel {
 
                 let frame = gtk::Frame::default();
                 frame.set_height_request(EVIDENCE_HEIGHT_REQUEST);
+                frame.set_label(Some(&lang::lookup("evidence-http-response")));
                 let scrolled = gtk::ScrolledWindow::new();
                 scrolled.set_hexpand(true);
                 let txt_response = gtk::TextView::default();

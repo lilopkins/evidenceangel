@@ -102,6 +102,8 @@ evidence-delete = Ta bort det här bevis
 evidence-text = Text
 evidence-richtext = Rik Text
 evidence-http = HTTP-begäran
+evidence-http-request = Begäran
+evidence-http-response = Svar
 evidence-image = Bild
 evidence-file = Fil
 
