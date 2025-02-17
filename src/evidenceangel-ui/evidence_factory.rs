@@ -289,6 +289,7 @@ impl FactoryComponent for EvidenceFactoryModel {
                 text_view.set_bottom_margin(8);
                 text_view.set_left_margin(8);
                 text_view.set_right_margin(8);
+                text_view.set_wrap_mode(gtk::WrapMode::Word);
 
                 text_view.buffer().set_text(&self.get_data_as_string());
                 let sender_c = sender.clone();
