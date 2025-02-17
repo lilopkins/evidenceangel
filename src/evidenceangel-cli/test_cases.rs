@@ -8,7 +8,7 @@ use std::{
 
 use angelmark::{parse_angelmark, AngelmarkLine};
 use chrono::FixedOffset;
-use clap::Subcommand;
+use clap::{Subcommand, ValueEnum};
 use colored::Colorize;
 use evidenceangel::{Evidence, EvidenceData, EvidenceKind, EvidencePackage, MediaFile};
 use schemars::JsonSchema;
@@ -52,6 +52,20 @@ pub enum TestCasesSubcommand {
         /// The one-based index of the test case to delete, or enough of the title to uniquely match against one test case.
         #[arg(index = 1)]
         case: String,
+    },
+    /// Move a particular test case to a new position
+    Move {
+        /// The one-based index of the test case to move, or enough of the title to uniquely match against one test case.
+        #[arg(index = 1)]
+        case: String,
+
+        /// Whether to position before or after a case.
+        #[arg(index = 2, value_enum)]
+        before_or_after: BeforeOrAfter,
+
+        /// The one-based index of the test case to position based upon, or enough of the title to uniquely match against one test case.
+        #[arg(index = 3)]
+        other_case: String,
     },
     /// Add evidence to a test case.
     AddEvidence {
@@ -135,6 +149,15 @@ pub enum EvidenceValue {
         #[arg(index = 2)]
         caption: Option<String>,
     },
+}
+
+/// Whether to position before or after
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
+pub enum BeforeOrAfter {
+    /// Position before the other case
+    Before,
+    /// Position after the other case
+    After,
 }
 
 /// The data of a test case
@@ -233,7 +256,7 @@ pub enum CliEvidence {
 /// Match a test case by a string, either a number (id) of the test case, or a
 /// partial text match to the title
 fn match_test_case(package: &mut EvidencePackage, case: &str) -> Option<Uuid> {
-    let mut test_cases: Vec<_> = package
+    let test_cases: Vec<_> = package
         .test_case_iter()
         .unwrap()
         .map(|tc| {
@@ -244,7 +267,6 @@ fn match_test_case(package: &mut EvidencePackage, case: &str) -> Option<Uuid> {
             )
         })
         .collect();
-    test_cases.sort_by(|(_, _, a), (_, _, b)| a.cmp(b));
 
     if let Ok(idx) = case.parse::<usize>() {
         if idx == 0 || idx > test_cases.len() {
@@ -510,6 +532,58 @@ pub fn process(path: PathBuf, command: &TestCasesSubcommand) -> CliData {
                 if let Err(e) = package.save() {
                     return CliError::FailedToSavePackage(Rc::new(e)).into();
                 }
+                CliData::Success
+            }
+            Err(e) => CliError::FailedToReadPackage(Rc::new(e)).into(),
+        },
+        TestCasesSubcommand::Move {
+            case,
+            before_or_after,
+            other_case,
+        } => match EvidencePackage::open(path) {
+            Ok(mut package) => {
+                let case_id = match_test_case(&mut package, case);
+                if case_id.is_none() {
+                    return CliError::CannotMatchTestCase(case.clone()).into();
+                }
+                let case_id = case_id.unwrap();
+
+                let other_case_id = match_test_case(&mut package, other_case);
+                if other_case_id.is_none() {
+                    return CliError::CannotMatchTestCase(other_case.clone()).into();
+                }
+                let other_case_id = other_case_id.unwrap();
+
+                // Establish new order
+                let mut new_order;
+                match package.test_case_iter() {
+                    Ok(cases) => {
+                        new_order = cases.map(|tc| *tc.id()).collect::<Vec<_>>();
+                        let pos = new_order.iter().position(|id| *id == case_id).unwrap();
+                        new_order.remove(pos);
+                        let other_pos = new_order
+                            .iter()
+                            .position(|id| *id == other_case_id)
+                            .unwrap();
+                        let new_pos = match before_or_after {
+                            BeforeOrAfter::Before => other_pos,
+                            BeforeOrAfter::After => other_pos + 1,
+                        };
+                        tracing::debug!("Reinserting at position {new_pos}");
+                        new_order.insert(new_pos, case_id);
+                    }
+                    Err(e) => return CliError::FailedToReadPackage(Rc::new(e)).into(),
+                };
+
+                // Update order
+                if let Err(e) = package.set_test_case_order(new_order) {
+                    return CliError::FailedToSavePackage(Rc::new(e)).into();
+                }
+
+                if let Err(e) = package.save() {
+                    return CliError::FailedToSavePackage(Rc::new(e)).into();
+                }
+
                 CliData::Success
             }
             Err(e) => CliError::FailedToReadPackage(Rc::new(e)).into(),

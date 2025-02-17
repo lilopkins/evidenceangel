@@ -1,8 +1,5 @@
 use std::{
-    collections::{
-        hash_map::{Values, ValuesMut},
-        HashMap,
-    },
+    collections::HashMap,
     fmt,
     io::{self, BufReader, Read, Write},
     path::PathBuf,
@@ -375,24 +372,59 @@ impl EvidencePackage {
         }
     }
 
+    /// Obtain an iterator over test cases in the order they are set.
+    ///
+    /// # Errors
+    ///
+    /// Currently cannot fail.
+    #[allow(clippy::missing_panics_doc)]
+    pub fn test_case_iter(&self) -> Result<impl Iterator<Item = &TestCase>> {
+        Ok(self
+            .test_cases
+            .iter()
+            .map(|tcme| self.test_case(*tcme.name()).unwrap().unwrap()))
+    }
+
     /// Obtain an iterator over test cases.
     /// Note that this is unsorted.
     ///
     /// # Errors
     ///
     /// Currently cannot fail.
-    pub fn test_case_iter(&self) -> Result<Values<Uuid, TestCase>> {
-        Ok(self.test_case_data.values())
+    #[deprecated = "Unused internally and doesn't return test cases sorted. Use `test_case_iter` instead, then for mutable access use `test_case_mut`."]
+    pub fn test_case_iter_mut(&mut self) -> Result<impl Iterator<Item = &mut TestCase>> {
+        Ok(self.test_case_data.values_mut())
     }
 
-    /// Obtain an iterator over test cases
-    /// Note that this is unsorted.
+    /// Update the order of test cases
+    ///
+    /// # Panics
+    ///
+    /// Panics if the new order doesn't contain every test case in this package.
     ///
     /// # Errors
     ///
     /// Currently cannot fail.
-    pub fn test_case_iter_mut(&mut self) -> Result<ValuesMut<Uuid, TestCase>> {
-        Ok(self.test_case_data.values_mut())
+    pub fn set_test_case_order(&mut self, new_order: Vec<Uuid>) -> Result<()> {
+        let required_uuids = self
+            .test_cases
+            .iter()
+            .map(|tcme| *tcme.name())
+            .collect::<Vec<_>>();
+        for uuid in required_uuids {
+            assert!(
+                new_order.contains(&uuid),
+                "The new order doesn't contain every test case in this package"
+            );
+        }
+
+        tracing::debug!("Committing new test case order: {new_order:?}");
+        self.test_cases.clear();
+        for uuid in new_order {
+            self.test_cases.push(TestCaseManifestEntry::new(uuid));
+        }
+
+        Ok(())
     }
 
     /// Create a new test case.
