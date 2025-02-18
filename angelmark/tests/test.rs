@@ -6,6 +6,11 @@ fn empty_string_is_valid() {
 }
 
 #[test]
+fn single_line_with_no_newline_is_valid() {
+    parse_angelmark("test").unwrap();
+}
+
+#[test]
 fn parse_test_document() {
     let parsed_doc = parse_angelmark(include_str!("angelmark.md")).unwrap();
     let expected = vec![
