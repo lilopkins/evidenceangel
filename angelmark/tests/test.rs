@@ -64,7 +64,8 @@ fn parse_test_document() {
         )))),
         AngelmarkLine::Newline,
         AngelmarkLine::TextLine(AngelmarkText::Raw(
-            r#"Something with_underlines_separating_it but that\ shouldn't be italicised!"#.to_string()
+            r#"Something with_underlines_separating_it but that\ shouldn't be italicised!"#
+                .to_string(),
         )),
         AngelmarkLine::Newline,
         AngelmarkLine::TextLine(AngelmarkText::Raw("Also ".to_string())),

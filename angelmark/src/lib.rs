@@ -50,6 +50,7 @@ pub enum AngelmarkText {
 /// # Errors
 ///
 /// - [`Error::Parsing`] if the input markup couldn't be parsed.
+#[allow(clippy::missing_panics_doc)]
 pub fn parse_angelmark<S: AsRef<str>>(input: S) -> Result<Vec<AngelmarkLine>, Error> {
     let markup_file = lexer::AngelmarkParser::parse(Rule::MarkupFile, input.as_ref())
         .map_err(Box::new)?
@@ -65,7 +66,7 @@ pub fn parse_angelmark<S: AsRef<str>>(input: S) -> Result<Vec<AngelmarkLine>, Er
             Rule::Comment => (),
             Rule::Newline => {
                 if content.last() != Some(&AngelmarkLine::Newline) {
-                    content.push(AngelmarkLine::Newline)
+                    content.push(AngelmarkLine::Newline);
                 }
             }
 
@@ -106,7 +107,7 @@ pub fn parse_angelmark<S: AsRef<str>>(input: S) -> Result<Vec<AngelmarkLine>, Er
                     .collect(),
             )),
             Rule::TextBold | Rule::TextItalic | Rule::TextMonospace | Rule::RawText => {
-                content.push(AngelmarkLine::TextLine(parse_text_content(pair)))
+                content.push(AngelmarkLine::TextLine(parse_text_content(pair)));
             }
 
             _ => unreachable!(),
@@ -142,6 +143,6 @@ fn parse_text_content(pair: Pair<Rule>) -> AngelmarkText {
 }
 
 fn unescape_str(s: &str) -> String {
-    let r = Regex::new(r#"\\(.)"#).unwrap();
+    let r = Regex::new(r"\\(.)").unwrap();
     r.replace_all(s, "$1").into_owned()
 }
