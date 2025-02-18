@@ -23,5 +23,6 @@ Formatting **in** a line *as well* as _on it's own_!
 
 `monospace`
 
-Also `monospace` but in a line.
+Something with\_underlines\_separating\_it but that\\ shouldn't be italicised!
 
+Also `monospace` but in a line.

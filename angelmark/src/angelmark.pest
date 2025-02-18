@@ -72,5 +72,10 @@ TextMonospace = {
 }
 
 RawText = @{
-    (!("*" | "_" | "`" | NEWLINE) ~ ANY)+
+    (
+    	((EscapeChar ~ (EscapeChar | "_" | "**" | "*" | "`")) |
+    	!("*" | "_" | "`" | NEWLINE)
+    ) ~ ANY)+
 }
+
+EscapeChar = { "\\" }

@@ -72,6 +72,7 @@ version = "0.0.0"
 dependencies = [
  "pest",
  "pest_derive",
+ "regex",
  "thiserror 2.0.11",
  "tracing",
 ]

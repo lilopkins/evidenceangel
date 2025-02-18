@@ -9,6 +9,7 @@ use pest::{iterators::Pair, Parser};
 
 mod lexer;
 use lexer::Rule;
+use regex::Regex;
 
 /// A line of markup in AngelMark
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -134,8 +135,13 @@ fn parse_text_content(pair: Pair<Rule>) -> AngelmarkText {
         Rule::TextMonospace => AngelmarkText::Monospace(Box::new(parse_text_content(
             pair.into_inner().next().unwrap(),
         ))),
-        Rule::RawText => AngelmarkText::Raw(pair.as_str().to_string()),
+        Rule::RawText => AngelmarkText::Raw(unescape_str(pair.as_str())),
 
         _ => unreachable!(),
     }
+}
+
+fn unescape_str(s: &str) -> String {
+    let r = Regex::new(r#"\\(.)"#).unwrap();
+    r.replace_all(s, "$1").into_owned()
 }
