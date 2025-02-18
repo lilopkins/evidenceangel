@@ -14,17 +14,17 @@ use lexer::Rule;
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum AngelmarkLine {
     /// A level 1 heading.
-    Heading1(AngelmarkText),
+    Heading1(Vec<AngelmarkText>),
     /// A level 2 heading.
-    Heading2(AngelmarkText),
+    Heading2(Vec<AngelmarkText>),
     /// A level 3 heading.
-    Heading3(AngelmarkText),
+    Heading3(Vec<AngelmarkText>),
     /// A level 4 heading.
-    Heading4(AngelmarkText),
+    Heading4(Vec<AngelmarkText>),
     /// A level 5 heading.
-    Heading5(AngelmarkText),
+    Heading5(Vec<AngelmarkText>),
     /// A level 6 heading.
-    Heading6(AngelmarkText),
+    Heading6(Vec<AngelmarkText>),
     /// A line of text.
     TextLine(AngelmarkText),
     /// A line separator.
@@ -68,24 +68,42 @@ pub fn parse_angelmark<S: AsRef<str>>(input: S) -> Result<Vec<AngelmarkLine>, Er
                 }
             }
 
-            Rule::Heading1 => content.push(AngelmarkLine::Heading1(parse_text_content(
-                pair.into_inner().next().unwrap(),
-            ))),
-            Rule::Heading2 => content.push(AngelmarkLine::Heading2(parse_text_content(
-                pair.into_inner().next().unwrap(),
-            ))),
-            Rule::Heading3 => content.push(AngelmarkLine::Heading3(parse_text_content(
-                pair.into_inner().next().unwrap(),
-            ))),
-            Rule::Heading4 => content.push(AngelmarkLine::Heading4(parse_text_content(
-                pair.into_inner().next().unwrap(),
-            ))),
-            Rule::Heading5 => content.push(AngelmarkLine::Heading5(parse_text_content(
-                pair.into_inner().next().unwrap(),
-            ))),
-            Rule::Heading6 => content.push(AngelmarkLine::Heading6(parse_text_content(
-                pair.into_inner().next().unwrap(),
-            ))),
+            Rule::Heading1 => content.push(AngelmarkLine::Heading1(
+                pair.into_inner()
+                    .filter(|pair| pair.as_rule() != Rule::Newline)
+                    .map(|pair| parse_text_content(pair))
+                    .collect(),
+            )),
+            Rule::Heading2 => content.push(AngelmarkLine::Heading2(
+                pair.into_inner()
+                    .filter(|pair| pair.as_rule() != Rule::Newline)
+                    .map(|pair| parse_text_content(pair))
+                    .collect(),
+            )),
+            Rule::Heading3 => content.push(AngelmarkLine::Heading3(
+                pair.into_inner()
+                    .filter(|pair| pair.as_rule() != Rule::Newline)
+                    .map(|pair| parse_text_content(pair))
+                    .collect(),
+            )),
+            Rule::Heading4 => content.push(AngelmarkLine::Heading4(
+                pair.into_inner()
+                    .filter(|pair| pair.as_rule() != Rule::Newline)
+                    .map(|pair| parse_text_content(pair))
+                    .collect(),
+            )),
+            Rule::Heading5 => content.push(AngelmarkLine::Heading5(
+                pair.into_inner()
+                    .filter(|pair| pair.as_rule() != Rule::Newline)
+                    .map(|pair| parse_text_content(pair))
+                    .collect(),
+            )),
+            Rule::Heading6 => content.push(AngelmarkLine::Heading6(
+                pair.into_inner()
+                    .filter(|pair| pair.as_rule() != Rule::Newline)
+                    .map(|pair| parse_text_content(pair))
+                    .collect(),
+            )),
             Rule::TextBold | Rule::TextItalic | Rule::TextMonospace | Rule::RawText => {
                 content.push(AngelmarkLine::TextLine(parse_text_content(pair)))
             }

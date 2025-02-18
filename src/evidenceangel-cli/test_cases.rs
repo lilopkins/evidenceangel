@@ -197,13 +197,19 @@ impl fmt::Display for CliTestCase {
                             for line in rich {
                                 match line {
                                     AngelmarkLine::Newline => rich_text.push('\n'),
-                                    AngelmarkLine::Heading1(txt)
-                                    | AngelmarkLine::Heading2(txt)
-                                    | AngelmarkLine::Heading3(txt)
-                                    | AngelmarkLine::Heading4(txt)
-                                    | AngelmarkLine::Heading5(txt)
-                                    | AngelmarkLine::Heading6(txt)
-                                    | AngelmarkLine::TextLine(txt) => rich_text
+                                    AngelmarkLine::Heading1(line)
+                                    | AngelmarkLine::Heading2(line)
+                                    | AngelmarkLine::Heading3(line)
+                                    | AngelmarkLine::Heading4(line)
+                                    | AngelmarkLine::Heading5(line)
+                                    | AngelmarkLine::Heading6(line) => {
+                                        for txt in line {
+                                            rich_text.push_str(
+                                                &crate::angelmark::angelmark_to_term(&txt),
+                                            );
+                                        }
+                                    }
+                                    AngelmarkLine::TextLine(txt) => rich_text
                                         .push_str(&crate::angelmark::angelmark_to_term(&txt)),
                                 }
                             }

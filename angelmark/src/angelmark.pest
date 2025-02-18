@@ -10,14 +10,13 @@ MarkupLine = _{
     Heading5 |
     Heading4 |
     Heading3 |
-    Heading2 | 
+    Heading2 |
     Heading1 |
-    TextContent |
-    Newline
+    Paragraph
 }
 
 Comment = {
-	"//" ~ (!NEWLINE ~ ANY)*
+	"//" ~ (!NEWLINE ~ ANY)* ~ NEWLINE+
 }
 
 Newline = {
@@ -25,27 +24,31 @@ Newline = {
 }
 
 Heading1 = {
-	"#" ~ " "? ~ TextContent ~ NEWLINE+
+	"#" ~ " "? ~ Paragraph
 }
 
 Heading2 = {
-	"##" ~ " "? ~ TextContent ~ NEWLINE+
+	"##" ~ " "? ~ Paragraph
 }
 
 Heading3 = {
-	"###" ~ " "? ~ TextContent ~ NEWLINE+
+	"###" ~ " "? ~ Paragraph
 }
 
 Heading4 = {
-	"####" ~ " "? ~ TextContent ~ NEWLINE+
+	"####" ~ " "? ~ Paragraph
 }
 
 Heading5 = {
-	"#####" ~ " "? ~ TextContent ~ NEWLINE+
+	"#####" ~ " "? ~ Paragraph
 }
 
 Heading6 = {
-	"######" ~ " "? ~ TextContent ~ NEWLINE+
+	"######" ~ " "? ~ Paragraph
+}
+
+Paragraph = _{
+	TextContent+ ~ Newline
 }
 
 TextContent = _{

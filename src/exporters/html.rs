@@ -175,30 +175,66 @@ fn create_test_case_div(
                             AngelmarkLine::Newline => {
                                 elem.add_html(HtmlElement::new(HtmlTag::LineBreak));
                             }
-                            AngelmarkLine::Heading1(angelmark) => elem.add_html(angelmark_to_html(
-                                &angelmark,
-                                HtmlElement::new(HtmlTag::Heading1),
-                            )),
-                            AngelmarkLine::Heading2(angelmark) => elem.add_html(angelmark_to_html(
-                                &angelmark,
-                                HtmlElement::new(HtmlTag::Heading2),
-                            )),
-                            AngelmarkLine::Heading3(angelmark) => elem.add_html(angelmark_to_html(
-                                &angelmark,
-                                HtmlElement::new(HtmlTag::Heading3),
-                            )),
-                            AngelmarkLine::Heading4(angelmark) => elem.add_html(angelmark_to_html(
-                                &angelmark,
-                                HtmlElement::new(HtmlTag::Heading4),
-                            )),
-                            AngelmarkLine::Heading5(angelmark) => elem.add_html(angelmark_to_html(
-                                &angelmark,
-                                HtmlElement::new(HtmlTag::Heading5),
-                            )),
-                            AngelmarkLine::Heading6(angelmark) => elem.add_html(angelmark_to_html(
-                                &angelmark,
-                                HtmlElement::new(HtmlTag::Heading6),
-                            )),
+                            AngelmarkLine::Heading1(angelmark_texts) => {
+                                let mut h = HtmlElement::new(HtmlTag::Heading1);
+                                for angelmark in angelmark_texts {
+                                    h.add_html(angelmark_to_html(
+                                        &angelmark,
+                                        HtmlElement::new(HtmlTag::Span),
+                                    ));
+                                }
+                                elem.add_html(h);
+                            }
+                            AngelmarkLine::Heading2(angelmark_texts) => {
+                                let mut h = HtmlElement::new(HtmlTag::Heading2);
+                                for angelmark in angelmark_texts {
+                                    h.add_html(angelmark_to_html(
+                                        &angelmark,
+                                        HtmlElement::new(HtmlTag::Span),
+                                    ));
+                                }
+                                elem.add_html(h);
+                            }
+                            AngelmarkLine::Heading3(angelmark_texts) => {
+                                let mut h = HtmlElement::new(HtmlTag::Heading3);
+                                for angelmark in angelmark_texts {
+                                    h.add_html(angelmark_to_html(
+                                        &angelmark,
+                                        HtmlElement::new(HtmlTag::Span),
+                                    ));
+                                }
+                                elem.add_html(h);
+                            }
+                            AngelmarkLine::Heading4(angelmark_texts) => {
+                                let mut h = HtmlElement::new(HtmlTag::Heading4);
+                                for angelmark in angelmark_texts {
+                                    h.add_html(angelmark_to_html(
+                                        &angelmark,
+                                        HtmlElement::new(HtmlTag::Span),
+                                    ));
+                                }
+                                elem.add_html(h);
+                            }
+                            AngelmarkLine::Heading5(angelmark_texts) => {
+                                let mut h = HtmlElement::new(HtmlTag::Heading5);
+                                for angelmark in angelmark_texts {
+                                    h.add_html(angelmark_to_html(
+                                        &angelmark,
+                                        HtmlElement::new(HtmlTag::Span),
+                                    ));
+                                }
+                                elem.add_html(h);
+                            }
+                            AngelmarkLine::Heading6(angelmark_texts) => {
+                                let mut h = HtmlElement::new(HtmlTag::Heading6);
+                                for angelmark in angelmark_texts {
+                                    h.add_html(angelmark_to_html(
+                                        &angelmark,
+                                        HtmlElement::new(HtmlTag::Span),
+                                    ));
+                                }
+                                elem.add_html(h);
+                            }
                             AngelmarkLine::TextLine(angelmark) => elem.add_html(angelmark_to_html(
                                 &angelmark,
                                 HtmlElement::new(HtmlTag::Span),
