@@ -1,6 +1,6 @@
 # Heading 1
-## Heading 2
-### Heading 3
+## **Heading** 2
+### _Heading_ 3
 #### Heading 4
 ##### Heading 5
 ###### Heading 6
@@ -23,5 +23,6 @@ Formatting **in** a line *as well* as _on it's own_!
 
 `monospace`
 
-Also `monospace` but in a line.
+Something with\_underlines\_separating\_it but that\\ shouldn't be italicised!
 
+Also `monospace` but in a line.

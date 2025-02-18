@@ -96,14 +96,16 @@ impl Component for NewAuthorDialogModel {
             NewAuthorInput::_Create => {
                 let name = widgets.name.text().to_string();
                 let email = widgets.email.text().to_string();
-                let author = if email.trim().is_empty() {
-                    Author::new(name)
-                } else {
-                    Author::new_with_email(name, email.trim().to_string())
-                };
-                sender
-                    .output(NewAuthorOutput::CreateAuthor(author))
-                    .unwrap();
+                if !(name.trim().is_empty() && email.trim().is_empty()) {
+                    let author = if email.trim().is_empty() {
+                        Author::new(name)
+                    } else {
+                        Author::new_with_email(name, email.trim().to_string())
+                    };
+                    sender
+                        .output(NewAuthorOutput::CreateAuthor(author))
+                        .unwrap();
+                }
                 root.close();
             }
         }

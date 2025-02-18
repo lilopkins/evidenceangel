@@ -176,86 +176,122 @@ fn create_test_case_sheet(
                                 row += 1;
                             }
                             AngelmarkLine::Heading1(angelmark) => {
+                                let fragments = angelmark
+                                    .iter()
+                                    .map(|text| {
+                                        angelmark_to_excel(
+                                            text,
+                                            Format::default().set_font_size(32),
+                                        )
+                                    })
+                                    .collect::<Vec<_>>();
                                 worksheet.write_rich_string(
                                     row,
                                     1,
-                                    &vec![angelmark_to_excel(
-                                        &angelmark,
-                                        Format::default().set_font_size(32),
-                                    )]
-                                    .iter()
-                                    .map(|(f, s)| (f, s.as_str()))
-                                    .collect::<Vec<_>>(),
+                                    &fragments
+                                        .iter()
+                                        .map(|(f, s)| (f, s.as_str()))
+                                        .collect::<Vec<_>>(),
                                 )?;
                                 row += 1;
                             }
                             AngelmarkLine::Heading2(angelmark) => {
+                                let fragments = angelmark
+                                    .iter()
+                                    .map(|text| {
+                                        angelmark_to_excel(
+                                            text,
+                                            Format::default().set_font_size(28),
+                                        )
+                                    })
+                                    .collect::<Vec<_>>();
                                 worksheet.write_rich_string(
                                     row,
                                     1,
-                                    &vec![angelmark_to_excel(
-                                        &angelmark,
-                                        Format::default().set_font_size(28),
-                                    )]
-                                    .iter()
-                                    .map(|(f, s)| (f, s.as_str()))
-                                    .collect::<Vec<_>>(),
+                                    &fragments
+                                        .iter()
+                                        .map(|(f, s)| (f, s.as_str()))
+                                        .collect::<Vec<_>>(),
                                 )?;
                                 row += 1;
                             }
                             AngelmarkLine::Heading3(angelmark) => {
+                                let fragments = angelmark
+                                    .iter()
+                                    .map(|text| {
+                                        angelmark_to_excel(
+                                            text,
+                                            Format::default().set_font_size(24),
+                                        )
+                                    })
+                                    .collect::<Vec<_>>();
                                 worksheet.write_rich_string(
                                     row,
                                     1,
-                                    &vec![angelmark_to_excel(
-                                        &angelmark,
-                                        Format::default().set_font_size(24),
-                                    )]
-                                    .iter()
-                                    .map(|(f, s)| (f, s.as_str()))
-                                    .collect::<Vec<_>>(),
+                                    &fragments
+                                        .iter()
+                                        .map(|(f, s)| (f, s.as_str()))
+                                        .collect::<Vec<_>>(),
                                 )?;
                                 row += 1;
                             }
                             AngelmarkLine::Heading4(angelmark) => {
+                                let fragments = angelmark
+                                    .iter()
+                                    .map(|text| {
+                                        angelmark_to_excel(
+                                            text,
+                                            Format::default().set_font_size(18),
+                                        )
+                                    })
+                                    .collect::<Vec<_>>();
                                 worksheet.write_rich_string(
                                     row,
                                     1,
-                                    &vec![angelmark_to_excel(
-                                        &angelmark,
-                                        Format::default().set_font_size(18),
-                                    )]
-                                    .iter()
-                                    .map(|(f, s)| (f, s.as_str()))
-                                    .collect::<Vec<_>>(),
+                                    &fragments
+                                        .iter()
+                                        .map(|(f, s)| (f, s.as_str()))
+                                        .collect::<Vec<_>>(),
                                 )?;
                                 row += 1;
                             }
                             AngelmarkLine::Heading5(angelmark) => {
+                                let fragments = angelmark
+                                    .iter()
+                                    .map(|text| {
+                                        angelmark_to_excel(
+                                            text,
+                                            Format::default().set_font_size(16),
+                                        )
+                                    })
+                                    .collect::<Vec<_>>();
                                 worksheet.write_rich_string(
                                     row,
                                     1,
-                                    &vec![angelmark_to_excel(
-                                        &angelmark,
-                                        Format::default().set_font_size(16),
-                                    )]
-                                    .iter()
-                                    .map(|(f, s)| (f, s.as_str()))
-                                    .collect::<Vec<_>>(),
+                                    &fragments
+                                        .iter()
+                                        .map(|(f, s)| (f, s.as_str()))
+                                        .collect::<Vec<_>>(),
                                 )?;
                                 row += 1;
                             }
                             AngelmarkLine::Heading6(angelmark) => {
+                                let fragments = angelmark
+                                    .iter()
+                                    .map(|text| {
+                                        angelmark_to_excel(
+                                            text,
+                                            Format::default().set_font_size(14),
+                                        )
+                                    })
+                                    .collect::<Vec<_>>();
                                 worksheet.write_rich_string(
                                     row,
                                     1,
-                                    &vec![angelmark_to_excel(
-                                        &angelmark,
-                                        Format::default().set_font_size(14),
-                                    )]
-                                    .iter()
-                                    .map(|(f, s)| (f, s.as_str()))
-                                    .collect::<Vec<_>>(),
+                                    &fragments
+                                        .iter()
+                                        .map(|(f, s)| (f, s.as_str()))
+                                        .collect::<Vec<_>>(),
                                 )?;
                                 row += 1;
                             }

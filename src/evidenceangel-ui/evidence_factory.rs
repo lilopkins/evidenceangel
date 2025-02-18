@@ -289,6 +289,7 @@ impl FactoryComponent for EvidenceFactoryModel {
                 text_view.set_bottom_margin(8);
                 text_view.set_left_margin(8);
                 text_view.set_right_margin(8);
+                text_view.set_wrap_mode(gtk::WrapMode::Word);
 
                 text_view.buffer().set_text(&self.get_data_as_string());
                 let sender_c = sender.clone();
@@ -366,6 +367,7 @@ impl FactoryComponent for EvidenceFactoryModel {
 
                 let frame = gtk::Frame::default();
                 frame.set_height_request(EVIDENCE_HEIGHT_REQUEST);
+                frame.set_label(Some(&lang::lookup("evidence-http-request")));
                 let scrolled = gtk::ScrolledWindow::new();
                 scrolled.set_hexpand(true);
                 let txt_request = gtk::TextView::default();
@@ -392,6 +394,7 @@ impl FactoryComponent for EvidenceFactoryModel {
 
                 let frame = gtk::Frame::default();
                 frame.set_height_request(EVIDENCE_HEIGHT_REQUEST);
+                frame.set_label(Some(&lang::lookup("evidence-http-response")));
                 let scrolled = gtk::ScrolledWindow::new();
                 scrolled.set_hexpand(true);
                 let txt_response = gtk::TextView::default();

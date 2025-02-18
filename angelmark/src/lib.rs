@@ -9,22 +9,23 @@ use pest::{iterators::Pair, Parser};
 
 mod lexer;
 use lexer::Rule;
+use regex::Regex;
 
 /// A line of markup in AngelMark
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum AngelmarkLine {
     /// A level 1 heading.
-    Heading1(AngelmarkText),
+    Heading1(Vec<AngelmarkText>),
     /// A level 2 heading.
-    Heading2(AngelmarkText),
+    Heading2(Vec<AngelmarkText>),
     /// A level 3 heading.
-    Heading3(AngelmarkText),
+    Heading3(Vec<AngelmarkText>),
     /// A level 4 heading.
-    Heading4(AngelmarkText),
+    Heading4(Vec<AngelmarkText>),
     /// A level 5 heading.
-    Heading5(AngelmarkText),
+    Heading5(Vec<AngelmarkText>),
     /// A level 6 heading.
-    Heading6(AngelmarkText),
+    Heading6(Vec<AngelmarkText>),
     /// A line of text.
     TextLine(AngelmarkText),
     /// A line separator.
@@ -49,6 +50,7 @@ pub enum AngelmarkText {
 /// # Errors
 ///
 /// - [`Error::Parsing`] if the input markup couldn't be parsed.
+#[allow(clippy::missing_panics_doc)]
 pub fn parse_angelmark<S: AsRef<str>>(input: S) -> Result<Vec<AngelmarkLine>, Error> {
     let markup_file = lexer::AngelmarkParser::parse(Rule::MarkupFile, input.as_ref())
         .map_err(Box::new)?
@@ -64,30 +66,48 @@ pub fn parse_angelmark<S: AsRef<str>>(input: S) -> Result<Vec<AngelmarkLine>, Er
             Rule::Comment => (),
             Rule::Newline => {
                 if content.last() != Some(&AngelmarkLine::Newline) {
-                    content.push(AngelmarkLine::Newline)
+                    content.push(AngelmarkLine::Newline);
                 }
             }
 
-            Rule::Heading1 => content.push(AngelmarkLine::Heading1(parse_text_content(
-                pair.into_inner().next().unwrap(),
-            ))),
-            Rule::Heading2 => content.push(AngelmarkLine::Heading2(parse_text_content(
-                pair.into_inner().next().unwrap(),
-            ))),
-            Rule::Heading3 => content.push(AngelmarkLine::Heading3(parse_text_content(
-                pair.into_inner().next().unwrap(),
-            ))),
-            Rule::Heading4 => content.push(AngelmarkLine::Heading4(parse_text_content(
-                pair.into_inner().next().unwrap(),
-            ))),
-            Rule::Heading5 => content.push(AngelmarkLine::Heading5(parse_text_content(
-                pair.into_inner().next().unwrap(),
-            ))),
-            Rule::Heading6 => content.push(AngelmarkLine::Heading6(parse_text_content(
-                pair.into_inner().next().unwrap(),
-            ))),
+            Rule::Heading1 => content.push(AngelmarkLine::Heading1(
+                pair.into_inner()
+                    .filter(|pair| pair.as_rule() != Rule::Newline)
+                    .map(|pair| parse_text_content(pair))
+                    .collect(),
+            )),
+            Rule::Heading2 => content.push(AngelmarkLine::Heading2(
+                pair.into_inner()
+                    .filter(|pair| pair.as_rule() != Rule::Newline)
+                    .map(|pair| parse_text_content(pair))
+                    .collect(),
+            )),
+            Rule::Heading3 => content.push(AngelmarkLine::Heading3(
+                pair.into_inner()
+                    .filter(|pair| pair.as_rule() != Rule::Newline)
+                    .map(|pair| parse_text_content(pair))
+                    .collect(),
+            )),
+            Rule::Heading4 => content.push(AngelmarkLine::Heading4(
+                pair.into_inner()
+                    .filter(|pair| pair.as_rule() != Rule::Newline)
+                    .map(|pair| parse_text_content(pair))
+                    .collect(),
+            )),
+            Rule::Heading5 => content.push(AngelmarkLine::Heading5(
+                pair.into_inner()
+                    .filter(|pair| pair.as_rule() != Rule::Newline)
+                    .map(|pair| parse_text_content(pair))
+                    .collect(),
+            )),
+            Rule::Heading6 => content.push(AngelmarkLine::Heading6(
+                pair.into_inner()
+                    .filter(|pair| pair.as_rule() != Rule::Newline)
+                    .map(|pair| parse_text_content(pair))
+                    .collect(),
+            )),
             Rule::TextBold | Rule::TextItalic | Rule::TextMonospace | Rule::RawText => {
-                content.push(AngelmarkLine::TextLine(parse_text_content(pair)))
+                content.push(AngelmarkLine::TextLine(parse_text_content(pair)));
             }
 
             _ => unreachable!(),
@@ -116,8 +136,13 @@ fn parse_text_content(pair: Pair<Rule>) -> AngelmarkText {
         Rule::TextMonospace => AngelmarkText::Monospace(Box::new(parse_text_content(
             pair.into_inner().next().unwrap(),
         ))),
-        Rule::RawText => AngelmarkText::Raw(pair.as_str().to_string()),
+        Rule::RawText => AngelmarkText::Raw(unescape_str(pair.as_str())),
 
         _ => unreachable!(),
     }
+}
+
+fn unescape_str(s: &str) -> String {
+    let r = Regex::new(r"\\(.)").unwrap();
+    r.replace_all(s, "$1").into_owned()
 }

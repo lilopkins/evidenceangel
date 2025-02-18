@@ -102,6 +102,8 @@ evidence-delete = Delete this Evidence
 evidence-text = Text
 evidence-richtext = Rich Text
 evidence-http = HTTP Request
+evidence-http-request = Request
+evidence-http-response = Response
 evidence-image = Image
 evidence-file = File
 
