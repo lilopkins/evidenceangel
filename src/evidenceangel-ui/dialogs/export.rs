@@ -34,6 +34,8 @@ pub struct ExportDialogInit {
     pub package_path: PathBuf,
     /// The name of the test case beinge exported, or None if the whole package is to be exported.
     pub test_case_name: Option<String>,
+    /// Does the file need saving before exporting
+    pub needs_saving: bool,
 }
 
 pub struct ExportDialogModel {
@@ -43,6 +45,8 @@ pub struct ExportDialogModel {
     package_directory: PathBuf,
     /// The name of the test case beinge exported, or None if the whole package is to be exported.
     test_case_name: Option<String>,
+    /// Does the file need saving before exporting
+    needs_saving: bool,
 }
 
 #[relm4::component(pub)]
@@ -96,7 +100,11 @@ impl Component for ExportDialogModel {
                     },
                     #[name = "export_btn"]
                     gtk::Button {
-                        set_label: &lang::lookup("export-submit"),
+                        set_label: &if needs_saving {
+                            lang::lookup("export-submit-save")
+                        } else {
+                            lang::lookup("export-submit")
+                        },
                         add_css_class: "pill",
                         add_css_class: "suggested-action",
                         set_halign: gtk::Align::Center,
@@ -117,11 +125,13 @@ impl Component for ExportDialogModel {
             package_name,
             package_path,
             test_case_name,
+            needs_saving,
         } = init;
         let model = Self {
             package_name,
             package_directory: package_path.parent().unwrap().to_path_buf(),
             test_case_name,
+            needs_saving,
         };
         let widgets = view_output!();
         ComponentParts { model, widgets }
@@ -169,12 +179,16 @@ impl Component for ExportDialogModel {
                     tracing::debug!("Making path relative to EVP: {path:?}");
                 }
                 if let Ok(true) = fs::exists(path) {
-                    widgets
-                        .export_btn
-                        .set_label(&lang::lookup("export-submit-replace"));
+                    widgets.export_btn.set_label(&lang::lookup(format!(
+                        "export-submit{}-replace",
+                        if self.needs_saving { "-save" } else { "" }
+                    )));
                     widgets.export_btn.add_css_class("warning");
                 } else {
-                    widgets.export_btn.set_label(&lang::lookup("export-submit"));
+                    widgets.export_btn.set_label(&lang::lookup(format!(
+                        "export-submit{}",
+                        if self.needs_saving { "-save" } else { "" }
+                    )));
                     widgets.export_btn.remove_css_class("warning");
                 }
             }
