@@ -8,6 +8,7 @@ use evidenceangel::{Evidence, EvidenceData, EvidenceKind, EvidencePackage};
 #[allow(unused_imports)]
 use gtk::prelude::*;
 use relm4::{
+    actions::{RelmAction, RelmActionGroup},
     adw,
     factory::FactoryView,
     gtk,
@@ -20,6 +21,10 @@ use crate::{lang, lang_args};
 
 const EVIDENCE_HEIGHT_REQUEST: i32 = 300;
 const HTTP_SEPARATOR: char = '\x1e';
+
+relm4::new_action_group!(RichTextEditorActionGroup, "rich-text-editor");
+relm4::new_stateless_action!(BoldAction, RichTextEditorActionGroup, "bold");
+relm4::new_stateless_action!(ItalicAction, RichTextEditorActionGroup, "italic");
 
 pub struct EvidenceFactoryModel {
     index: DynamicIndex,
@@ -279,7 +284,7 @@ impl FactoryComponent for EvidenceFactoryModel {
                 toolbar.append(&btn_h3);
 
                 let scroll_window = gtk::ScrolledWindow::default();
-                scroll_window.set_height_request(100);
+                scroll_window.set_height_request(200);
                 scroll_window.set_hexpand(true);
 
                 let frame = gtk::Frame::new(None);
@@ -300,6 +305,43 @@ impl FactoryComponent for EvidenceFactoryModel {
                     ));
                 });
 
+                // Register accelerators
+                let mut group = RelmActionGroup::<RichTextEditorActionGroup>::new();
+                let action_bold: RelmAction<BoldAction> = {
+                    let tv = text_view.clone();
+                    let buf = text_view.buffer();
+                    RelmAction::new_stateless(move |_| {
+                        add_angelmark_tokens(&tv, &buf, "**");
+                    })
+                };
+                group.add_action(action_bold);
+                let action_italic: RelmAction<ItalicAction> = {
+                    let tv = text_view.clone();
+                    let buf = text_view.buffer();
+                    RelmAction::new_stateless(move |_| {
+                        add_angelmark_tokens(&tv, &buf, "_");
+                    })
+                };
+                group.add_action(action_italic);
+                group.register_for_widget(&text_view);
+
+                let sc = gtk::ShortcutController::new();
+                sc.add_shortcut(gtk::Shortcut::new(
+                    Some(gtk::ShortcutTrigger::parse_string("<primary>B").unwrap()),
+                    Some(
+                        gtk::ShortcutAction::parse_string("action(rich-text-editor.bold)").unwrap(),
+                    ),
+                ));
+                sc.add_shortcut(gtk::Shortcut::new(
+                    Some(gtk::ShortcutTrigger::parse_string("<primary>I").unwrap()),
+                    Some(
+                        gtk::ShortcutAction::parse_string("action(rich-text-editor.italic)")
+                            .unwrap(),
+                    ),
+                ));
+                text_view.add_controller(sc);
+
+                // Set up buttons
                 {
                     let tv = text_view.clone();
                     let buf = text_view.buffer();
