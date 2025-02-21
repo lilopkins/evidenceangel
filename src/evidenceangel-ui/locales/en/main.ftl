@@ -109,6 +109,9 @@ evidence-http-response = Response
 evidence-image = Image
 evidence-file = File
 
+test-case-menu = Test Case Actions
+test-case-move-up = Move this Up
+test-case-move-down = Move this Down
 delete-case-title = Delete { $name }?
 delete-case-message = Do you really want to irreversibly delete test case { $name }?
 delete-case-affirm = Delete
