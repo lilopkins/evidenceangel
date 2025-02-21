@@ -116,18 +116,11 @@ impl AppModel {
         test_case_data.clear();
         if let Some(pkg) = self.open_package.as_ref() {
             let pkg = pkg.read().unwrap();
-            let mut ordered_cases = vec![];
             for case in pkg.test_case_iter()? {
-                ordered_cases.push((
-                    case.metadata().execution_datetime(),
-                    NavFactoryInit {
-                        id: *case.id(),
-                        name: case.metadata().title().clone(),
-                    },
-                ));
-            }
-            for (_exdt, case) in ordered_cases {
-                test_case_data.push_back(case);
+                test_case_data.push_back(NavFactoryInit {
+                    id: *case.id(),
+                    name: case.metadata().title().clone(),
+                });
             }
         }
         Ok(())
@@ -1137,10 +1130,14 @@ impl Component for AppModel {
                         .create_test_case(lang::lookup("default-case-title"))
                         .unwrap(); // doesn't fail
                     case_id = *case.id();
-                }
 
-                // Add case to navigation
-                self.update_nav_menu().unwrap(); // doesn't fail
+                    // Add case to navigation
+                    let mut test_case_data = self.test_case_nav_factory.guard();
+                    test_case_data.push_back(NavFactoryInit {
+                        id: case_id,
+                        name: case.metadata().title().clone(),
+                    });
+                }
                 self.needs_saving = true;
 
                 // Switch to case
@@ -1150,9 +1147,9 @@ impl Component for AppModel {
                     id: case_id,
                 }));
 
-                // Move to top of list
+                // Move to bottom of list
                 let adj = widgets.nav_scrolled_window.vadjustment();
-                adj.set_value(adj.lower());
+                adj.set_value(adj.upper());
                 widgets.nav_scrolled_window.set_vadjustment(Some(&adj));
             }
             AppInput::SetMetadataTitle(new_title) => {
@@ -1228,6 +1225,8 @@ impl Component for AppModel {
                         .collect::<Vec<_>>();
                     let pos = new_order.iter().position(|id| *id == case_to_move).unwrap();
                     new_order.remove(pos);
+                    let mut test_case_guard = self.test_case_nav_factory.guard();
+                    let NavFactoryModel { id, name, .. } = test_case_guard.remove(pos).unwrap();
 
                     if let Some(other_case_id) = before {
                         let other_pos = new_order
@@ -1235,21 +1234,24 @@ impl Component for AppModel {
                             .position(|id| *id == other_case_id)
                             .unwrap();
                         new_order.insert(other_pos, case_to_move);
+                        test_case_guard.insert(other_pos, NavFactoryInit { id, name });
                     } else {
                         #[allow(clippy::cast_possible_wrap)]
                         if let Some(offset) = offset {
                             // move by offset
-                            let new_pos = (pos as i32 + offset).max(0).min(new_order.len() as i32);
-                            new_order.insert(new_pos as usize, case_to_move);
+                            let new_pos =
+                                (pos as i32 + offset).max(0).min(new_order.len() as i32) as usize;
+                            new_order.insert(new_pos, case_to_move);
+                            test_case_guard.insert(new_pos, NavFactoryInit { id, name });
                         } else {
                             // add to end
                             new_order.push(case_to_move);
+                            test_case_guard.push_back(NavFactoryInit { id, name });
                         }
                     }
 
+                    sender.input(AppInput::NavigateTo(self.open_case));
                     pkg.write().unwrap().set_test_case_order(new_order).unwrap();
-
-                    self.update_nav_menu().unwrap(); // doesn't fail
                     self.needs_saving = true;
                 }
             }
@@ -1339,9 +1341,6 @@ impl Component for AppModel {
                                     tc.metadata_mut().set_execution_datetime(dt);
                                     self.needs_saving = true;
                                 }
-
-                                // Fix for #59, before reordable TCs are implemented as part of #47.
-                                self.update_nav_menu().unwrap(); // doesn't fail
                             }
                         }
                     }

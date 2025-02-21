@@ -11,8 +11,8 @@ use crate::util::BoxedTestCaseById;
 
 pub struct NavFactoryModel {
     selected: bool,
-    name: String,
-    id: Uuid,
+    pub name: String,
+    pub id: Uuid,
 }
 
 #[derive(Clone, Debug)]
