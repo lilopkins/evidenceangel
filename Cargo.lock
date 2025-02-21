@@ -607,7 +607,7 @@ checksum = "877a4ace8713b0bcf2a4e7eec82529c029f1d0619886d18145fea96c3ffe5c0f"
 
 [[package]]
 name = "evidenceangel"
-version = "1.4.0-alpha.4"
+version = "1.4.0-alpha.5"
 dependencies = [
  "angelmark",
  "base64",
