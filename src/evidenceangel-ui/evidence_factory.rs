@@ -259,28 +259,28 @@ impl FactoryComponent for EvidenceFactoryModel {
                 let toolbar = gtk::Box::new(gtk::Orientation::Horizontal, 4);
 
                 let btn_bold = gtk::Button::new();
-                btn_bold.set_icon_name("text-bold");
+                btn_bold.set_icon_name(relm4_icons::icon_names::TEXT_BOLD);
                 btn_bold.set_tooltip(&lang::lookup("rich-text-bold"));
                 toolbar.append(&btn_bold);
                 let btn_italic = gtk::Button::new();
-                btn_italic.set_icon_name("text-italic");
+                btn_italic.set_icon_name(relm4_icons::icon_names::TEXT_ITALIC);
                 btn_italic.set_tooltip(&lang::lookup("rich-text-italic"));
                 toolbar.append(&btn_italic);
                 let btn_monospace = gtk::Button::new();
-                btn_monospace.set_icon_name("code");
+                btn_monospace.set_icon_name(relm4_icons::icon_names::CODE);
                 btn_monospace.set_tooltip(&lang::lookup("rich-text-monospace"));
                 toolbar.append(&btn_monospace);
                 toolbar.append(&gtk::Separator::new(gtk::Orientation::Vertical));
                 let btn_h1 = gtk::Button::new();
-                btn_h1.set_icon_name("text-header-1-lines-caret-regular");
+                btn_h1.set_icon_name(relm4_icons::icon_names::TEXT_HEADER_1_LINES_CARET_REGULAR);
                 btn_h1.set_tooltip(&lang::lookup("rich-text-heading-1"));
                 toolbar.append(&btn_h1);
                 let btn_h2 = gtk::Button::new();
-                btn_h2.set_icon_name("text-header-2-lines-caret-regular");
+                btn_h2.set_icon_name(relm4_icons::icon_names::TEXT_HEADER_2_LINES_CARET_REGULAR);
                 btn_h2.set_tooltip(&lang::lookup("rich-text-heading-2"));
                 toolbar.append(&btn_h2);
                 let btn_h3 = gtk::Button::new();
-                btn_h3.set_icon_name("text-header-3-lines-caret-regular");
+                btn_h3.set_icon_name(relm4_icons::icon_names::TEXT_HEADER_3_LINES_CARET_REGULAR);
                 btn_h3.set_tooltip(&lang::lookup("rich-text-heading-3"));
                 toolbar.append(&btn_h3);
 
