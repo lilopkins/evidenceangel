@@ -48,7 +48,7 @@ Heading6 = {
 }
 
 Paragraph = _{
-	TextContent+ ~ Newline
+	TextContent+ ~ Newline?
 }
 
 TextContent = _{

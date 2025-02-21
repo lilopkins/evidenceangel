@@ -1,13 +1,15 @@
 use std::{
     cmp::Ordering,
-    sync::{Arc, RwLock},
+    sync::{Arc, Mutex, RwLock},
 };
 
 use adw::prelude::*;
+use angelmark::{parse_angelmark, AngelmarkLine, AngelmarkText, OwnedSpan};
 use evidenceangel::{Evidence, EvidenceData, EvidenceKind, EvidencePackage};
 #[allow(unused_imports)]
 use gtk::prelude::*;
 use relm4::{
+    actions::{RelmAction, RelmActionGroup},
     adw,
     factory::FactoryView,
     gtk,
@@ -20,6 +22,10 @@ use crate::{lang, lang_args};
 
 const EVIDENCE_HEIGHT_REQUEST: i32 = 300;
 const HTTP_SEPARATOR: char = '\x1e';
+
+relm4::new_action_group!(RichTextEditorActionGroup, "rich-text-editor");
+relm4::new_stateless_action!(BoldAction, RichTextEditorActionGroup, "bold");
+relm4::new_stateless_action!(ItalicAction, RichTextEditorActionGroup, "italic");
 
 pub struct EvidenceFactoryModel {
     index: DynamicIndex,
@@ -279,7 +285,7 @@ impl FactoryComponent for EvidenceFactoryModel {
                 toolbar.append(&btn_h3);
 
                 let scroll_window = gtk::ScrolledWindow::default();
-                scroll_window.set_height_request(100);
+                scroll_window.set_height_request(200);
                 scroll_window.set_hexpand(true);
 
                 let frame = gtk::Frame::new(None);
@@ -291,15 +297,105 @@ impl FactoryComponent for EvidenceFactoryModel {
                 text_view.set_right_margin(8);
                 text_view.set_wrap_mode(gtk::WrapMode::Word);
 
-                text_view.buffer().set_text(&self.get_data_as_string());
-                let sender_c = sender.clone();
-                text_view.buffer().connect_changed(move |buf| {
-                    sender_c.input(EvidenceFactoryInput::RichTextSetText(
-                        buf.text(&buf.start_iter(), &buf.end_iter(), false)
-                            .to_string(),
-                    ));
-                });
+                let processing = Arc::new(Mutex::new(false));
+                {
+                    let processing = processing.clone();
+                    let frame = frame.clone();
+                    text_view.buffer().connect_changed(move |buf| {
+                        if *processing.lock().unwrap() {
+                            return;
+                        }
 
+                        let text = buf
+                            .text(&buf.start_iter(), &buf.end_iter(), false)
+                            .to_string();
+
+                        // Update preview
+                        *processing.lock().unwrap() = true;
+                        if let Ok(lines) = parse_angelmark(&text) {
+                            let cursor_pos = buf.cursor_position();
+
+                            for line in lines {
+                                let (start, end) = *line.span().span();
+                                // Remove plain text
+                                #[allow(clippy::cast_possible_wrap)]
+                                buf.delete(
+                                    &mut buf.iter_at_offset(start as i32),
+                                    &mut buf.iter_at_offset(end as i32),
+                                );
+
+                                // Determine formatting
+                                let markup = angelmark_to_pango(&line);
+                                tracing::trace!("line: {line:?}");
+                                tracing::trace!("pango: {markup:?}");
+
+                                // Reinsert marked up text
+                                #[allow(clippy::cast_possible_wrap)]
+                                buf.insert_markup(&mut buf.iter_at_offset(start as i32), &markup);
+                            }
+
+                            buf.place_cursor(&buf.iter_at_offset(cursor_pos));
+                            frame.remove_css_class("warning");
+                        } else {
+                            frame.add_css_class("warning");
+                        }
+                        *processing.lock().unwrap() = false;
+                    });
+                }
+                text_view.buffer().set_text(&self.get_data_as_string());
+
+                {
+                    let sender = sender.clone();
+                    let processing = processing.clone();
+                    text_view.buffer().connect_changed(move |buf| {
+                        if *processing.lock().unwrap() {
+                            return;
+                        }
+
+                        let text = buf
+                            .text(&buf.start_iter(), &buf.end_iter(), false)
+                            .to_string();
+                        sender.input(EvidenceFactoryInput::RichTextSetText(text.clone()));
+                    });
+                }
+
+                // Register accelerators
+                let mut group = RelmActionGroup::<RichTextEditorActionGroup>::new();
+                let action_bold: RelmAction<BoldAction> = {
+                    let tv = text_view.clone();
+                    let buf = text_view.buffer();
+                    RelmAction::new_stateless(move |_| {
+                        add_angelmark_tokens(&tv, &buf, "**");
+                    })
+                };
+                group.add_action(action_bold);
+                let action_italic: RelmAction<ItalicAction> = {
+                    let tv = text_view.clone();
+                    let buf = text_view.buffer();
+                    RelmAction::new_stateless(move |_| {
+                        add_angelmark_tokens(&tv, &buf, "_");
+                    })
+                };
+                group.add_action(action_italic);
+                group.register_for_widget(&text_view);
+
+                let sc = gtk::ShortcutController::new();
+                sc.add_shortcut(gtk::Shortcut::new(
+                    Some(gtk::ShortcutTrigger::parse_string("<primary>B").unwrap()),
+                    Some(
+                        gtk::ShortcutAction::parse_string("action(rich-text-editor.bold)").unwrap(),
+                    ),
+                ));
+                sc.add_shortcut(gtk::Shortcut::new(
+                    Some(gtk::ShortcutTrigger::parse_string("<primary>I").unwrap()),
+                    Some(
+                        gtk::ShortcutAction::parse_string("action(rich-text-editor.italic)")
+                            .unwrap(),
+                    ),
+                ));
+                text_view.add_controller(sc);
+
+                // Set up buttons
                 {
                     let tv = text_view.clone();
                     let buf = text_view.buffer();
@@ -707,4 +803,96 @@ fn set_angelmark_heading_level(text_view: &gtk::TextView, buf: &gtk::TextBuffer,
     }
 
     text_view.grab_focus();
+}
+
+fn angelmark_to_pango(angelmark: &AngelmarkLine) -> String {
+    match angelmark {
+        AngelmarkLine::Newline(span) => span.original().clone(),
+        AngelmarkLine::TextLine(txt, _span) => angelmark_text_to_pango(txt),
+        AngelmarkLine::Heading1(txt, span) => {
+            let (prefix, suffix) =
+                get_prefix_and_suffix_around_children(span, txt.iter().map(AngelmarkText::span));
+            format!(
+                r#"<span size="xx-large">{prefix}{}</span>{suffix}"#,
+                txt.iter().map(angelmark_text_to_pango).collect::<String>()
+            )
+        }
+        AngelmarkLine::Heading2(txt, span) => {
+            let (prefix, suffix) =
+                get_prefix_and_suffix_around_children(span, txt.iter().map(AngelmarkText::span));
+            format!(
+                r#"<span size="x-large">{prefix}{}</span>{suffix}"#,
+                txt.iter().map(angelmark_text_to_pango).collect::<String>()
+            )
+        }
+        AngelmarkLine::Heading3(txt, span) => {
+            let (prefix, suffix) =
+                get_prefix_and_suffix_around_children(span, txt.iter().map(AngelmarkText::span));
+            format!(
+                r#"<span size="large">{prefix}{}</span>{suffix}"#,
+                txt.iter().map(angelmark_text_to_pango).collect::<String>()
+            )
+        }
+        AngelmarkLine::Heading4(txt, span)
+        | AngelmarkLine::Heading5(txt, span)
+        | AngelmarkLine::Heading6(txt, span) => {
+            let (prefix, suffix) =
+                get_prefix_and_suffix_around_children(span, txt.iter().map(AngelmarkText::span));
+            let sub = txt.iter().map(angelmark_text_to_pango).collect::<String>();
+            format!("{prefix}{sub}{suffix}")
+        }
+    }
+}
+
+fn angelmark_text_to_pango(angelmark: &AngelmarkText) -> String {
+    match angelmark {
+        AngelmarkText::Raw(_, span) => span.original().clone(),
+        AngelmarkText::Bold(content, span) => {
+            let (prefix, suffix) = get_prefix_and_suffix_around_child(span, content.span());
+            format!(
+                "<b>{prefix}{}{suffix}</b>",
+                angelmark_text_to_pango(content)
+            )
+        }
+        AngelmarkText::Italic(content, span) => {
+            let (prefix, suffix) = get_prefix_and_suffix_around_child(span, content.span());
+            format!(
+                "<i>{prefix}{}{suffix}</i>",
+                angelmark_text_to_pango(content)
+            )
+        }
+        AngelmarkText::Monospace(content, span) => {
+            let (prefix, suffix) = get_prefix_and_suffix_around_child(span, content.span());
+            format!(
+                "<tt>{prefix}{}{suffix}</tt>",
+                angelmark_text_to_pango(content)
+            )
+        }
+    }
+}
+
+fn get_prefix_and_suffix_around_children<'a, I>(
+    my_span: &'a OwnedSpan,
+    children_span: I,
+) -> (&'a str, &'a str)
+where
+    I: Iterator<Item = &'a OwnedSpan> + Clone,
+{
+    let (s, e) = *my_span.span();
+    let (s2, e2) = (
+        children_span.clone().map(|t| t.span().0).min().unwrap(),
+        children_span.map(|t| t.span().1).max().unwrap(),
+    );
+    let prefix_len = s2 - s;
+    let suffix_len = e - e2;
+    let prefix = &my_span.original()[0..prefix_len];
+    let suffix = &my_span.original()[(e2 - s)..(e2 - s + suffix_len)];
+    (prefix, suffix)
+}
+
+fn get_prefix_and_suffix_around_child<'a>(
+    my_span: &'a OwnedSpan,
+    child_span: &'a OwnedSpan,
+) -> (&'a str, &'a str) {
+    get_prefix_and_suffix_around_children(my_span, [child_span].iter().copied())
 }

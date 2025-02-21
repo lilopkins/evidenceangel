@@ -1589,6 +1589,7 @@ impl Component for AppModel {
                 if self.open_package.is_none() {
                     return;
                 }
+                let needs_saving = self.needs_saving;
                 let export_dlg = ExportDialogModel::builder()
                     .launch(ExportDialogInit {
                         package_name: self
@@ -1602,10 +1603,17 @@ impl Component for AppModel {
                             .clone(),
                         package_path: self.open_path.clone().unwrap(),
                         test_case_name: None,
+                        needs_saving,
                     })
-                    .forward(sender.input_sender(), |msg| match msg {
+                    .forward(sender.input_sender(), move |msg| match msg {
                         ExportOutput::Export { format, path } => {
-                            AppInput::_ExportPackage(format, path)
+                            if needs_saving {
+                                AppInput::SaveFileThen(Box::new(AppInput::_ExportPackage(
+                                    format, path,
+                                )))
+                            } else {
+                                AppInput::_ExportPackage(format, path)
+                            }
                         }
                     });
                 export_dlg.emit(ExportInput::Present(root.clone()));
@@ -1623,15 +1631,23 @@ impl Component for AppModel {
                         .ok()
                         .flatten()
                         .unwrap_or_default();
+                    let needs_saving = self.needs_saving;
                     let export_dlg = ExportDialogModel::builder()
                         .launch(ExportDialogInit {
                             package_name: pkg.metadata().title().clone(),
                             package_path: self.open_path.clone().unwrap(),
                             test_case_name: Some(case_name),
+                            needs_saving,
                         })
-                        .forward(sender.input_sender(), |msg| match msg {
+                        .forward(sender.input_sender(), move |msg| match msg {
                             ExportOutput::Export { format, path } => {
-                                AppInput::_ExportTestCase(format, path)
+                                if needs_saving {
+                                    AppInput::SaveFileThen(Box::new(AppInput::_ExportTestCase(
+                                        format, path,
+                                    )))
+                                } else {
+                                    AppInput::_ExportTestCase(format, path)
+                                }
                             }
                         });
                     export_dlg.emit(ExportInput::Present(root.clone()));
