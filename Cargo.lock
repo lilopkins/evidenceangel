@@ -70,6 +70,7 @@ dependencies = [
 name = "angelmark"
 version = "0.0.0"
 dependencies = [
+ "getset",
  "pest",
  "pest_derive",
  "regex",

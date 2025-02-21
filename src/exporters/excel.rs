@@ -157,13 +157,13 @@ fn create_test_case_sheet(
                 let text = String::from_utf8_lossy(data.as_slice());
 
                 if let Ok(mut rich_text) = parse_angelmark(&text) {
-                    if rich_text.last() != Some(&AngelmarkLine::Newline) {
-                        rich_text.push(AngelmarkLine::Newline);
+                    if !matches!(rich_text.last(), Some(AngelmarkLine::Newline(_))) {
+                        rich_text.push(AngelmarkLine::Newline(angelmark::OwnedSpan::default()));
                     }
                     let mut line_buffer: Vec<(Format, String)> = vec![];
                     for line in rich_text {
                         match line {
-                            AngelmarkLine::Newline => {
+                            AngelmarkLine::Newline(_span) => {
                                 worksheet.write_rich_string(
                                     row,
                                     1,
@@ -175,7 +175,7 @@ fn create_test_case_sheet(
                                 line_buffer.clear();
                                 row += 1;
                             }
-                            AngelmarkLine::Heading1(angelmark) => {
+                            AngelmarkLine::Heading1(angelmark, _span) => {
                                 let fragments = angelmark
                                     .iter()
                                     .map(|text| {
@@ -195,7 +195,7 @@ fn create_test_case_sheet(
                                 )?;
                                 row += 1;
                             }
-                            AngelmarkLine::Heading2(angelmark) => {
+                            AngelmarkLine::Heading2(angelmark, _span) => {
                                 let fragments = angelmark
                                     .iter()
                                     .map(|text| {
@@ -215,7 +215,7 @@ fn create_test_case_sheet(
                                 )?;
                                 row += 1;
                             }
-                            AngelmarkLine::Heading3(angelmark) => {
+                            AngelmarkLine::Heading3(angelmark, _span) => {
                                 let fragments = angelmark
                                     .iter()
                                     .map(|text| {
@@ -235,7 +235,7 @@ fn create_test_case_sheet(
                                 )?;
                                 row += 1;
                             }
-                            AngelmarkLine::Heading4(angelmark) => {
+                            AngelmarkLine::Heading4(angelmark, _span) => {
                                 let fragments = angelmark
                                     .iter()
                                     .map(|text| {
@@ -255,7 +255,7 @@ fn create_test_case_sheet(
                                 )?;
                                 row += 1;
                             }
-                            AngelmarkLine::Heading5(angelmark) => {
+                            AngelmarkLine::Heading5(angelmark, _span) => {
                                 let fragments = angelmark
                                     .iter()
                                     .map(|text| {
@@ -275,7 +275,7 @@ fn create_test_case_sheet(
                                 )?;
                                 row += 1;
                             }
-                            AngelmarkLine::Heading6(angelmark) => {
+                            AngelmarkLine::Heading6(angelmark, _span) => {
                                 let fragments = angelmark
                                     .iter()
                                     .map(|text| {
@@ -295,7 +295,7 @@ fn create_test_case_sheet(
                                 )?;
                                 row += 1;
                             }
-                            AngelmarkLine::TextLine(angelmark) => {
+                            AngelmarkLine::TextLine(angelmark, _span) => {
                                 line_buffer.push(angelmark_to_excel(&angelmark, Format::default()));
                             }
                         }
@@ -372,10 +372,10 @@ fn create_test_case_sheet(
 /// Convert Angelmark to Excel format data
 fn angelmark_to_excel(angelmark: &AngelmarkText, format: Format) -> (Format, String) {
     match angelmark {
-        AngelmarkText::Raw(txt) => (format, txt.clone()),
-        AngelmarkText::Bold(content) => angelmark_to_excel(content, format.set_bold()),
-        AngelmarkText::Italic(content) => angelmark_to_excel(content, format.set_italic()),
-        AngelmarkText::Monospace(content) => {
+        AngelmarkText::Raw(txt, _span) => (format, txt.clone()),
+        AngelmarkText::Bold(content, _span) => angelmark_to_excel(content, format.set_bold()),
+        AngelmarkText::Italic(content, _span) => angelmark_to_excel(content, format.set_italic()),
+        AngelmarkText::Monospace(content, _span) => {
             angelmark_to_excel(content, format.set_font_name("Courier New"))
         }
     }

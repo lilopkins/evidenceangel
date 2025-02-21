@@ -172,10 +172,10 @@ fn create_test_case_div(
                 if let Ok(rich_text) = parse_angelmark(&text) {
                     for line in rich_text {
                         match line {
-                            AngelmarkLine::Newline => {
+                            AngelmarkLine::Newline(_span) => {
                                 elem.add_html(HtmlElement::new(HtmlTag::LineBreak));
                             }
-                            AngelmarkLine::Heading1(angelmark_texts) => {
+                            AngelmarkLine::Heading1(angelmark_texts, _span) => {
                                 let mut h = HtmlElement::new(HtmlTag::Heading1);
                                 for angelmark in angelmark_texts {
                                     h.add_html(angelmark_to_html(
@@ -185,7 +185,7 @@ fn create_test_case_div(
                                 }
                                 elem.add_html(h);
                             }
-                            AngelmarkLine::Heading2(angelmark_texts) => {
+                            AngelmarkLine::Heading2(angelmark_texts, _span) => {
                                 let mut h = HtmlElement::new(HtmlTag::Heading2);
                                 for angelmark in angelmark_texts {
                                     h.add_html(angelmark_to_html(
@@ -195,7 +195,7 @@ fn create_test_case_div(
                                 }
                                 elem.add_html(h);
                             }
-                            AngelmarkLine::Heading3(angelmark_texts) => {
+                            AngelmarkLine::Heading3(angelmark_texts, _span) => {
                                 let mut h = HtmlElement::new(HtmlTag::Heading3);
                                 for angelmark in angelmark_texts {
                                     h.add_html(angelmark_to_html(
@@ -205,7 +205,7 @@ fn create_test_case_div(
                                 }
                                 elem.add_html(h);
                             }
-                            AngelmarkLine::Heading4(angelmark_texts) => {
+                            AngelmarkLine::Heading4(angelmark_texts, _span) => {
                                 let mut h = HtmlElement::new(HtmlTag::Heading4);
                                 for angelmark in angelmark_texts {
                                     h.add_html(angelmark_to_html(
@@ -215,7 +215,7 @@ fn create_test_case_div(
                                 }
                                 elem.add_html(h);
                             }
-                            AngelmarkLine::Heading5(angelmark_texts) => {
+                            AngelmarkLine::Heading5(angelmark_texts, _span) => {
                                 let mut h = HtmlElement::new(HtmlTag::Heading5);
                                 for angelmark in angelmark_texts {
                                     h.add_html(angelmark_to_html(
@@ -225,7 +225,7 @@ fn create_test_case_div(
                                 }
                                 elem.add_html(h);
                             }
-                            AngelmarkLine::Heading6(angelmark_texts) => {
+                            AngelmarkLine::Heading6(angelmark_texts, _span) => {
                                 let mut h = HtmlElement::new(HtmlTag::Heading6);
                                 for angelmark in angelmark_texts {
                                     h.add_html(angelmark_to_html(
@@ -235,10 +235,9 @@ fn create_test_case_div(
                                 }
                                 elem.add_html(h);
                             }
-                            AngelmarkLine::TextLine(angelmark) => elem.add_html(angelmark_to_html(
-                                &angelmark,
-                                HtmlElement::new(HtmlTag::Span),
-                            )),
+                            AngelmarkLine::TextLine(angelmark, _span) => elem.add_html(
+                                angelmark_to_html(&angelmark, HtmlElement::new(HtmlTag::Span)),
+                            ),
                         }
                     }
                     elem.add_html(HtmlElement::new(HtmlTag::LineBreak));
@@ -333,8 +332,8 @@ fn create_test_case_div(
 /// Convert Angelmark to HTML elements
 fn angelmark_to_html(angelmark: &AngelmarkText, mut elem: HtmlElement) -> HtmlElement {
     match angelmark {
-        AngelmarkText::Raw(txt) => elem.with_raw(html_escape::encode_text(txt)),
-        AngelmarkText::Bold(content) => {
+        AngelmarkText::Raw(txt, _span) => elem.with_raw(html_escape::encode_text(txt)),
+        AngelmarkText::Bold(content, _span) => {
             if let Some((_k, v)) = elem.attributes.iter_mut().find(|(k, _v)| k == "class") {
                 v.push_str(" richtext-bold");
             } else {
@@ -342,7 +341,7 @@ fn angelmark_to_html(angelmark: &AngelmarkText, mut elem: HtmlElement) -> HtmlEl
             }
             angelmark_to_html(content, elem)
         }
-        AngelmarkText::Italic(content) => {
+        AngelmarkText::Italic(content, _span) => {
             if let Some((_k, v)) = elem.attributes.iter_mut().find(|(k, _v)| k == "class") {
                 v.push_str(" richtext-italic");
             } else {
@@ -350,7 +349,7 @@ fn angelmark_to_html(angelmark: &AngelmarkText, mut elem: HtmlElement) -> HtmlEl
             }
             angelmark_to_html(content, elem)
         }
-        AngelmarkText::Monospace(content) => {
+        AngelmarkText::Monospace(content, _span) => {
             if let Some((_k, v)) = elem.attributes.iter_mut().find(|(k, _v)| k == "class") {
                 v.push_str(" richtext-monospace");
             } else {
