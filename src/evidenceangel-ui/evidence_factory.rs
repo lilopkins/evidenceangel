@@ -4,7 +4,9 @@ use std::{
 };
 
 use adw::prelude::*;
-use angelmark::{parse_angelmark, AngelmarkLine, AngelmarkText, OwnedSpan};
+use angelmark::{
+    parse_angelmark, AngelmarkLine, AngelmarkTable, AngelmarkTableRow, AngelmarkText, OwnedSpan,
+};
 use evidenceangel::{Evidence, EvidenceData, EvidenceKind, EvidencePackage};
 #[allow(unused_imports)]
 use gtk::prelude::*;
@@ -259,28 +261,28 @@ impl FactoryComponent for EvidenceFactoryModel {
                 let toolbar = gtk::Box::new(gtk::Orientation::Horizontal, 4);
 
                 let btn_bold = gtk::Button::new();
-                btn_bold.set_icon_name("text-bold");
+                btn_bold.set_icon_name(relm4_icons::icon_names::TEXT_BOLD);
                 btn_bold.set_tooltip(&lang::lookup("rich-text-bold"));
                 toolbar.append(&btn_bold);
                 let btn_italic = gtk::Button::new();
-                btn_italic.set_icon_name("text-italic");
+                btn_italic.set_icon_name(relm4_icons::icon_names::TEXT_ITALIC);
                 btn_italic.set_tooltip(&lang::lookup("rich-text-italic"));
                 toolbar.append(&btn_italic);
                 let btn_monospace = gtk::Button::new();
-                btn_monospace.set_icon_name("code");
+                btn_monospace.set_icon_name(relm4_icons::icon_names::CODE);
                 btn_monospace.set_tooltip(&lang::lookup("rich-text-monospace"));
                 toolbar.append(&btn_monospace);
                 toolbar.append(&gtk::Separator::new(gtk::Orientation::Vertical));
                 let btn_h1 = gtk::Button::new();
-                btn_h1.set_icon_name("text-header-1-lines-caret-regular");
+                btn_h1.set_icon_name(relm4_icons::icon_names::TEXT_HEADER_1_LINES_CARET_REGULAR);
                 btn_h1.set_tooltip(&lang::lookup("rich-text-heading-1"));
                 toolbar.append(&btn_h1);
                 let btn_h2 = gtk::Button::new();
-                btn_h2.set_icon_name("text-header-2-lines-caret-regular");
+                btn_h2.set_icon_name(relm4_icons::icon_names::TEXT_HEADER_2_LINES_CARET_REGULAR);
                 btn_h2.set_tooltip(&lang::lookup("rich-text-heading-2"));
                 toolbar.append(&btn_h2);
                 let btn_h3 = gtk::Button::new();
-                btn_h3.set_icon_name("text-header-3-lines-caret-regular");
+                btn_h3.set_icon_name(relm4_icons::icon_names::TEXT_HEADER_3_LINES_CARET_REGULAR);
                 btn_h3.set_tooltip(&lang::lookup("rich-text-heading-3"));
                 toolbar.append(&btn_h3);
 
@@ -841,6 +843,11 @@ fn angelmark_to_pango(angelmark: &AngelmarkLine) -> String {
             let sub = txt.iter().map(angelmark_text_to_pango).collect::<String>();
             format!("{prefix}{sub}{suffix}")
         }
+        AngelmarkLine::Table(table, span) => {
+            let (prefix, suffix) = get_prefix_and_suffix_around_child(span, table.span());
+            let sub = angelmark_table_to_pango(table);
+            format!("{prefix}{sub}{suffix}")
+        }
     }
 }
 
@@ -869,6 +876,60 @@ fn angelmark_text_to_pango(angelmark: &AngelmarkText) -> String {
             )
         }
     }
+}
+
+fn angelmark_table_to_pango(table: &AngelmarkTable) -> String {
+    let (prefix, suffix) = get_prefix_and_suffix_around_children(
+        table.span(),
+        table.rows().iter().map(AngelmarkTableRow::span),
+    );
+    let mut output = String::new();
+
+    let mut row_iter = table.rows().iter();
+
+    // Row 0
+    output.push_str(&angelmark_table_row_to_pango(row_iter.next().unwrap()));
+
+    // Alignment row (no styling)
+    output.push_str(table.alignment().span().original());
+
+    // Rows 1+
+    for row in row_iter {
+        output.push_str(&angelmark_table_row_to_pango(row));
+    }
+
+    format!("{prefix}{output}{suffix}")
+}
+
+#[allow(clippy::cast_possible_wrap)]
+fn angelmark_table_row_to_pango(row: &AngelmarkTableRow) -> String {
+    let mut output = row.span().original().clone();
+    let mut offset = row.span().span().0 as i32;
+
+    for cell in row.cells() {
+        let original = cell.span().original();
+        let formatted = cell
+            .content()
+            .iter()
+            .map(angelmark_text_to_pango)
+            .collect::<String>();
+
+        let (start, end) = cell.span().span();
+        let start = *start as i32 - offset;
+        let end = *end as i32 - offset;
+        assert!(start >= 0);
+        assert!(end >= 0);
+        let start = start as usize;
+        let end = end as usize;
+
+        // Replace output with formatted text
+        output.replace_range(start..end, &formatted);
+
+        // Update offset
+        offset -= formatted.len() as i32 - original.len() as i32;
+    }
+
+    output
 }
 
 fn get_prefix_and_suffix_around_children<'a, I>(

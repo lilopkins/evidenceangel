@@ -116,18 +116,11 @@ impl AppModel {
         test_case_data.clear();
         if let Some(pkg) = self.open_package.as_ref() {
             let pkg = pkg.read().unwrap();
-            let mut ordered_cases = vec![];
             for case in pkg.test_case_iter()? {
-                ordered_cases.push((
-                    case.metadata().execution_datetime(),
-                    NavFactoryInit {
-                        id: *case.id(),
-                        name: case.metadata().title().clone(),
-                    },
-                ));
-            }
-            for (_exdt, case) in ordered_cases {
-                test_case_data.push_back(case);
+                test_case_data.push_back(NavFactoryInit {
+                    id: *case.id(),
+                    name: case.metadata().title().clone(),
+                });
             }
         }
         Ok(())
@@ -181,8 +174,10 @@ pub enum AppInput {
     NavigateTo(OpenCase),
     MoveTestCase {
         case_to_move: Uuid,
-        /// Move the test case before the specified UUID, or if set to none, move to end
+        /// Move the test case before the specified UUID, or if set to none, move to end. `before` and `offset` are mutually exclusive, but if neither are set the case is moved to the end.
         before: Option<Uuid>,
+        /// Offset from the target position. `before` and `offset` are mutually exclusive, but if neither are set the case is moved to the end.
+        offset: Option<i32>,
     },
     DeleteCase(Uuid),
     CreateCaseAndSelect,
@@ -195,6 +190,8 @@ pub enum AppInput {
     SetTestCaseTitle(String),
     TrySetExecutionDateTime(String),
     ValidateExecutionDateTime(String),
+    MoveSelectedCaseUp,
+    MoveSelectedCaseDown,
     DeleteSelectedCase,
     _DeleteSelectedCase,
     AddTextEvidence,
@@ -308,7 +305,7 @@ impl Component for AppModel {
                                             if let Ok(data) = val.get::<BoxedTestCaseById>() {
                                                 let dropped_case = data.inner();
                                                 tracing::debug!("Dropped case: {dropped_case:?}");
-                                                sender.input(AppInput::MoveTestCase { case_to_move: dropped_case, before: None });
+                                                sender.input(AppInput::MoveTestCase { case_to_move: dropped_case, before: None, offset: None });
                                                 return true;
                                             }
                                             false
@@ -469,6 +466,45 @@ impl Component for AppModel {
                                             gtk::Box {
                                                 set_orientation: gtk::Orientation::Vertical,
 
+                                                gtk::Box {
+                                                    set_orientation: gtk::Orientation::Horizontal,
+                                                    set_halign: gtk::Align::End,
+
+                                                    gtk::MenuButton {
+                                                        set_icon_name: relm4_icons::icon_names::MORE_VERTICAL_REGULAR,
+                                                        set_tooltip: &lang::lookup("test-case-menu"),
+                                                        add_css_class: "flat",
+
+                                                        #[wrap(Some)]
+                                                        set_popover = &gtk::Popover {
+                                                            gtk::Box {
+                                                                set_orientation: gtk::Orientation::Vertical,
+                                                                set_spacing: 4,
+
+                                                                gtk::Button {
+                                                                    set_label: &lang::lookup("test-case-move-up"),
+                                                                    add_css_class: "flat",
+
+                                                                    connect_clicked => AppInput::MoveSelectedCaseUp,
+                                                                },
+                                                                gtk::Button {
+                                                                    set_label: &lang::lookup("test-case-move-down"),
+                                                                    add_css_class: "flat",
+
+                                                                    connect_clicked => AppInput::MoveSelectedCaseDown,
+                                                                },
+                                                                gtk::Button {
+                                                                    set_label: &lang::lookup("nav-delete-case"),
+                                                                    add_css_class: "flat",
+                                                                    add_css_class: "destructive-action",
+
+                                                                    connect_clicked => AppInput::DeleteSelectedCase,
+                                                                },
+                                                            }
+                                                        }
+                                                    }
+                                                },
+
                                                 adw::PreferencesGroup {
                                                     set_title: &lang::lookup("test-group-title"),
 
@@ -600,24 +636,6 @@ impl Component for AppModel {
                                                                 set_label: &lang::lookup("evidence-file"),
                                                             }
                                                         },
-                                                    },
-
-                                                    gtk::Separator {
-                                                        add_css_class: "spacer",
-                                                    },
-
-                                                    gtk::Button {
-                                                        add_css_class: "pill",
-                                                        add_css_class: "destructive-action",
-                                                        set_margin_top: 8,
-                                                        set_halign: gtk::Align::Center,
-
-                                                        connect_clicked => AppInput::DeleteSelectedCase,
-
-                                                        adw::ButtonContent {
-                                                            set_icon_name: relm4_icons::icon_names::DELETE_FILLED,
-                                                            set_label: &lang::lookup("nav-delete-case"),
-                                                        }
                                                     },
                                                 }
                                             }
@@ -757,6 +775,7 @@ impl Component for AppModel {
                     } => AppInput::MoveTestCase {
                         case_to_move,
                         before: Some(before),
+                        offset: None,
                     },
                 },
             ),
@@ -1111,10 +1130,14 @@ impl Component for AppModel {
                         .create_test_case(lang::lookup("default-case-title"))
                         .unwrap(); // doesn't fail
                     case_id = *case.id();
-                }
 
-                // Add case to navigation
-                self.update_nav_menu().unwrap(); // doesn't fail
+                    // Add case to navigation
+                    let mut test_case_data = self.test_case_nav_factory.guard();
+                    test_case_data.push_back(NavFactoryInit {
+                        id: case_id,
+                        name: case.metadata().title().clone(),
+                    });
+                }
                 self.needs_saving = true;
 
                 // Switch to case
@@ -1124,9 +1147,9 @@ impl Component for AppModel {
                     id: case_id,
                 }));
 
-                // Move to top of list
+                // Move to bottom of list
                 let adj = widgets.nav_scrolled_window.vadjustment();
-                adj.set_value(adj.lower());
+                adj.set_value(adj.upper());
                 widgets.nav_scrolled_window.set_vadjustment(Some(&adj));
             }
             AppInput::SetMetadataTitle(new_title) => {
@@ -1186,6 +1209,7 @@ impl Component for AppModel {
             AppInput::MoveTestCase {
                 case_to_move,
                 before,
+                offset,
             } => {
                 if before == Some(case_to_move) {
                     return;
@@ -1201,24 +1225,33 @@ impl Component for AppModel {
                         .collect::<Vec<_>>();
                     let pos = new_order.iter().position(|id| *id == case_to_move).unwrap();
                     new_order.remove(pos);
+                    let mut test_case_guard = self.test_case_nav_factory.guard();
+                    let NavFactoryModel { id, name, .. } = test_case_guard.remove(pos).unwrap();
 
-                    match before {
-                        None => {
+                    if let Some(other_case_id) = before {
+                        let other_pos = new_order
+                            .iter()
+                            .position(|id| *id == other_case_id)
+                            .unwrap();
+                        new_order.insert(other_pos, case_to_move);
+                        test_case_guard.insert(other_pos, NavFactoryInit { id, name });
+                    } else {
+                        #[allow(clippy::cast_possible_wrap)]
+                        if let Some(offset) = offset {
+                            // move by offset
+                            let new_pos =
+                                (pos as i32 + offset).max(0).min(new_order.len() as i32) as usize;
+                            new_order.insert(new_pos, case_to_move);
+                            test_case_guard.insert(new_pos, NavFactoryInit { id, name });
+                        } else {
                             // add to end
                             new_order.push(case_to_move);
-                        }
-                        Some(other_case_id) => {
-                            let other_pos = new_order
-                                .iter()
-                                .position(|id| *id == other_case_id)
-                                .unwrap();
-                            new_order.insert(other_pos, case_to_move);
+                            test_case_guard.push_back(NavFactoryInit { id, name });
                         }
                     }
 
+                    sender.input(AppInput::NavigateTo(self.open_case));
                     pkg.write().unwrap().set_test_case_order(new_order).unwrap();
-
-                    self.update_nav_menu().unwrap(); // doesn't fail
                     self.needs_saving = true;
                 }
             }
@@ -1308,9 +1341,6 @@ impl Component for AppModel {
                                     tc.metadata_mut().set_execution_datetime(dt);
                                     self.needs_saving = true;
                                 }
-
-                                // Fix for #59, before reordable TCs are implemented as part of #47.
-                                self.update_nav_menu().unwrap(); // doesn't fail
                             }
                         }
                     }
@@ -1383,6 +1413,24 @@ impl Component for AppModel {
             AppInput::_DeleteSelectedCase => {
                 if let OpenCase::Case { id, .. } = &self.open_case {
                     sender.input(AppInput::DeleteCase(*id));
+                }
+            }
+            AppInput::MoveSelectedCaseUp => {
+                if let OpenCase::Case { id, .. } = &self.open_case {
+                    sender.input(AppInput::MoveTestCase {
+                        case_to_move: *id,
+                        before: None,
+                        offset: Some(-1),
+                    });
+                }
+            }
+            AppInput::MoveSelectedCaseDown => {
+                if let OpenCase::Case { id, .. } = &self.open_case {
+                    sender.input(AppInput::MoveTestCase {
+                        case_to_move: *id,
+                        before: None,
+                        offset: Some(1),
+                    });
                 }
             }
             AppInput::AddTextEvidence => {

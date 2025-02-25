@@ -7,10 +7,10 @@ base_resource_path = "/uk/hpkns/EvidenceAngel/"
 icons = [
     "chevron-up-down-regular",
     "cross-large",
-    "delete-filled",
     "folder-open-filled",
     "lightbulb",
     "menu",
+    "more-vertical-regular",
     "plus",
     "text-bold",
     "text-italic",

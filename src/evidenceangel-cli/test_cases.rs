@@ -6,7 +6,7 @@ use std::{
     rc::Rc,
 };
 
-use angelmark::{parse_angelmark, AngelmarkLine};
+use angelmark::{parse_angelmark, AngelmarkLine, AngelmarkTableAlignment};
 use chrono::FixedOffset;
 use clap::{Subcommand, ValueEnum};
 use colored::Colorize;
@@ -197,6 +197,52 @@ impl fmt::Display for CliTestCase {
                             for line in rich {
                                 match line {
                                     AngelmarkLine::Newline(_span) => rich_text.push('\n'),
+                                    AngelmarkLine::Table(table, _span) => {
+                                        for row in table.rows() {
+                                            rich_text.push_str("| ");
+                                            for (col, cell) in row.cells().iter().enumerate() {
+                                                let alignment =
+                                                    table.alignment().column_alignments()[col]
+                                                        .alignment();
+                                                let width = table.column_width(col);
+                                                let formatted = cell
+                                                    .content()
+                                                    .iter()
+                                                    .map(crate::angelmark::angelmark_to_term)
+                                                    .collect::<String>();
+                                                let text_width = cell
+                                                    .content()
+                                                    .iter()
+                                                    .map(crate::angelmark::angelmark_to_term_plain)
+                                                    .collect::<String>()
+                                                    .len();
+                                                let padding_left = match alignment {
+                                                    AngelmarkTableAlignment::Left => String::new(),
+                                                    AngelmarkTableAlignment::Center => {
+                                                        " ".repeat((width - text_width).div_ceil(2))
+                                                    }
+                                                    AngelmarkTableAlignment::Right => {
+                                                        " ".repeat(width - text_width)
+                                                    }
+                                                };
+                                                let padding_right = match alignment {
+                                                    AngelmarkTableAlignment::Right => String::new(),
+                                                    AngelmarkTableAlignment::Center => {
+                                                        " ".repeat((width - text_width) / 2)
+                                                    }
+                                                    AngelmarkTableAlignment::Left => {
+                                                        " ".repeat(width - text_width)
+                                                    }
+                                                };
+
+                                                rich_text.push_str(&format!(
+                                                    "{padding_left}{formatted}{padding_right} | "
+                                                ));
+                                            }
+                                            rich_text.push('\n');
+                                        }
+                                        rich_text.push('\n');
+                                    }
                                     AngelmarkLine::Heading1(line, _span)
                                     | AngelmarkLine::Heading2(line, _span)
                                     | AngelmarkLine::Heading3(line, _span)
@@ -208,6 +254,7 @@ impl fmt::Display for CliTestCase {
                                                 &crate::angelmark::angelmark_to_term(&txt),
                                             );
                                         }
+                                        rich_text.push('\n');
                                     }
                                     AngelmarkLine::TextLine(txt, _span) => rich_text
                                         .push_str(&crate::angelmark::angelmark_to_term(&txt)),

@@ -109,6 +109,9 @@ evidence-http-response = Svar
 evidence-image = Bild
 evidence-file = Fil
 
+test-case-menu = Testfall åtgärder
+test-case-move-up = Flytta det här Upp
+test-case-move-down = Flytta det här Ner
 delete-case-title = Radera { $name }?
 delete-case-message = Vill du verkligen oåterkalleligt radera testfallet { $name }?
 delete-case-affirm = Radera

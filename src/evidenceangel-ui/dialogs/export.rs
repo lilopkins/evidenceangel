@@ -152,9 +152,9 @@ impl Component for ExportDialogModel {
                 let path = widgets.file_row.text().to_string();
                 if path.trim().is_empty() {
                     widgets.file_row.add_css_class("error");
-                } else {
-                    widgets.file_row.remove_css_class("error");
+                    return;
                 }
+                widgets.file_row.remove_css_class("error");
 
                 // evaluate path and determine if a file will be replaced. Update extension if needed.
                 let mut path = PathBuf::from(path);
