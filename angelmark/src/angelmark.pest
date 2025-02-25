@@ -12,6 +12,7 @@ MarkupLine = _{
     Heading3 |
     Heading2 |
     Heading1 |
+    Table |
     Paragraph
 }
 
@@ -71,10 +72,33 @@ TextMonospace = {
 	"`" ~ TextContent ~ "`"
 }
 
+Table = {
+	TableRow ~
+    TableAlignmentRow ~
+    TableRow* ~
+    NEWLINE
+}
+
+TableRow = ${
+	"|"? ~ TableCell ~ (!("|" ~ NEWLINE) ~ "|" ~ TableCell)+ ~ "|"? ~ NEWLINE
+}
+
+TableAlignmentRow = ${
+	"|"? ~ TableAlignmentCell ~ (!("|" ~ NEWLINE) ~ "|" ~ TableAlignmentCell)+ ~ "|"? ~ NEWLINE
+}
+
+TableCell = ${
+	TextContent*
+}
+
+TableAlignmentCell = @{
+	":"? ~ "-"+ ~ ":"?
+}
+
 RawText = @{
     (
-    	((EscapeChar ~ (EscapeChar | "_" | "**" | "*" | "`")) |
-    	!("*" | "_" | "`" | NEWLINE)
+    	((EscapeChar ~ (EscapeChar | "_" | "**" | "*" | "`" | "|")) |
+    	!("*" | "_" | "`" | "|" | NEWLINE)
     ) ~ ANY)+
 }
 

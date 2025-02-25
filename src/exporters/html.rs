@@ -1,6 +1,6 @@
 use std::fs;
 
-use angelmark::{parse_angelmark, AngelmarkLine, AngelmarkText};
+use angelmark::{parse_angelmark, AngelmarkLine, AngelmarkTableAlignment, AngelmarkText};
 use base64::Engine;
 use build_html::{Html, HtmlContainer, HtmlElement, HtmlPage, HtmlTag};
 use uuid::Uuid;
@@ -238,6 +238,37 @@ fn create_test_case_div(
                             AngelmarkLine::TextLine(angelmark, _span) => elem.add_html(
                                 angelmark_to_html(&angelmark, HtmlElement::new(HtmlTag::Span)),
                             ),
+                            AngelmarkLine::Table(table, _span) => {
+                                let mut t = HtmlElement::new(HtmlTag::Table);
+                                for row in table.rows() {
+                                    let mut r = HtmlElement::new(HtmlTag::TableRow);
+                                    for (col, cell) in row.cells().iter().enumerate() {
+                                        let align =
+                                            table.alignment().column_alignments()[col].alignment();
+                                        let mut d = HtmlElement::new(HtmlTag::TableCell)
+                                            .with_attribute(
+                                                "style",
+                                                format!(
+                                                    "text-align:{}",
+                                                    match align {
+                                                        AngelmarkTableAlignment::Left => "left",
+                                                        AngelmarkTableAlignment::Center => "center",
+                                                        AngelmarkTableAlignment::Right => "right",
+                                                    }
+                                                ),
+                                            );
+                                        for angelmark in cell.content() {
+                                            d.add_html(angelmark_to_html(
+                                                angelmark,
+                                                HtmlElement::new(HtmlTag::Span),
+                                            ));
+                                        }
+                                        r.add_html(d);
+                                    }
+                                    t.add_html(r);
+                                }
+                                elem.add_html(t);
+                            }
                         }
                     }
                     elem.add_html(HtmlElement::new(HtmlTag::LineBreak));

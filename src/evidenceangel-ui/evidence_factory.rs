@@ -4,7 +4,9 @@ use std::{
 };
 
 use adw::prelude::*;
-use angelmark::{parse_angelmark, AngelmarkLine, AngelmarkText, OwnedSpan};
+use angelmark::{
+    parse_angelmark, AngelmarkLine, AngelmarkTable, AngelmarkTableRow, AngelmarkText, OwnedSpan,
+};
 use evidenceangel::{Evidence, EvidenceData, EvidenceKind, EvidencePackage};
 #[allow(unused_imports)]
 use gtk::prelude::*;
@@ -841,6 +843,11 @@ fn angelmark_to_pango(angelmark: &AngelmarkLine) -> String {
             let sub = txt.iter().map(angelmark_text_to_pango).collect::<String>();
             format!("{prefix}{sub}{suffix}")
         }
+        AngelmarkLine::Table(table, span) => {
+            let (prefix, suffix) = get_prefix_and_suffix_around_child(span, table.span());
+            let sub = angelmark_table_to_pango(table);
+            format!("{prefix}{sub}{suffix}")
+        }
     }
 }
 
@@ -869,6 +876,60 @@ fn angelmark_text_to_pango(angelmark: &AngelmarkText) -> String {
             )
         }
     }
+}
+
+fn angelmark_table_to_pango(table: &AngelmarkTable) -> String {
+    let (prefix, suffix) = get_prefix_and_suffix_around_children(
+        table.span(),
+        table.rows().iter().map(AngelmarkTableRow::span),
+    );
+    let mut output = String::new();
+
+    let mut row_iter = table.rows().iter();
+
+    // Row 0
+    output.push_str(&angelmark_table_row_to_pango(row_iter.next().unwrap()));
+
+    // Alignment row (no styling)
+    output.push_str(table.alignment().span().original());
+
+    // Rows 1+
+    for row in row_iter {
+        output.push_str(&angelmark_table_row_to_pango(row));
+    }
+
+    format!("{prefix}{output}{suffix}")
+}
+
+#[allow(clippy::cast_possible_wrap)]
+fn angelmark_table_row_to_pango(row: &AngelmarkTableRow) -> String {
+    let mut output = row.span().original().clone();
+    let mut offset = row.span().span().0 as i32;
+
+    for cell in row.cells() {
+        let original = cell.span().original();
+        let formatted = cell
+            .content()
+            .iter()
+            .map(angelmark_text_to_pango)
+            .collect::<String>();
+
+        let (start, end) = cell.span().span();
+        let start = *start as i32 - offset;
+        let end = *end as i32 - offset;
+        assert!(start >= 0);
+        assert!(end >= 0);
+        let start = start as usize;
+        let end = end as usize;
+
+        // Replace output with formatted text
+        output.replace_range(start..end, &formatted);
+
+        // Update offset
+        offset -= formatted.len() as i32 - original.len() as i32;
+    }
+
+    output
 }
 
 fn get_prefix_and_suffix_around_children<'a, I>(

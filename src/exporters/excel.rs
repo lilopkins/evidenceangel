@@ -1,5 +1,5 @@
-use angelmark::{parse_angelmark, AngelmarkLine, AngelmarkText};
-use rust_xlsxwriter::{Format, FormatBorder, Image, Workbook, Worksheet};
+use angelmark::{parse_angelmark, AngelmarkLine, AngelmarkTableAlignment, AngelmarkText};
+use rust_xlsxwriter::{Format, FormatAlign, FormatBorder, Image, Workbook, Worksheet};
 use uuid::Uuid;
 
 use crate::{EvidenceKind, EvidencePackage, TestCase};
@@ -297,6 +297,49 @@ fn create_test_case_sheet(
                             }
                             AngelmarkLine::TextLine(angelmark, _span) => {
                                 line_buffer.push(angelmark_to_excel(&angelmark, Format::default()));
+                            }
+                            AngelmarkLine::Table(table, _span) => {
+                                for table_row in table.rows() {
+                                    for (col, cell) in table_row.cells().iter().enumerate() {
+                                        let fragments = cell
+                                            .content()
+                                            .iter()
+                                            .map(|text| {
+                                                angelmark_to_excel(
+                                                    text,
+                                                    Format::default().set_font_size(14),
+                                                )
+                                            })
+                                            .collect::<Vec<_>>();
+                                        let c = col as u16 + 1;
+                                        let align =
+                                            table.alignment().column_alignments()[col].alignment();
+                                        worksheet.set_cell_format(
+                                            row,
+                                            c,
+                                            &Format::default().set_align(match align {
+                                                AngelmarkTableAlignment::Left => FormatAlign::Left,
+                                                AngelmarkTableAlignment::Center => {
+                                                    FormatAlign::Center
+                                                }
+                                                AngelmarkTableAlignment::Right => {
+                                                    FormatAlign::Right
+                                                }
+                                            }),
+                                        )?;
+                                        if !fragments.is_empty() {
+                                            worksheet.write_rich_string(
+                                                row,
+                                                c,
+                                                &fragments
+                                                    .iter()
+                                                    .map(|(f, s)| (f, s.as_str()))
+                                                    .collect::<Vec<_>>(),
+                                            )?;
+                                        }
+                                    }
+                                    row += 1;
+                                }
                             }
                         }
                     }

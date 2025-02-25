@@ -4,17 +4,32 @@
 #![doc = include_str!("../README.md")]
 
 mod error;
-
 pub use error::Error;
-use getset::Getters;
-use pest::{iterators::Pair, Parser, Span};
 
 mod lexer;
 use lexer::Rule;
+
+mod line;
+pub use line::AngelmarkLine;
+
+mod table;
+pub use table::{
+    AngelmarkTable, AngelmarkTableAlignment, AngelmarkTableAlignmentCell,
+    AngelmarkTableAlignmentRow, AngelmarkTableCell, AngelmarkTableRow,
+};
+
+mod text;
+pub use text::AngelmarkText;
+
+mod traits;
+pub use traits::EqIgnoringSpan;
+
+use getset::Getters;
+use pest::{iterators::Pair, Parser, Span};
 use regex::Regex;
 
 /// A parsed span with an owned clone of it's matched text
-#[derive(Clone, Debug, Default, PartialEq, Eq, Hash, Getters)]
+#[derive(Clone, Default, PartialEq, Eq, Hash, Getters)]
 #[getset(get = "pub")]
 pub struct OwnedSpan {
     /// The original matched text
@@ -23,205 +38,17 @@ pub struct OwnedSpan {
     span: (usize, usize),
 }
 
+impl std::fmt::Debug for OwnedSpan {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("OwnedSpan").finish_non_exhaustive()
+    }
+}
+
 impl From<Span<'_>> for OwnedSpan {
     fn from(value: Span<'_>) -> Self {
         Self {
             original: value.as_str().to_owned(),
             span: (value.start(), value.end()),
-        }
-    }
-}
-
-/// A line of markup in AngelMark
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub enum AngelmarkLine {
-    /// A level 1 heading.
-    Heading1(Vec<AngelmarkText>, OwnedSpan),
-    /// A level 2 heading.
-    Heading2(Vec<AngelmarkText>, OwnedSpan),
-    /// A level 3 heading.
-    Heading3(Vec<AngelmarkText>, OwnedSpan),
-    /// A level 4 heading.
-    Heading4(Vec<AngelmarkText>, OwnedSpan),
-    /// A level 5 heading.
-    Heading5(Vec<AngelmarkText>, OwnedSpan),
-    /// A level 6 heading.
-    Heading6(Vec<AngelmarkText>, OwnedSpan),
-    /// A line of text.
-    TextLine(AngelmarkText, OwnedSpan),
-    /// A line separator.
-    Newline(OwnedSpan),
-}
-
-impl AngelmarkLine {
-    /// Get the span from this line
-    #[must_use]
-    pub fn span(&self) -> &OwnedSpan {
-        match self {
-            Self::Heading1(_, span)
-            | Self::Heading2(_, span)
-            | Self::Heading3(_, span)
-            | Self::Heading4(_, span)
-            | Self::Heading5(_, span)
-            | Self::Heading6(_, span)
-            | Self::TextLine(_, span)
-            | Self::Newline(span) => span,
-        }
-    }
-
-    /// Compare two [`AngelmarkLine`] instances, ignoring their span.
-    #[must_use]
-    pub fn eq_ignoring_span(&self, other: &Self) -> bool {
-        match self {
-            Self::Heading1(inner, _) => {
-                if let Self::Heading1(other_inner, _) = other {
-                    if inner.len() != other_inner.len() {
-                        return false;
-                    }
-                    inner
-                        .iter()
-                        .zip(other_inner.iter())
-                        .all(|(a, b)| a.eq_ignoring_span(b))
-                } else {
-                    false
-                }
-            }
-            Self::Heading2(inner, _) => {
-                if let Self::Heading2(other_inner, _) = other {
-                    if inner.len() != other_inner.len() {
-                        return false;
-                    }
-                    inner
-                        .iter()
-                        .zip(other_inner.iter())
-                        .all(|(a, b)| a.eq_ignoring_span(b))
-                } else {
-                    false
-                }
-            }
-            Self::Heading3(inner, _) => {
-                if let Self::Heading3(other_inner, _) = other {
-                    if inner.len() != other_inner.len() {
-                        return false;
-                    }
-                    inner
-                        .iter()
-                        .zip(other_inner.iter())
-                        .all(|(a, b)| a.eq_ignoring_span(b))
-                } else {
-                    false
-                }
-            }
-            Self::Heading4(inner, _) => {
-                if let Self::Heading4(other_inner, _) = other {
-                    if inner.len() != other_inner.len() {
-                        return false;
-                    }
-                    inner
-                        .iter()
-                        .zip(other_inner.iter())
-                        .all(|(a, b)| a.eq_ignoring_span(b))
-                } else {
-                    false
-                }
-            }
-            Self::Heading5(inner, _) => {
-                if let Self::Heading5(other_inner, _) = other {
-                    if inner.len() != other_inner.len() {
-                        return false;
-                    }
-                    inner
-                        .iter()
-                        .zip(other_inner.iter())
-                        .all(|(a, b)| a.eq_ignoring_span(b))
-                } else {
-                    false
-                }
-            }
-            Self::Heading6(inner, _) => {
-                if let Self::Heading6(other_inner, _) = other {
-                    if inner.len() != other_inner.len() {
-                        return false;
-                    }
-                    inner
-                        .iter()
-                        .zip(other_inner.iter())
-                        .all(|(a, b)| a.eq_ignoring_span(b))
-                } else {
-                    false
-                }
-            }
-            Self::TextLine(inner, _) => {
-                if let Self::TextLine(other_inner, _) = other {
-                    inner.eq_ignoring_span(other_inner)
-                } else {
-                    false
-                }
-            }
-            Self::Newline(_) => {
-                matches!(other, Self::Newline(_))
-            }
-        }
-    }
-}
-
-/// Textual content
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub enum AngelmarkText {
-    /// Raw text
-    Raw(String, OwnedSpan),
-    /// Bold content
-    Bold(Box<AngelmarkText>, OwnedSpan),
-    /// Italicised content
-    Italic(Box<AngelmarkText>, OwnedSpan),
-    /// Monospace content
-    Monospace(Box<AngelmarkText>, OwnedSpan),
-}
-
-impl AngelmarkText {
-    /// Get the span from this text
-    #[must_use]
-    pub fn span(&self) -> &OwnedSpan {
-        match self {
-            Self::Raw(_, span)
-            | Self::Bold(_, span)
-            | Self::Italic(_, span)
-            | Self::Monospace(_, span) => span,
-        }
-    }
-
-    /// Compare two [`AngelmarkText`] instances, ignoring their span.
-    #[must_use]
-    pub fn eq_ignoring_span(&self, other: &Self) -> bool {
-        match self {
-            Self::Raw(inner, _) => {
-                if let Self::Raw(other_inner, _) = other {
-                    inner == other_inner
-                } else {
-                    false
-                }
-            }
-            Self::Bold(inner, _) => {
-                if let Self::Bold(other_inner, _) = other {
-                    inner.eq_ignoring_span(other_inner)
-                } else {
-                    false
-                }
-            }
-            Self::Italic(inner, _) => {
-                if let Self::Italic(other_inner, _) = other {
-                    inner.eq_ignoring_span(other_inner)
-                } else {
-                    false
-                }
-            }
-            Self::Monospace(inner, _) => {
-                if let Self::Monospace(other_inner, _) = other {
-                    inner.eq_ignoring_span(other_inner)
-                } else {
-                    false
-                }
-            }
         }
     }
 }
@@ -294,6 +121,10 @@ pub fn parse_angelmark<S: AsRef<str>>(input: S) -> Result<Vec<AngelmarkLine>, Er
                     .collect(),
                 span.into(),
             )),
+            Rule::Table => content.push(AngelmarkLine::Table(
+                AngelmarkTable::from(pair),
+                span.into(),
+            )),
             Rule::TextBold | Rule::TextItalic | Rule::TextMonospace | Rule::RawText => {
                 content.push(AngelmarkLine::TextLine(
                     parse_text_content(pair),
@@ -340,4 +171,365 @@ fn parse_text_content(pair: Pair<Rule>) -> AngelmarkText {
 fn unescape_str(s: &str) -> String {
     let r = Regex::new(r"\\(.)").unwrap();
     r.replace_all(s, "$1").into_owned()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn empty_string_is_valid() {
+        parse_angelmark("").unwrap();
+    }
+
+    #[test]
+    fn single_line_with_no_newline_is_valid() {
+        parse_angelmark("test").unwrap();
+    }
+
+    #[test]
+    fn parse_test_document() {
+        let parsed_doc = parse_angelmark(include_str!("../tests/angelmark.md")).unwrap();
+
+        let expected = vec![
+            AngelmarkLine::Heading1(
+                vec![AngelmarkText::Raw(
+                    "Heading 1".to_string(),
+                    OwnedSpan::default(),
+                )],
+                OwnedSpan::default(),
+            ),
+            AngelmarkLine::Heading2(
+                vec![
+                    AngelmarkText::Bold(
+                        Box::new(AngelmarkText::Raw(
+                            "Heading".to_string(),
+                            OwnedSpan::default(),
+                        )),
+                        OwnedSpan::default(),
+                    ),
+                    AngelmarkText::Raw(" 2".to_string(), OwnedSpan::default()),
+                ],
+                OwnedSpan::default(),
+            ),
+            AngelmarkLine::Heading3(
+                vec![
+                    AngelmarkText::Italic(
+                        Box::new(AngelmarkText::Raw(
+                            "Heading".to_string(),
+                            OwnedSpan::default(),
+                        )),
+                        OwnedSpan::default(),
+                    ),
+                    AngelmarkText::Raw(" 3".to_string(), OwnedSpan::default()),
+                ],
+                OwnedSpan::default(),
+            ),
+            AngelmarkLine::Heading4(
+                vec![AngelmarkText::Raw(
+                    "Heading 4".to_string(),
+                    OwnedSpan::default(),
+                )],
+                OwnedSpan::default(),
+            ),
+            AngelmarkLine::Heading5(
+                vec![AngelmarkText::Raw(
+                    "Heading 5".to_string(),
+                    OwnedSpan::default(),
+                )],
+                OwnedSpan::default(),
+            ),
+            AngelmarkLine::Heading6(
+                vec![AngelmarkText::Raw(
+                    "Heading 6".to_string(),
+                    OwnedSpan::default(),
+                )],
+                OwnedSpan::default(),
+            ),
+            AngelmarkLine::TextLine(
+                AngelmarkText::Bold(
+                    Box::new(AngelmarkText::Raw("Bold".to_string(), OwnedSpan::default())),
+                    OwnedSpan::default(),
+                ),
+                OwnedSpan::default(),
+            ),
+            AngelmarkLine::Newline(OwnedSpan::default()),
+            AngelmarkLine::TextLine(
+                AngelmarkText::Italic(
+                    Box::new(AngelmarkText::Raw(
+                        "Italic".to_string(),
+                        OwnedSpan::default(),
+                    )),
+                    OwnedSpan::default(),
+                ),
+                OwnedSpan::default(),
+            ),
+            AngelmarkLine::Newline(OwnedSpan::default()),
+            AngelmarkLine::TextLine(
+                AngelmarkText::Bold(
+                    Box::new(AngelmarkText::Italic(
+                        Box::new(AngelmarkText::Raw(
+                            "Bold and italic".to_string(),
+                            OwnedSpan::default(),
+                        )),
+                        OwnedSpan::default(),
+                    )),
+                    OwnedSpan::default(),
+                ),
+                OwnedSpan::default(),
+            ),
+            AngelmarkLine::Newline(OwnedSpan::default()),
+            AngelmarkLine::TextLine(
+                AngelmarkText::Italic(
+                    Box::new(AngelmarkText::Raw(
+                        "also italic".to_string(),
+                        OwnedSpan::default(),
+                    )),
+                    OwnedSpan::default(),
+                ),
+                OwnedSpan::default(),
+            ),
+            AngelmarkLine::Newline(OwnedSpan::default()),
+            AngelmarkLine::TextLine(
+                AngelmarkText::Bold(
+                    Box::new(AngelmarkText::Italic(
+                        Box::new(AngelmarkText::Raw(
+                            "bold and italic".to_string(),
+                            OwnedSpan::default(),
+                        )),
+                        OwnedSpan::default(),
+                    )),
+                    OwnedSpan::default(),
+                ),
+                OwnedSpan::default(),
+            ),
+            AngelmarkLine::Newline(OwnedSpan::default()),
+            AngelmarkLine::TextLine(
+                AngelmarkText::Italic(
+                    Box::new(AngelmarkText::Bold(
+                        Box::new(AngelmarkText::Raw(
+                            "bold and italic".to_string(),
+                            OwnedSpan::default(),
+                        )),
+                        OwnedSpan::default(),
+                    )),
+                    OwnedSpan::default(),
+                ),
+                OwnedSpan::default(),
+            ),
+            AngelmarkLine::Newline(OwnedSpan::default()),
+            AngelmarkLine::TextLine(
+                AngelmarkText::Raw("Formatting ".to_string(), OwnedSpan::default()),
+                OwnedSpan::default(),
+            ),
+            AngelmarkLine::TextLine(
+                AngelmarkText::Bold(
+                    Box::new(AngelmarkText::Raw("in".to_string(), OwnedSpan::default())),
+                    OwnedSpan::default(),
+                ),
+                OwnedSpan::default(),
+            ),
+            AngelmarkLine::TextLine(
+                AngelmarkText::Raw(" a line ".to_string(), OwnedSpan::default()),
+                OwnedSpan::default(),
+            ),
+            AngelmarkLine::TextLine(
+                AngelmarkText::Italic(
+                    Box::new(AngelmarkText::Raw(
+                        "as well".to_string(),
+                        OwnedSpan::default(),
+                    )),
+                    OwnedSpan::default(),
+                ),
+                OwnedSpan::default(),
+            ),
+            AngelmarkLine::TextLine(
+                AngelmarkText::Raw(" as ".to_string(), OwnedSpan::default()),
+                OwnedSpan::default(),
+            ),
+            AngelmarkLine::TextLine(
+                AngelmarkText::Italic(
+                    Box::new(AngelmarkText::Raw(
+                        "on it's own".to_string(),
+                        OwnedSpan::default(),
+                    )),
+                    OwnedSpan::default(),
+                ),
+                OwnedSpan::default(),
+            ),
+            AngelmarkLine::TextLine(
+                AngelmarkText::Raw("!".to_string(), OwnedSpan::default()),
+                OwnedSpan::default(),
+            ),
+            AngelmarkLine::Newline(OwnedSpan::default()),
+            AngelmarkLine::TextLine(
+                AngelmarkText::Monospace(
+                    Box::new(AngelmarkText::Raw(
+                        "monospace".to_string(),
+                        OwnedSpan::default(),
+                    )),
+                    OwnedSpan::default(),
+                ),
+                OwnedSpan::default(),
+            ),
+            AngelmarkLine::Newline(OwnedSpan::default()),
+            AngelmarkLine::TextLine(
+                AngelmarkText::Raw(
+                    r#"Something with_underlines_separating_it but that\ shouldn't be italicised!"#
+                        .to_string(),
+                    OwnedSpan::default(),
+                ),
+                OwnedSpan::default(),
+            ),
+            AngelmarkLine::Newline(OwnedSpan::default()),
+            AngelmarkLine::Table(
+                AngelmarkTable {
+                    rows: vec![
+                        AngelmarkTableRow {
+                            cells: vec![
+                                AngelmarkTableCell {
+                                    content: vec![
+                                        AngelmarkText::Bold(
+                                            Box::new(AngelmarkText::Raw(
+                                                "Test Case".to_string(),
+                                                OwnedSpan::default(),
+                                            )),
+                                            OwnedSpan::default(),
+                                        ),
+                                        AngelmarkText::Raw(" ".to_string(), OwnedSpan::default()),
+                                    ],
+                                    span: OwnedSpan::default(),
+                                },
+                                AngelmarkTableCell {
+                                    content: vec![AngelmarkText::Raw(
+                                        " Objective ".to_string(),
+                                        OwnedSpan::default(),
+                                    )],
+                                    span: OwnedSpan::default(),
+                                },
+                                AngelmarkTableCell {
+                                    content: vec![AngelmarkText::Raw(
+                                        " Expected Result".to_string(),
+                                        OwnedSpan::default(),
+                                    )],
+                                    span: OwnedSpan::default(),
+                                },
+                            ],
+                            span: OwnedSpan::default(),
+                        },
+                        AngelmarkTableRow {
+                            cells: vec![
+                                AngelmarkTableCell {
+                                    content: vec![
+                                        AngelmarkText::Raw("TC".to_string(), OwnedSpan::default()),
+                                        AngelmarkText::Italic(
+                                            Box::new(AngelmarkText::Raw(
+                                                "01".to_string(),
+                                                OwnedSpan::default(),
+                                            )),
+                                            OwnedSpan::default(),
+                                        ),
+                                    ],
+                                    span: OwnedSpan::default(),
+                                },
+                                AngelmarkTableCell {
+                                    content: vec![],
+                                    span: OwnedSpan::default(),
+                                },
+                                AngelmarkTableCell {
+                                    content: vec![AngelmarkText::Raw(
+                                        "DEF".to_string(),
+                                        OwnedSpan::default(),
+                                    )],
+                                    span: OwnedSpan::default(),
+                                },
+                            ],
+                            span: OwnedSpan::default(),
+                        },
+                        AngelmarkTableRow {
+                            cells: vec![
+                                AngelmarkTableCell {
+                                    content: vec![AngelmarkText::Italic(
+                                        Box::new(AngelmarkText::Raw(
+                                            "TC02".to_string(),
+                                            OwnedSpan::default(),
+                                        )),
+                                        OwnedSpan::default(),
+                                    )],
+                                    span: OwnedSpan::default(),
+                                },
+                                AngelmarkTableCell {
+                                    content: vec![AngelmarkText::Raw(
+                                        "HIJ".to_string(),
+                                        OwnedSpan::default(),
+                                    )],
+                                    span: OwnedSpan::default(),
+                                },
+                                AngelmarkTableCell {
+                                    content: vec![AngelmarkText::Raw(
+                                        "KLM".to_string(),
+                                        OwnedSpan::default(),
+                                    )],
+                                    span: OwnedSpan::default(),
+                                },
+                            ],
+                            span: OwnedSpan::default(),
+                        },
+                    ],
+                    width: 3,
+                    alignment: AngelmarkTableAlignmentRow {
+                        column_alignments: vec![
+                            AngelmarkTableAlignmentCell {
+                                alignment: AngelmarkTableAlignment::Right,
+                                span: OwnedSpan::default(),
+                            },
+                            AngelmarkTableAlignmentCell {
+                                alignment: AngelmarkTableAlignment::Left,
+                                span: OwnedSpan::default(),
+                            },
+                            AngelmarkTableAlignmentCell {
+                                alignment: AngelmarkTableAlignment::Center,
+                                span: OwnedSpan::default(),
+                            },
+                        ],
+                        span: OwnedSpan::default(),
+                    },
+                    span: OwnedSpan::default(),
+                },
+                OwnedSpan::default(),
+            ),
+            AngelmarkLine::TextLine(
+                AngelmarkText::Raw("Also ".to_string(), OwnedSpan::default()),
+                OwnedSpan::default(),
+            ),
+            AngelmarkLine::TextLine(
+                AngelmarkText::Monospace(
+                    Box::new(AngelmarkText::Raw(
+                        "monospace".to_string(),
+                        OwnedSpan::default(),
+                    )),
+                    OwnedSpan::default(),
+                ),
+                OwnedSpan::default(),
+            ),
+            AngelmarkLine::TextLine(
+                AngelmarkText::Raw(" but in a line.".to_string(), OwnedSpan::default()),
+                OwnedSpan::default(),
+            ),
+            AngelmarkLine::Newline(OwnedSpan::default()),
+        ];
+
+        eprintln!("Parsed:");
+        eprintln!("{parsed_doc:#?}");
+
+        eprintln!("\nExpected (ignoring spans):");
+        eprintln!("{expected:#?}");
+
+        // Compare ignoring spans
+        let mut parsed_iter = parsed_doc.iter();
+        for item in expected {
+            let parsed_item = parsed_iter.next().expect("not enough items were parsed");
+            assert!(item.eq_ignoring_span(parsed_item));
+        }
+    }
 }
