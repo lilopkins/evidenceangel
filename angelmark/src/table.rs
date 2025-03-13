@@ -33,7 +33,7 @@ impl AngelmarkTable {
 
         for row in &self.rows {
             if let Some(cell) = &row.cells.get(col) {
-                max_width = max_width.max(cell.content().iter().map(|c| get_text_width(c)).sum());
+                max_width = max_width.max(cell.content().iter().map(get_text_width).sum());
             }
         }
 
@@ -43,7 +43,9 @@ impl AngelmarkTable {
 
 fn get_text_width(text: &AngelmarkText) -> usize {
     match text {
-        AngelmarkText::Bold(text, _span) | AngelmarkText::Italic(text, _span) | AngelmarkText::Monospace(text, _span) => get_text_width(text),
+        AngelmarkText::Bold(text, _span)
+        | AngelmarkText::Italic(text, _span)
+        | AngelmarkText::Monospace(text, _span) => get_text_width(text),
         AngelmarkText::Raw(text, _span) => text.len(),
     }
 }
@@ -65,7 +67,7 @@ impl From<Pair<'_, Rule>> for AngelmarkTable {
                         match row.cells().len().cmp(target_width) {
                             Ordering::Equal => (),
                             Ordering::Greater => {
-                                tracing::warn!("More rows than expected width found!")
+                                tracing::warn!("More rows than expected width found!");
                             }
                             Ordering::Less => {
                                 while row.cells.len() < *target_width {

@@ -498,6 +498,7 @@ mod tests {
                 },
                 OwnedSpan::default(),
             ),
+            AngelmarkLine::Newline(OwnedSpan::default()),
             AngelmarkLine::TextLine(
                 AngelmarkText::Raw("Also ".to_string(), OwnedSpan::default()),
                 OwnedSpan::default(),
