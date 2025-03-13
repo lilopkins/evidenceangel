@@ -13,11 +13,12 @@ MarkupLine = _{
     Heading2 |
     Heading1 |
     Table |
-    Paragraph
+    Paragraph |
+    Newline
 }
 
 Comment = {
-	"//" ~ (!NEWLINE ~ ANY)* ~ NEWLINE+
+	"//" ~ (!NEWLINE ~ ANY)* ~ NEWLINE
 }
 
 Newline = {
@@ -75,8 +76,7 @@ TextMonospace = {
 Table = {
 	TableRow ~
     TableAlignmentRow ~
-    TableRow* ~
-    NEWLINE
+    TableRow*
 }
 
 TableRow = ${
