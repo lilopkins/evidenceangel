@@ -306,7 +306,9 @@ impl FactoryComponent for EvidenceFactoryModel {
                     i.set_icon_name(Some(relm4_icons::icon_names::WARNING));
                     i
                 });
-                error_message.append(&gtk::Label::new(Some(&lang::lookup("rich-text-parsing-failure"))));
+                error_message.append(&gtk::Label::new(Some(&lang::lookup(
+                    "rich-text-parsing-failure",
+                ))));
                 toolbar.append(&error_message);
 
                 let processing = Arc::new(Mutex::new(false));
