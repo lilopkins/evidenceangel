@@ -127,3 +127,4 @@ rich-text-monospace = Monospace
 rich-text-heading-1 = Rubrik 1
 rich-text-heading-2 = Rubrik 2
 rich-text-heading-3 = Rubrik 3
+rich-text-parsing-failure = Kunde inte analysera denna rika text!

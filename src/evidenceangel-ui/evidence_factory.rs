@@ -299,9 +299,20 @@ impl FactoryComponent for EvidenceFactoryModel {
                 text_view.set_right_margin(8);
                 text_view.set_wrap_mode(gtk::WrapMode::Word);
 
+                let error_message = gtk::Box::new(gtk::Orientation::Horizontal, 4);
+                error_message.set_margin_start(8);
+                error_message.append(&{
+                    let i = gtk::Image::new();
+                    i.set_icon_name(Some(relm4_icons::icon_names::WARNING));
+                    i
+                });
+                error_message.append(&gtk::Label::new(Some(&lang::lookup("rich-text-parsing-failure"))));
+                toolbar.append(&error_message);
+
                 let processing = Arc::new(Mutex::new(false));
                 {
                     let processing = processing.clone();
+                    let error_popover = error_message.clone();
                     let frame = frame.clone();
                     text_view.buffer().connect_changed(move |buf| {
                         if *processing.lock().unwrap() {
@@ -338,8 +349,10 @@ impl FactoryComponent for EvidenceFactoryModel {
 
                             buf.place_cursor(&buf.iter_at_offset(cursor_pos));
                             frame.remove_css_class("warning");
+                            error_popover.set_visible(false);
                         } else {
                             frame.add_css_class("warning");
+                            error_popover.set_visible(true);
                         }
                         *processing.lock().unwrap() = false;
                     });
