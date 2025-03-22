@@ -605,7 +605,7 @@ checksum = "877a4ace8713b0bcf2a4e7eec82529c029f1d0619886d18145fea96c3ffe5c0f"
 
 [[package]]
 name = "evidenceangel"
-version = "1.4.0-rc.2"
+version = "1.4.0-rc.3"
 dependencies = [
  "angelmark",
  "base64",
@@ -638,7 +638,7 @@ dependencies = [
  "tracing-subscriber",
  "tracing-subscriber-multi",
  "uuid",
- "winres",
+ "winresource",
  "zip",
 ]
 
@@ -2346,7 +2346,7 @@ dependencies = [
  "gtk4",
  "gvdb",
  "serde",
- "toml 0.8.20",
+ "toml",
 ]
 
 [[package]]
@@ -2734,7 +2734,7 @@ dependencies = [
  "cfg-expr",
  "heck",
  "pkg-config",
- "toml 0.8.20",
+ "toml",
  "version-compare",
 ]
 
@@ -2836,15 +2836,6 @@ dependencies = [
  "pin-project-lite",
  "socket2",
  "windows-sys 0.52.0",
-]
-
-[[package]]
-name = "toml"
-version = "0.5.11"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f4f7f0dd8d50a853a531c426359045b1998f04219d88799810762cd4ad314234"
-dependencies = [
- "serde",
 ]
 
 [[package]]
@@ -3479,12 +3470,13 @@ dependencies = [
 ]
 
 [[package]]
-name = "winres"
-version = "0.1.12"
+name = "winresource"
+version = "0.1.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b68db261ef59e9e52806f688020631e987592bd83619edccda9c47d42cde4f6c"
+checksum = "ba4a67c78ee5782c0c1cb41bebc7e12c6e79644daa1650ebbc1de5d5b08593f7"
 dependencies = [
- "toml 0.5.11",
+ "toml",
+ "version_check",
 ]
 
 [[package]]
