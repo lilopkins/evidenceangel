@@ -157,11 +157,16 @@ impl Component for ExportDialogModel {
                 widgets.file_row.remove_css_class("error");
 
                 // evaluate path and determine if a file will be replaced. Update extension if needed.
+                let path_str = path.clone();
                 let mut path = PathBuf::from(path);
 
                 // Update extension
                 let extension = EXPORT_EXTENSIONS[widgets.format_row.selected() as usize];
-                path.set_extension(extension);
+                if !path_str.ends_with(extension) {
+                    // If already ends with extension, assume at this stage the
+                    // user is just typing something. Fix for #150.
+                    path.set_extension(extension);
+                }
 
                 // Update text
                 widgets.file_row.block_signal(&widgets.file_row_changed);
