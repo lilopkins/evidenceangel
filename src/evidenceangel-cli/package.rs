@@ -75,13 +75,12 @@ impl CliPackage {
         name: String,
         authors: Vec<String>,
         description: Option<String>,
-        mut test_cases: Vec<PackageTestCase>,
+        test_cases: Vec<PackageTestCase>,
     ) -> Self {
-        test_cases.sort_by(|a, b| a.executed_at.cmp(&b.executed_at));
         CliPackage {
             name,
-            authors,
             description,
+            authors,
             test_cases,
         }
     }
@@ -91,7 +90,7 @@ impl fmt::Display for CliPackage {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(f, "📦 {}", self.name.bold())?;
         if let Some(description) = &self.description {
-            writeln!(f, "  {}", description)?;
+            writeln!(f, "  {description}")?;
         }
 
         writeln!(f, "\nAuthors:")?;
@@ -173,7 +172,7 @@ pub fn process(path: PathBuf, command: &PackageSubcommand) -> CliData {
                         .metadata()
                         .authors()
                         .iter()
-                        .map(|a| a.to_string())
+                        .map(std::string::ToString::to_string)
                         .collect(),
                     package.metadata().description().clone(),
                     package
@@ -196,7 +195,7 @@ pub fn process(path: PathBuf, command: &PackageSubcommand) -> CliData {
                     .metadata()
                     .authors()
                     .iter()
-                    .map(|a| a.to_string())
+                    .map(std::string::ToString::to_string)
                     .collect(),
                 package.metadata().description().clone(),
                 package
@@ -232,7 +231,7 @@ pub fn process(path: PathBuf, command: &PackageSubcommand) -> CliData {
                         .metadata()
                         .authors()
                         .iter()
-                        .map(|a| a.to_string())
+                        .map(std::string::ToString::to_string)
                         .collect(),
                     package.metadata().description().clone(),
                     package
@@ -271,7 +270,7 @@ pub fn process(path: PathBuf, command: &PackageSubcommand) -> CliData {
                         .metadata()
                         .authors()
                         .iter()
-                        .map(|a| a.to_string())
+                        .map(std::string::ToString::to_string)
                         .collect(),
                     package.metadata().description().clone(),
                     package
@@ -301,7 +300,7 @@ pub fn process(path: PathBuf, command: &PackageSubcommand) -> CliData {
                         .metadata()
                         .authors()
                         .iter()
-                        .map(|a| a.to_string())
+                        .map(std::string::ToString::to_string)
                         .collect(),
                     package.metadata().description().clone(),
                     package

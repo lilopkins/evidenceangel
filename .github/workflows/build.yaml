@@ -113,13 +113,13 @@ jobs:
           - os_name: Linux
             os: ubuntu-latest
             container: ghcr.io/gtk-rs/gtk4-rs/gtk4:latest
-            file_suffix: linux-x86_64
+            file_suffix: linux-amd64
           - os_name: Windows
             os: windows-latest
-            file_suffix: windows-x86_64
+            file_suffix: windows-amd64
           - os_name: Mac
             os: macos-13
-            file_suffix: mac-x86_64
+            file_suffix: mac-amd64
           - os_name: Mac
             os: macos-latest
             file_suffix: mac-arm64

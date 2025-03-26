@@ -1,0 +1,105 @@
+MarkupFile = {
+    SOI ~
+    MarkupLine* ~
+    EOI
+}
+
+MarkupLine = _{
+	Comment |
+	Heading6 |
+    Heading5 |
+    Heading4 |
+    Heading3 |
+    Heading2 |
+    Heading1 |
+    Table |
+    Paragraph |
+    Newline
+}
+
+Comment = {
+	"//" ~ (!NEWLINE ~ ANY)* ~ NEWLINE
+}
+
+Newline = {
+    NEWLINE+
+}
+
+Heading1 = {
+	"#" ~ " "? ~ Paragraph
+}
+
+Heading2 = {
+	"##" ~ " "? ~ Paragraph
+}
+
+Heading3 = {
+	"###" ~ " "? ~ Paragraph
+}
+
+Heading4 = {
+	"####" ~ " "? ~ Paragraph
+}
+
+Heading5 = {
+	"#####" ~ " "? ~ Paragraph
+}
+
+Heading6 = {
+	"######" ~ " "? ~ Paragraph
+}
+
+Paragraph = _{
+	TextContent+ ~ Newline?
+}
+
+TextContent = _{
+	TextBold |
+    TextItalic |
+    TextMonospace |
+    RawText
+}
+
+TextBold = {
+	"**" ~ TextContent ~ "**"
+}
+
+TextItalic = {
+	("_" ~ TextContent ~ "_") |
+    ("*" ~ TextContent ~ "*")
+}
+
+TextMonospace = {
+	"`" ~ TextContent ~ "`"
+}
+
+Table = {
+	TableRow ~
+    TableAlignmentRow ~
+    TableRow*
+}
+
+TableRow = ${
+	"|"? ~ TableCell ~ (!("|" ~ NEWLINE) ~ "|" ~ TableCell)+ ~ "|"? ~ NEWLINE
+}
+
+TableAlignmentRow = ${
+	"|"? ~ TableAlignmentCell ~ (!("|" ~ NEWLINE) ~ "|" ~ TableAlignmentCell)+ ~ "|"? ~ NEWLINE
+}
+
+TableCell = ${
+	TextContent*
+}
+
+TableAlignmentCell = @{
+	":"? ~ "-"+ ~ ":"?
+}
+
+RawText = @{
+    (
+    	((EscapeChar ~ (EscapeChar | "_" | "**" | "*" | "`" | "|")) |
+    	!("*" | "_" | "`" | "|" | NEWLINE)
+    ) ~ ANY)+
+}
+
+EscapeChar = { "\\" }

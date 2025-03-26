@@ -1,5 +1,6 @@
 use std::fs;
 
+use angelmark::{parse_angelmark, AngelmarkLine, AngelmarkTableAlignment, AngelmarkText};
 use base64::Engine;
 use build_html::{Html, HtmlContainer, HtmlElement, HtmlPage, HtmlTag};
 use uuid::Uuid;
@@ -59,12 +60,7 @@ impl Exporter for HtmlExporter {
             );
         }
 
-        let mut test_cases: Vec<&TestCase> = package.test_case_iter()?.collect();
-        test_cases.sort_by(|a, b| {
-            a.metadata()
-                .execution_datetime()
-                .cmp(b.metadata().execution_datetime())
-        });
+        let test_cases: Vec<&TestCase> = package.test_case_iter()?.collect();
         let mut first = true;
         let mut test_case_elems = vec![];
         let mut tab_container =
@@ -72,7 +68,7 @@ impl Exporter for HtmlExporter {
         for (idx, test_case) in test_cases.iter().enumerate() {
             let mut tab_elem = HtmlElement::new(HtmlTag::ListElement)
                 .with_attribute("data-tab-index", idx)
-                .with_link(format!("#tab{}", idx), test_case.metadata().title());
+                .with_link(format!("#tab{idx}"), test_case.metadata().title());
             if first {
                 tab_elem.add_attribute("class", "selected");
             }
@@ -170,6 +166,116 @@ fn create_test_case_div(
                     );
                 }
             }
+            EvidenceKind::RichText => {
+                let data = evidence.value().get_data(&mut package)?;
+                let text = String::from_utf8_lossy(data.as_slice());
+                if let Ok(rich_text) = parse_angelmark(&text) {
+                    for line in rich_text {
+                        match line {
+                            AngelmarkLine::Newline(_span) => {
+                                elem.add_html(HtmlElement::new(HtmlTag::LineBreak));
+                            }
+                            AngelmarkLine::Heading1(angelmark_texts, _span) => {
+                                let mut h = HtmlElement::new(HtmlTag::Heading1);
+                                for angelmark in angelmark_texts {
+                                    h.add_html(angelmark_to_html(
+                                        &angelmark,
+                                        HtmlElement::new(HtmlTag::Span),
+                                    ));
+                                }
+                                elem.add_html(h);
+                            }
+                            AngelmarkLine::Heading2(angelmark_texts, _span) => {
+                                let mut h = HtmlElement::new(HtmlTag::Heading2);
+                                for angelmark in angelmark_texts {
+                                    h.add_html(angelmark_to_html(
+                                        &angelmark,
+                                        HtmlElement::new(HtmlTag::Span),
+                                    ));
+                                }
+                                elem.add_html(h);
+                            }
+                            AngelmarkLine::Heading3(angelmark_texts, _span) => {
+                                let mut h = HtmlElement::new(HtmlTag::Heading3);
+                                for angelmark in angelmark_texts {
+                                    h.add_html(angelmark_to_html(
+                                        &angelmark,
+                                        HtmlElement::new(HtmlTag::Span),
+                                    ));
+                                }
+                                elem.add_html(h);
+                            }
+                            AngelmarkLine::Heading4(angelmark_texts, _span) => {
+                                let mut h = HtmlElement::new(HtmlTag::Heading4);
+                                for angelmark in angelmark_texts {
+                                    h.add_html(angelmark_to_html(
+                                        &angelmark,
+                                        HtmlElement::new(HtmlTag::Span),
+                                    ));
+                                }
+                                elem.add_html(h);
+                            }
+                            AngelmarkLine::Heading5(angelmark_texts, _span) => {
+                                let mut h = HtmlElement::new(HtmlTag::Heading5);
+                                for angelmark in angelmark_texts {
+                                    h.add_html(angelmark_to_html(
+                                        &angelmark,
+                                        HtmlElement::new(HtmlTag::Span),
+                                    ));
+                                }
+                                elem.add_html(h);
+                            }
+                            AngelmarkLine::Heading6(angelmark_texts, _span) => {
+                                let mut h = HtmlElement::new(HtmlTag::Heading6);
+                                for angelmark in angelmark_texts {
+                                    h.add_html(angelmark_to_html(
+                                        &angelmark,
+                                        HtmlElement::new(HtmlTag::Span),
+                                    ));
+                                }
+                                elem.add_html(h);
+                            }
+                            AngelmarkLine::TextLine(angelmark, _span) => elem.add_html(
+                                angelmark_to_html(&angelmark, HtmlElement::new(HtmlTag::Span)),
+                            ),
+                            AngelmarkLine::Table(table, _span) => {
+                                let mut t = HtmlElement::new(HtmlTag::Table);
+                                for row in table.rows() {
+                                    let mut r = HtmlElement::new(HtmlTag::TableRow);
+                                    for (col, cell) in row.cells().iter().enumerate() {
+                                        let align =
+                                            table.alignment().column_alignments()[col].alignment();
+                                        let mut d = HtmlElement::new(HtmlTag::TableCell)
+                                            .with_attribute(
+                                                "style",
+                                                format!(
+                                                    "text-align:{}",
+                                                    match align {
+                                                        AngelmarkTableAlignment::Left => "left",
+                                                        AngelmarkTableAlignment::Center => "center",
+                                                        AngelmarkTableAlignment::Right => "right",
+                                                    }
+                                                ),
+                                            );
+                                        for angelmark in cell.content() {
+                                            d.add_html(angelmark_to_html(
+                                                angelmark,
+                                                HtmlElement::new(HtmlTag::Span),
+                                            ));
+                                        }
+                                        r.add_html(d);
+                                    }
+                                    t.add_html(r);
+                                }
+                                elem.add_html(t);
+                            }
+                        }
+                    }
+                    elem.add_html(HtmlElement::new(HtmlTag::LineBreak));
+                } else {
+                    elem.add_html(HtmlElement::new(HtmlTag::CodeText).with_preformatted(text));
+                }
+            }
             EvidenceKind::Image => {
                 let data = evidence.value().get_data(&mut package)?;
                 let media = MediaFile::from(data);
@@ -178,15 +284,38 @@ fn create_test_case_div(
                     elem.add_html(
                         HtmlElement::new(HtmlTag::Image)
                             .with_attribute("src", format!("data:{mime};base64,{data}")),
-                    )
+                    );
                 }
             }
             EvidenceKind::Http => {
                 let data = evidence.value().get_data(&mut package)?;
-                let text = String::from_utf8_lossy(data.as_slice());
+                let data = String::from_utf8_lossy(data.as_slice());
+                let data_parts = data
+                    .split('\x1e')
+                    .map(std::string::ToString::to_string)
+                    .collect::<Vec<_>>();
+                let request = data_parts.first().cloned().unwrap_or_default();
+                let response = data_parts.get(1).cloned().unwrap_or_default();
+
                 elem.add_html(
-                    HtmlElement::new(HtmlTag::CodeText)
-                        .with_preformatted(html_escape::encode_text(&text)),
+                    HtmlElement::new(HtmlTag::Div)
+                        .with_attribute("class", "http-container")
+                        .with_html(
+                            HtmlElement::new(HtmlTag::Div)
+                                .with_attribute("class", "http-request")
+                                .with_html(
+                                    HtmlElement::new(HtmlTag::CodeText)
+                                        .with_preformatted(html_escape::encode_text(&request)),
+                                ),
+                        )
+                        .with_html(
+                            HtmlElement::new(HtmlTag::Div)
+                                .with_attribute("class", "http-response")
+                                .with_html(
+                                    HtmlElement::new(HtmlTag::CodeText)
+                                        .with_preformatted(html_escape::encode_text(&response)),
+                                ),
+                        ),
                 );
             }
             EvidenceKind::File => {
@@ -229,4 +358,35 @@ fn create_test_case_div(
     }
 
     Ok(elem)
+}
+
+/// Convert Angelmark to HTML elements
+fn angelmark_to_html(angelmark: &AngelmarkText, mut elem: HtmlElement) -> HtmlElement {
+    match angelmark {
+        AngelmarkText::Raw(txt, _span) => elem.with_raw(html_escape::encode_text(txt)),
+        AngelmarkText::Bold(content, _span) => {
+            if let Some((_k, v)) = elem.attributes.iter_mut().find(|(k, _v)| k == "class") {
+                v.push_str(" richtext-bold");
+            } else {
+                elem.add_attribute("class", "richtext-bold");
+            }
+            angelmark_to_html(content, elem)
+        }
+        AngelmarkText::Italic(content, _span) => {
+            if let Some((_k, v)) = elem.attributes.iter_mut().find(|(k, _v)| k == "class") {
+                v.push_str(" richtext-italic");
+            } else {
+                elem.add_attribute("class", "richtext-italic");
+            }
+            angelmark_to_html(content, elem)
+        }
+        AngelmarkText::Monospace(content, _span) => {
+            if let Some((_k, v)) = elem.attributes.iter_mut().find(|(k, _v)| k == "class") {
+                v.push_str(" richtext-monospace");
+            } else {
+                elem.add_attribute("class", "richtext-monospace");
+            }
+            angelmark_to_html(content, elem)
+        }
+    }
 }

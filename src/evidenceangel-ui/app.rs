@@ -8,7 +8,7 @@ use evidenceangel::{
     exporters::{
         excel::ExcelExporter, html::HtmlExporter, zip_of_files::ZipOfFilesExporter, Exporter,
     },
-    Author, Evidence, EvidenceKind, EvidencePackage, MediaFile,
+    Author, Evidence, EvidenceData, EvidenceKind, EvidencePackage, MediaFile,
 };
 #[allow(unused)]
 use gtk::prelude::*;
@@ -28,7 +28,7 @@ use crate::{
     evidence_factory::{EvidenceFactoryInit, EvidenceFactoryModel, EvidenceFactoryOutput},
     filter, lang, lang_args,
     nav_factory::{NavFactoryInit, NavFactoryInput, NavFactoryModel, NavFactoryOutput},
-    util::BoxedEvidenceJson,
+    util::{BoxedEvidenceJson, BoxedTestCaseById},
 };
 
 relm4::new_action_group!(MenuActionGroup, "menu");
@@ -54,8 +54,6 @@ pub struct AppModel {
     action_paste_evidence: RelmAction<PasteEvidenceAction>,
 
     latest_new_author_dlg: Option<Controller<NewAuthorDialogModel>>,
-    latest_add_evidence_text_dlg: Option<Controller<AddTextEvidenceDialogModel>>,
-    latest_add_evidence_http_dlg: Option<Controller<AddHttpEvidenceDialogModel>>,
     latest_add_evidence_image_dlg: Option<Controller<AddImageEvidenceDialogModel>>,
     latest_add_evidence_file_dlg: Option<Controller<AddFileEvidenceDialogModel>>,
     latest_error_dlg: Option<Controller<ErrorDialogModel>>,
@@ -75,7 +73,7 @@ impl AppModel {
             self.open_path
                 .as_ref()
                 .expect("Path must be set before calling open_new")
-                .to_path_buf(),
+                .clone(),
             title,
             authors,
         )?;
@@ -118,29 +116,17 @@ impl AppModel {
         test_case_data.clear();
         if let Some(pkg) = self.open_package.as_ref() {
             let pkg = pkg.read().unwrap();
-            let mut ordered_cases = vec![];
             for case in pkg.test_case_iter()? {
-                ordered_cases.push((
-                    case.metadata().execution_datetime(),
-                    NavFactoryInit {
-                        id: *case.id(),
-                        name: case.metadata().title().clone(),
-                    },
-                ));
-            }
-            // Sort
-            ordered_cases.sort_by(|(a, _), (b, _)| b.cmp(a));
-            for (_exdt, case) in ordered_cases {
-                test_case_data.push_back(case);
+                test_case_data.push_back(NavFactoryInit {
+                    id: *case.id(),
+                    name: case.metadata().title().clone(),
+                });
             }
         }
         Ok(())
     }
 
-    fn create_needs_saving_dialog(
-        &self,
-        transient_for: &impl IsA<gtk::Window>,
-    ) -> adw::MessageDialog {
+    fn create_needs_saving_dialog(transient_for: &impl IsA<gtk::Window>) -> adw::MessageDialog {
         let dialog = adw::MessageDialog::builder()
             .transient_for(transient_for)
             .title(lang::lookup("needs-saving-title"))
@@ -160,7 +146,7 @@ impl AppModel {
     }
 
     fn get_package(&self) -> Option<Arc<RwLock<EvidencePackage>>> {
-        self.open_package.as_ref().map(|pkg| pkg.clone())
+        self.open_package.as_ref().map(Clone::clone)
     }
 }
 
@@ -183,9 +169,16 @@ pub enum AppInput {
     _SetPathThen(PathBuf, Box<AppInput>),
 
     #[allow(private_interfaces)]
-    /// NavigateTo ignores the index provided as part of OpenCase::Case and establishes
+    /// `NavigateTo` ignores the index provided as part of [`OpenCase::Case`] and establishes
     /// it automatically.
     NavigateTo(OpenCase),
+    MoveTestCase {
+        case_to_move: Uuid,
+        /// Move the test case before the specified UUID, or if set to none, move to end. `before` and `offset` are mutually exclusive, but if neither are set the case is moved to the end.
+        before: Option<Uuid>,
+        /// Offset from the target position. `before` and `offset` are mutually exclusive, but if neither are set the case is moved to the end.
+        offset: Option<i32>,
+    },
     DeleteCase(Uuid),
     CreateCaseAndSelect,
     SetMetadataTitle(String),
@@ -197,9 +190,12 @@ pub enum AppInput {
     SetTestCaseTitle(String),
     TrySetExecutionDateTime(String),
     ValidateExecutionDateTime(String),
+    MoveSelectedCaseUp,
+    MoveSelectedCaseDown,
     DeleteSelectedCase,
     _DeleteSelectedCase,
     AddTextEvidence,
+    AddRichTextEvidence,
     AddHttpEvidence,
     AddImageEvidence,
     #[allow(dead_code)]
@@ -296,6 +292,26 @@ impl Component for AppModel {
                                     set_orientation: gtk::Orientation::Vertical,
                                     set_spacing: 2,
                                 },
+
+                                gtk::Box {
+                                    set_height_request: 34, // gtk::Button is 34 high
+
+                                    add_controller = gtk::DropTarget {
+                                        set_actions: gtk::gdk::DragAction::MOVE,
+                                        set_types: &[BoxedTestCaseById::static_type()],
+
+                                        connect_drop[sender] => move |_slf, val, _x, _y| {
+                                            tracing::debug!("Dropped type: {:?}", val.type_());
+                                            if let Ok(data) = val.get::<BoxedTestCaseById>() {
+                                                let dropped_case = data.inner();
+                                                tracing::debug!("Dropped case: {dropped_case:?}");
+                                                sender.input(AppInput::MoveTestCase { case_to_move: dropped_case, before: None, offset: None });
+                                                return true;
+                                            }
+                                            false
+                                        },
+                                    },
+                                }
                             }
                         }
                     },
@@ -450,6 +466,45 @@ impl Component for AppModel {
                                             gtk::Box {
                                                 set_orientation: gtk::Orientation::Vertical,
 
+                                                gtk::Box {
+                                                    set_orientation: gtk::Orientation::Horizontal,
+                                                    set_halign: gtk::Align::End,
+
+                                                    gtk::MenuButton {
+                                                        set_icon_name: relm4_icons::icon_names::MORE_VERTICAL_REGULAR,
+                                                        set_tooltip: &lang::lookup("test-case-menu"),
+                                                        add_css_class: "flat",
+
+                                                        #[wrap(Some)]
+                                                        set_popover = &gtk::Popover {
+                                                            gtk::Box {
+                                                                set_orientation: gtk::Orientation::Vertical,
+                                                                set_spacing: 4,
+
+                                                                gtk::Button {
+                                                                    set_label: &lang::lookup("test-case-move-up"),
+                                                                    add_css_class: "flat",
+
+                                                                    connect_clicked => AppInput::MoveSelectedCaseUp,
+                                                                },
+                                                                gtk::Button {
+                                                                    set_label: &lang::lookup("test-case-move-down"),
+                                                                    add_css_class: "flat",
+
+                                                                    connect_clicked => AppInput::MoveSelectedCaseDown,
+                                                                },
+                                                                gtk::Button {
+                                                                    set_label: &lang::lookup("nav-delete-case"),
+                                                                    add_css_class: "flat",
+                                                                    add_css_class: "destructive-action",
+
+                                                                    connect_clicked => AppInput::DeleteSelectedCase,
+                                                                },
+                                                            }
+                                                        }
+                                                    }
+                                                },
+
                                                 adw::PreferencesGroup {
                                                     set_title: &lang::lookup("test-group-title"),
 
@@ -546,6 +601,15 @@ impl Component for AppModel {
                                                             }
                                                         },
                                                         gtk::Button {
+                                                            connect_clicked => AppInput::AddRichTextEvidence,
+                                                            add_css_class: "pill",
+
+                                                            adw::ButtonContent {
+                                                                set_icon_name: relm4_icons::icon_names::PLUS,
+                                                                set_label: &lang::lookup("evidence-richtext"),
+                                                            }
+                                                        },
+                                                        gtk::Button {
                                                             connect_clicked => AppInput::AddHttpEvidence,
                                                             add_css_class: "pill",
 
@@ -572,24 +636,6 @@ impl Component for AppModel {
                                                                 set_label: &lang::lookup("evidence-file"),
                                                             }
                                                         },
-                                                    },
-
-                                                    gtk::Separator {
-                                                        add_css_class: "spacer",
-                                                    },
-
-                                                    gtk::Button {
-                                                        add_css_class: "pill",
-                                                        add_css_class: "destructive-action",
-                                                        set_margin_top: 8,
-                                                        set_halign: gtk::Align::Center,
-
-                                                        connect_clicked => AppInput::DeleteSelectedCase,
-
-                                                        adw::ButtonContent {
-                                                            set_icon_name: relm4_icons::icon_names::DELETE_FILLED,
-                                                            set_label: &lang::lookup("nav-delete-case"),
-                                                        }
                                                     },
                                                 }
                                             }
@@ -712,8 +758,6 @@ impl Component for AppModel {
 
             latest_error_dlg: None,
             latest_new_author_dlg: None,
-            latest_add_evidence_text_dlg: None,
-            latest_add_evidence_http_dlg: None,
             latest_add_evidence_image_dlg: None,
             latest_add_evidence_file_dlg: None,
             latest_export_dlg: None,
@@ -725,6 +769,14 @@ impl Component for AppModel {
                     NavFactoryOutput::NavigateTo(index, id) => {
                         AppInput::NavigateTo(OpenCase::Case { index, id })
                     }
+                    NavFactoryOutput::MoveBefore {
+                        case_to_move,
+                        before,
+                    } => AppInput::MoveTestCase {
+                        case_to_move,
+                        before: Some(before),
+                        offset: None,
+                    },
                 },
             ),
             authors_factory: FactoryVecDeque::builder().launch_default().forward(
@@ -824,7 +876,7 @@ impl Component for AppModel {
                             title: Box::new(lang::lookup("error-failed-new-title")),
                             body: Box::new(lang::lookup_with_args(
                                 "error-failed-new-body",
-                                lang_args!("error", e.to_string()),
+                                &lang_args!("error", e.to_string()),
                             )),
                         })
                         .forward(sender.input_sender(), |msg| match msg {});
@@ -863,7 +915,7 @@ impl Component for AppModel {
                             title: Box::new(lang::lookup("error-failed-open-title")),
                             body: Box::new(lang::lookup_with_args(
                                 "error-failed-open-body",
-                                lang_args!("error", e.to_string()),
+                                &lang_args!("error", e.to_string()),
                             )),
                         })
                         .forward(sender.input_sender(), |msg| match msg {});
@@ -873,7 +925,9 @@ impl Component for AppModel {
             }
             AppInput::SaveFileThen(then) => {
                 if let Some(package) = self.get_package() {
-                    self.latest_delete_toasts.iter().for_each(|t| t.dismiss());
+                    self.latest_delete_toasts
+                        .iter()
+                        .for_each(adw::Toast::dismiss);
                     if let Err(e) = package.write().unwrap().save() {
                         // Show error dialog
                         let error_dlg = ErrorDialogModel::builder()
@@ -881,7 +935,7 @@ impl Component for AppModel {
                                 title: Box::new(lang::lookup("error-failed-save-title")),
                                 body: Box::new(lang::lookup_with_args(
                                     "error-failed-save-body",
-                                    lang_args!("error", e.to_string()),
+                                    &lang_args!("error", e.to_string()),
                                 )),
                             })
                             .forward(sender.input_sender(), |msg| match msg {});
@@ -900,7 +954,7 @@ impl Component for AppModel {
                 // Propose to save if needed
                 if self.needs_saving {
                     // Show dialog
-                    let dlg = self.create_needs_saving_dialog(root);
+                    let dlg = Self::create_needs_saving_dialog(root);
                     let sender_c = sender.clone();
                     dlg.connect_response(None, move |dlg, res| {
                         if res == "no" {
@@ -1008,8 +1062,6 @@ impl Component for AppModel {
                                 ordered_cases
                                     .push((case.metadata().execution_datetime(), *case.id()));
                             }
-                            // Sort
-                            ordered_cases.sort_by(|(a, _), (b, _)| b.cmp(a));
                             ordered_cases
                                 .iter()
                                 .position(|(_dt, ocid)| *ocid == id)
@@ -1078,10 +1130,14 @@ impl Component for AppModel {
                         .create_test_case(lang::lookup("default-case-title"))
                         .unwrap(); // doesn't fail
                     case_id = *case.id();
-                }
 
-                // Add case to navigation
-                self.update_nav_menu().unwrap(); // doesn't fail
+                    // Add case to navigation
+                    let mut test_case_data = self.test_case_nav_factory.guard();
+                    test_case_data.push_back(NavFactoryInit {
+                        id: case_id,
+                        name: case.metadata().title().clone(),
+                    });
+                }
                 self.needs_saving = true;
 
                 // Switch to case
@@ -1091,32 +1147,30 @@ impl Component for AppModel {
                     id: case_id,
                 }));
 
-                // Move to top of list
+                // Move to bottom of list
                 let adj = widgets.nav_scrolled_window.vadjustment();
-                adj.set_value(adj.lower());
+                adj.set_value(adj.upper());
                 widgets.nav_scrolled_window.set_vadjustment(Some(&adj));
             }
             AppInput::SetMetadataTitle(new_title) => {
-                if !new_title.trim().is_empty() {
-                    if new_title.len() <= 30 {
-                        widgets.metadata_title.remove_css_class("error");
-                        widgets.metadata_title_error_popover.set_visible(false);
-                        if let Some(pkg) = self.get_package() {
-                            pkg.write().unwrap().metadata_mut().set_title(new_title);
-                            self.needs_saving = true;
-                        }
-                    } else {
-                        widgets.metadata_title.add_css_class("error");
-                        widgets
-                            .metadata_title_error_popover_label
-                            .set_text(&lang::lookup("toast-name-too-long"));
-                        widgets.metadata_title_error_popover.set_visible(true);
+                if new_title.trim().is_empty() {
+                    widgets.metadata_title.add_css_class("error");
+                    widgets
+                        .metadata_title_error_popover_label
+                        .set_text(&lang::lookup("toast-name-cant-be-empty"));
+                    widgets.metadata_title_error_popover.set_visible(true);
+                } else if new_title.len() <= 30 {
+                    widgets.metadata_title.remove_css_class("error");
+                    widgets.metadata_title_error_popover.set_visible(false);
+                    if let Some(pkg) = self.get_package() {
+                        pkg.write().unwrap().metadata_mut().set_title(new_title);
+                        self.needs_saving = true;
                     }
                 } else {
                     widgets.metadata_title.add_css_class("error");
                     widgets
                         .metadata_title_error_popover_label
-                        .set_text(&lang::lookup("toast-name-cant-be-empty"));
+                        .set_text(&lang::lookup("toast-name-too-long"));
                     widgets.metadata_title_error_popover.set_visible(true);
                 }
             }
@@ -1140,7 +1194,7 @@ impl Component for AppModel {
                                 title: Box::new(lang::lookup("error-failed-delete-case-title")),
                                 body: Box::new(lang::lookup_with_args(
                                     "error-failed-delete-case-body",
-                                    lang_args!("error", e.to_string()),
+                                    &lang_args!("error", e.to_string()),
                                 )),
                             })
                             .forward(sender.input_sender(), |msg| match msg {});
@@ -1149,6 +1203,55 @@ impl Component for AppModel {
                     }
                     self.update_nav_menu().unwrap(); // doesn't fail
                     sender.input(AppInput::NavigateTo(OpenCase::Metadata));
+                    self.needs_saving = true;
+                }
+            }
+            AppInput::MoveTestCase {
+                case_to_move,
+                before,
+                offset,
+            } => {
+                if before == Some(case_to_move) {
+                    return;
+                }
+
+                if let Some(pkg) = self.get_package() {
+                    let mut new_order = pkg
+                        .read()
+                        .unwrap()
+                        .test_case_iter()
+                        .unwrap()
+                        .map(|tc| *tc.id())
+                        .collect::<Vec<_>>();
+                    let pos = new_order.iter().position(|id| *id == case_to_move).unwrap();
+                    new_order.remove(pos);
+                    let mut test_case_guard = self.test_case_nav_factory.guard();
+                    let NavFactoryModel { id, name, .. } = test_case_guard.remove(pos).unwrap();
+
+                    if let Some(other_case_id) = before {
+                        let other_pos = new_order
+                            .iter()
+                            .position(|id| *id == other_case_id)
+                            .unwrap();
+                        new_order.insert(other_pos, case_to_move);
+                        test_case_guard.insert(other_pos, NavFactoryInit { id, name });
+                    } else {
+                        #[allow(clippy::cast_possible_wrap)]
+                        if let Some(offset) = offset {
+                            // move by offset
+                            let new_pos =
+                                (pos as i32 + offset).max(0).min(new_order.len() as i32) as usize;
+                            new_order.insert(new_pos, case_to_move);
+                            test_case_guard.insert(new_pos, NavFactoryInit { id, name });
+                        } else {
+                            // add to end
+                            new_order.push(case_to_move);
+                            test_case_guard.push_back(NavFactoryInit { id, name });
+                        }
+                    }
+
+                    sender.input(AppInput::NavigateTo(self.open_case));
+                    pkg.write().unwrap().set_test_case_order(new_order).unwrap();
                     self.needs_saving = true;
                 }
             }
@@ -1197,34 +1300,31 @@ impl Component for AppModel {
                 }
             }
             AppInput::SetTestCaseTitle(new_title) => {
-                if !new_title.trim().is_empty() {
-                    if new_title.len() <= 30 {
-                        widgets.test_title.remove_css_class("error");
-                        widgets.test_title_error_popover.set_visible(false);
-                        if let OpenCase::Case { index, id, .. } = &self.open_case {
-                            if let Some(pkg) = self.get_package() {
-                                if let Some(tc) =
-                                    pkg.write().unwrap().test_case_mut(*id).ok().flatten()
-                                {
-                                    tc.metadata_mut().set_title(new_title.clone());
-                                    self.needs_saving = true;
-                                    self.test_case_nav_factory
-                                        .send(*index, NavFactoryInput::UpdateTitle(new_title));
-                                }
+                if new_title.trim().is_empty() {
+                    widgets.test_title.add_css_class("error");
+                    widgets
+                        .test_title_error_popover_label
+                        .set_text(&lang::lookup("toast-name-cant-be-empty"));
+                    widgets.test_title_error_popover.set_visible(true);
+                } else if new_title.len() <= 30 {
+                    widgets.test_title.remove_css_class("error");
+                    widgets.test_title_error_popover.set_visible(false);
+                    if let OpenCase::Case { index, id, .. } = &self.open_case {
+                        if let Some(pkg) = self.get_package() {
+                            if let Some(tc) = pkg.write().unwrap().test_case_mut(*id).ok().flatten()
+                            {
+                                tc.metadata_mut().set_title(new_title.clone());
+                                self.needs_saving = true;
+                                self.test_case_nav_factory
+                                    .send(*index, NavFactoryInput::UpdateTitle(new_title));
                             }
                         }
-                    } else {
-                        widgets.test_title.add_css_class("error");
-                        widgets
-                            .test_title_error_popover_label
-                            .set_text(&lang::lookup("toast-name-too-long"));
-                        widgets.test_title_error_popover.set_visible(true);
                     }
                 } else {
                     widgets.test_title.add_css_class("error");
                     widgets
                         .test_title_error_popover_label
-                        .set_text(&lang::lookup("toast-name-cant-be-empty"));
+                        .set_text(&lang::lookup("toast-name-too-long"));
                     widgets.test_title_error_popover.set_visible(true);
                 }
             }
@@ -1241,9 +1341,6 @@ impl Component for AppModel {
                                     tc.metadata_mut().set_execution_datetime(dt);
                                     self.needs_saving = true;
                                 }
-
-                                // Fix for #59, before reordable TCs are implemented as part of #47.
-                                self.update_nav_menu().unwrap(); // doesn't fail
                             }
                         }
                     }
@@ -1282,15 +1379,15 @@ impl Component for AppModel {
                             .transient_for(root)
                             .title(lang::lookup_with_args(
                                 "delete-case-title",
-                                lang_args!("name", case.metadata().title()),
+                                &lang_args!("name", case.metadata().title()),
                             ))
                             .heading(lang::lookup_with_args(
                                 "delete-case-title",
-                                lang_args!("name", case.metadata().title()),
+                                &lang_args!("name", case.metadata().title()),
                             ))
                             .body(lang::lookup_with_args(
                                 "delete-case-message",
-                                lang_args!("name", case.metadata().title()),
+                                &lang_args!("name", case.metadata().title()),
                             ))
                             .modal(true)
                             .build();
@@ -1318,33 +1415,54 @@ impl Component for AppModel {
                     sender.input(AppInput::DeleteCase(*id));
                 }
             }
-            AppInput::AddTextEvidence => {
-                let add_evidence_text_dlg = AddTextEvidenceDialogModel::builder()
-                    .launch(self.get_package().unwrap())
-                    .forward(sender.input_sender(), |msg| match msg {
-                        AddEvidenceOutput::AddEvidence(ev) => AppInput::_AddEvidence(ev, None),
-                        AddEvidenceOutput::Error { title, message } => {
-                            AppInput::ShowError { title, message }
-                        }
-                        AddEvidenceOutput::Closed => AppInput::ReinstatePaste,
+            AppInput::MoveSelectedCaseUp => {
+                if let OpenCase::Case { id, .. } = &self.open_case {
+                    sender.input(AppInput::MoveTestCase {
+                        case_to_move: *id,
+                        before: None,
+                        offset: Some(-1),
                     });
-                add_evidence_text_dlg.emit(AddEvidenceInput::Present(root.clone()));
-                self.latest_add_evidence_text_dlg = Some(add_evidence_text_dlg);
-                self.action_paste_evidence.set_enabled(false);
+                }
+            }
+            AppInput::MoveSelectedCaseDown => {
+                if let OpenCase::Case { id, .. } = &self.open_case {
+                    sender.input(AppInput::MoveTestCase {
+                        case_to_move: *id,
+                        before: None,
+                        offset: Some(1),
+                    });
+                }
+            }
+            AppInput::AddTextEvidence => {
+                sender.input(AppInput::_AddEvidence(
+                    Evidence::new(
+                        EvidenceKind::Text,
+                        EvidenceData::Text {
+                            content: String::new(),
+                        },
+                    ),
+                    None,
+                ));
+            }
+            AppInput::AddRichTextEvidence => {
+                sender.input(AppInput::_AddEvidence(
+                    Evidence::new(
+                        EvidenceKind::RichText,
+                        EvidenceData::Text {
+                            content: String::new(),
+                        },
+                    ),
+                    None,
+                ));
             }
             AppInput::AddHttpEvidence => {
-                let add_evidence_http_dlg = AddHttpEvidenceDialogModel::builder()
-                    .launch(self.get_package().unwrap())
-                    .forward(sender.input_sender(), |msg| match msg {
-                        AddEvidenceOutput::AddEvidence(ev) => AppInput::_AddEvidence(ev, None),
-                        AddEvidenceOutput::Error { title, message } => {
-                            AppInput::ShowError { title, message }
-                        }
-                        AddEvidenceOutput::Closed => AppInput::ReinstatePaste,
-                    });
-                add_evidence_http_dlg.emit(AddEvidenceInput::Present(root.clone()));
-                self.latest_add_evidence_http_dlg = Some(add_evidence_http_dlg);
-                self.action_paste_evidence.set_enabled(false);
+                sender.input(AppInput::_AddEvidence(
+                    Evidence::new(
+                        EvidenceKind::Http,
+                        EvidenceData::Base64 { data: vec![0x1e] },
+                    ),
+                    None,
+                ));
             }
             AppInput::AddImageEvidence => {
                 let add_evidence_image_dlg = AddImageEvidenceDialogModel::builder()
@@ -1387,7 +1505,7 @@ impl Component for AppModel {
                                 .unwrap()
                                 .evidence_mut();
                             if let Some(pos) = &maybe_pos {
-                                evidence.insert(*pos, ev.clone())
+                                evidence.insert(*pos, ev.clone());
                             } else {
                                 evidence.push(ev.clone());
                             }
@@ -1519,6 +1637,7 @@ impl Component for AppModel {
                 if self.open_package.is_none() {
                     return;
                 }
+                let needs_saving = self.needs_saving;
                 let export_dlg = ExportDialogModel::builder()
                     .launch(ExportDialogInit {
                         package_name: self
@@ -1530,11 +1649,19 @@ impl Component for AppModel {
                             .metadata()
                             .title()
                             .clone(),
+                        package_path: self.open_path.clone().unwrap(),
                         test_case_name: None,
+                        needs_saving,
                     })
-                    .forward(sender.input_sender(), |msg| match msg {
+                    .forward(sender.input_sender(), move |msg| match msg {
                         ExportOutput::Export { format, path } => {
-                            AppInput::_ExportPackage(format, path)
+                            if needs_saving {
+                                AppInput::SaveFileThen(Box::new(AppInput::_ExportPackage(
+                                    format, path,
+                                )))
+                            } else {
+                                AppInput::_ExportPackage(format, path)
+                            }
                         }
                     });
                 export_dlg.emit(ExportInput::Present(root.clone()));
@@ -1552,14 +1679,23 @@ impl Component for AppModel {
                         .ok()
                         .flatten()
                         .unwrap_or_default();
+                    let needs_saving = self.needs_saving;
                     let export_dlg = ExportDialogModel::builder()
                         .launch(ExportDialogInit {
                             package_name: pkg.metadata().title().clone(),
+                            package_path: self.open_path.clone().unwrap(),
                             test_case_name: Some(case_name),
+                            needs_saving,
                         })
-                        .forward(sender.input_sender(), |msg| match msg {
+                        .forward(sender.input_sender(), move |msg| match msg {
                             ExportOutput::Export { format, path } => {
-                                AppInput::_ExportTestCase(format, path)
+                                if needs_saving {
+                                    AppInput::SaveFileThen(Box::new(AppInput::_ExportTestCase(
+                                        format, path,
+                                    )))
+                                } else {
+                                    AppInput::_ExportTestCase(format, path)
+                                }
                             }
                         });
                     export_dlg.emit(ExportInput::Present(root.clone()));
@@ -1586,7 +1722,7 @@ impl Component for AppModel {
                                 title: Box::new(lang::lookup("export-error-failed-title")),
                                 body: Box::new(lang::lookup_with_args(
                                     "export-error-failed-message",
-                                    lang_args!("error", e.to_string()),
+                                    &lang_args!("error", e.to_string()),
                                 )),
                             })
                             .forward(sender.input_sender(), |msg| match msg {});
@@ -1639,7 +1775,7 @@ impl Component for AppModel {
                                     title: Box::new(lang::lookup("export-error-failed-title")),
                                     body: Box::new(lang::lookup_with_args(
                                         "export-error-failed-message",
-                                        lang_args!("error", e.to_string()),
+                                        &lang_args!("error", e.to_string()),
                                     )),
                                 })
                                 .forward(sender.input_sender(), |msg| match msg {});
@@ -1761,7 +1897,7 @@ impl Component for AppModel {
                 widgets.toast_target.add_toast(toast);
             }
         }
-        self.update_view(widgets, sender)
+        self.update_view(widgets, sender);
     }
 }
 

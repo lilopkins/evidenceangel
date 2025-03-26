@@ -7,10 +7,12 @@ use relm4::{
 };
 use uuid::Uuid;
 
+use crate::util::BoxedTestCaseById;
+
 pub struct NavFactoryModel {
     selected: bool,
-    name: String,
-    id: Uuid,
+    pub name: String,
+    pub id: Uuid,
 }
 
 #[derive(Clone, Debug)]
@@ -22,6 +24,7 @@ pub enum NavFactoryInput {
 #[derive(Debug)]
 pub enum NavFactoryOutput {
     NavigateTo(usize, Uuid),
+    MoveBefore { case_to_move: Uuid, before: Uuid },
 }
 
 pub struct NavFactoryInit {
@@ -47,6 +50,31 @@ impl FactoryComponent for NavFactoryModel {
                 set_hexpand: true,
                 #[watch]
                 set_has_frame: self.selected,
+
+                add_controller = gtk::DragSource {
+                    set_actions: gtk::gdk::DragAction::MOVE,
+
+                    connect_prepare[id] => move |_slf, _x, _y| {
+                        let dnd_data = BoxedTestCaseById::new(id);
+                        tracing::debug!("Drag case started: {dnd_data:?}");
+                        Some(gtk::gdk::ContentProvider::for_value(&dnd_data.to_value()))
+                    }
+                },
+                add_controller = gtk::DropTarget {
+                    set_actions: gtk::gdk::DragAction::MOVE,
+                    set_types: &[BoxedTestCaseById::static_type()],
+
+                    connect_drop[sender, id] => move |_slf, val, _x, _y| {
+                        tracing::debug!("Dropped type: {:?}", val.type_());
+                        if let Ok(data) = val.get::<BoxedTestCaseById>() {
+                            let dropped_case = data.inner();
+                            tracing::debug!("Dropped case: {dropped_case:?}");
+                            sender.output(NavFactoryOutput::MoveBefore { case_to_move: dropped_case, before: id }).unwrap();
+                            return true;
+                        }
+                        false
+                    },
+                },
 
                 connect_clicked[sender, index, id] => move |_| {
                     let _ = sender.output(NavFactoryOutput::NavigateTo(index.current_index(), id));

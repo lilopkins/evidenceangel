@@ -9,9 +9,9 @@ use uuid::Uuid;
 
 /// The URL for $schema in the test case manifests
 const TESTCASE_SCHEMA_LOCATION: &str =
-    "https://evidenceangel-schemas.hpkns.uk/testcase.1.schema.json";
-/// The schema itself for test case manifests
-pub(crate) const TESTCASE_SCHEMA: &str = include_str!("../../schemas/testcase.1.schema.json");
+    "https://evidenceangel-schemas.hpkns.uk/testcase.2.schema.json";
+/// The schema itself for test case manifests (version 2)
+pub(crate) const TESTCASE_SCHEMA_2: &str = include_str!("../../schemas/testcase.2.schema.json");
 
 /// A test case stored within an [`EvidencePackage`](super::EvidencePackage).
 #[derive(Clone, Debug, Serialize, Deserialize, Getters, MutGetters, Setters)]
@@ -46,6 +46,11 @@ impl TestCase {
             },
             evidence: vec![],
         }
+    }
+
+    /// Update the JSON schema tag to the latest schema
+    pub(super) fn update_schema(&mut self) {
+        self.schema = TESTCASE_SCHEMA_LOCATION.to_string();
     }
 }
 
@@ -84,6 +89,7 @@ pub struct Evidence {
 
 impl Evidence {
     /// Create a new evidence object.
+    #[must_use]
     pub fn new(kind: EvidenceKind, value: EvidenceData) -> Self {
         Self {
             kind,
@@ -99,6 +105,8 @@ impl Evidence {
 pub enum EvidenceKind {
     /// A text entry.
     Text,
+    /// A rich text (`AngelMark`) entry.
+    RichText,
     /// An image.
     Image,
     /// An attached file.
@@ -130,6 +138,10 @@ pub enum EvidenceData {
 
 impl EvidenceData {
     /// Get the data from this object. This will fetch the media file if needed.
+    ///
+    /// # Errors
+    ///
+    /// - [`crate::Error::MediaMissing`] if the media referred to by the requested data is missing from the package.
     pub fn get_data(&self, package: &mut crate::EvidencePackage) -> crate::Result<Vec<u8>> {
         match self {
             Self::Text { content } => Ok(content.clone().into_bytes()),

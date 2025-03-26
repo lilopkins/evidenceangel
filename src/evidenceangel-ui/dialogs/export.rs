@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::{fs, path::PathBuf};
 
 use adw::prelude::*;
 use relm4::{
@@ -30,15 +30,23 @@ pub enum ExportOutput {
 pub struct ExportDialogInit {
     /// The name of the package
     pub package_name: String,
+    /// The path of the currently open EVP
+    pub package_path: PathBuf,
     /// The name of the test case beinge exported, or None if the whole package is to be exported.
     pub test_case_name: Option<String>,
+    /// Does the file need saving before exporting
+    pub needs_saving: bool,
 }
 
 pub struct ExportDialogModel {
     /// The name of the package
     pub package_name: String,
+    /// The path of the currently open EVP
+    package_directory: PathBuf,
     /// The name of the test case beinge exported, or None if the whole package is to be exported.
     test_case_name: Option<String>,
+    /// Does the file need saving before exporting
+    needs_saving: bool,
 }
 
 #[relm4::component(pub)]
@@ -57,9 +65,9 @@ impl Component for ExportDialogModel {
                     #[wrap(Some)]
                     set_title_widget = &adw::WindowTitle {
                         set_title: &if let Some(name) = &model.test_case_name {
-                            lang::lookup_with_args("export-title", lang_args!("target", name.clone()))
+                            lang::lookup_with_args("export-title", &lang_args!("target", name.clone()))
                         } else {
-                            lang::lookup_with_args("export-title", lang_args!("target", lang::lookup("export-target-package")))
+                            lang::lookup_with_args("export-title", &lang_args!("target", lang::lookup("export-target-package")))
                         }
                     }
                 },
@@ -75,6 +83,7 @@ impl Component for ExportDialogModel {
                         adw::ComboRow {
                             set_title: &lang::lookup("export-format-label"),
                             set_model: Some(&StringList::new(EXPORT_FORMATS)),
+                            connect_selected_notify => ExportInput::_CheckPathValidity,
                         },
                         #[name = "file_row"]
                         adw::EntryRow {
@@ -86,11 +95,16 @@ impl Component for ExportDialogModel {
                                 connect_clicked => ExportInput::_SelectFile,
                             },
                             connect_entry_activated => ExportInput::_Export,
-                            connect_changed => ExportInput::_CheckPathValidity,
+                            connect_changed => ExportInput::_CheckPathValidity @file_row_changed,
                         },
                     },
+                    #[name = "export_btn"]
                     gtk::Button {
-                        set_label: &lang::lookup("export-submit"),
+                        set_label: &if needs_saving {
+                            lang::lookup("export-submit-save")
+                        } else {
+                            lang::lookup("export-submit")
+                        },
                         add_css_class: "pill",
                         add_css_class: "suggested-action",
                         set_halign: gtk::Align::Center,
@@ -109,11 +123,15 @@ impl Component for ExportDialogModel {
     ) -> ComponentParts<Self> {
         let Self::Init {
             package_name,
+            package_path,
             test_case_name,
+            needs_saving,
         } = init;
         let model = Self {
             package_name,
+            package_directory: package_path.parent().unwrap().to_path_buf(),
             test_case_name,
+            needs_saving,
         };
         let widgets = view_output!();
         ComponentParts { model, widgets }
@@ -134,8 +152,49 @@ impl Component for ExportDialogModel {
                 let path = widgets.file_row.text().to_string();
                 if path.trim().is_empty() {
                     widgets.file_row.add_css_class("error");
+                    return;
+                }
+                widgets.file_row.remove_css_class("error");
+
+                // evaluate path and determine if a file will be replaced. Update extension if needed.
+                let path_str = path.clone();
+                let mut path = PathBuf::from(path);
+
+                // Update extension
+                let extension = EXPORT_EXTENSIONS[widgets.format_row.selected() as usize];
+                if !path_str.ends_with(extension) {
+                    // If already ends with extension, assume at this stage the
+                    // user is just typing something. Fix for #150.
+                    path.set_extension(extension);
+                }
+
+                // Update text
+                widgets.file_row.block_signal(&widgets.file_row_changed);
+                if let Some(new_path) = path.as_os_str().to_str() {
+                    let cursor_position = widgets.file_row.position();
+                    widgets.file_row.set_text(new_path);
+                    widgets.file_row.set_position(cursor_position);
+                }
+                widgets.file_row.unblock_signal(&widgets.file_row_changed);
+
+                // Check if overwriting
+                if path.is_relative() {
+                    // Make relative to EVP
+                    path = self.package_directory.join(path);
+                    tracing::debug!("Making path relative to EVP: {path:?}");
+                }
+                if let Ok(true) = fs::exists(path) {
+                    widgets.export_btn.set_label(&lang::lookup(format!(
+                        "export-submit{}-replace",
+                        if self.needs_saving { "-save" } else { "" }
+                    )));
+                    widgets.export_btn.add_css_class("warning");
                 } else {
-                    widgets.file_row.remove_css_class("error");
+                    widgets.export_btn.set_label(&lang::lookup(format!(
+                        "export-submit{}",
+                        if self.needs_saving { "-save" } else { "" }
+                    )));
+                    widgets.export_btn.remove_css_class("warning");
                 }
             }
             ExportInput::_Export => {
@@ -145,6 +204,11 @@ impl Component for ExportDialogModel {
                     return;
                 }
                 let mut path = PathBuf::from(path);
+                if path.is_relative() {
+                    // Make relative to EVP
+                    path = self.package_directory.join(path);
+                    tracing::debug!("Making path relative to EVP: {path:?}");
+                }
                 // Update extension
                 let extension = EXPORT_EXTENSIONS[widgets.format_row.selected() as usize];
                 path.set_extension(extension);
@@ -181,6 +245,6 @@ impl Component for ExportDialogModel {
                 widgets.file_row.set_text(path.to_str().unwrap_or_default());
             }
         }
-        self.update_view(widgets, sender)
+        self.update_view(widgets, sender);
     }
 }

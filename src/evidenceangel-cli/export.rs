@@ -140,7 +140,7 @@ pub fn process(path: PathBuf, command: &ExportSubcommand) -> CliData {
         } => match EvidencePackage::open(path) {
             Ok(mut package) => {
                 // match against a test case
-                let mut test_cases: Vec<_> = package
+                let test_cases: Vec<_> = package
                     .test_case_iter()
                     .unwrap()
                     .map(|tc| {
@@ -151,32 +151,28 @@ pub fn process(path: PathBuf, command: &ExportSubcommand) -> CliData {
                         )
                     })
                     .collect();
-                test_cases.sort_by(|(_, _, a), (_, _, b)| a.cmp(b));
 
-                let case_id = match case.parse::<usize>() {
-                    Ok(idx) => {
-                        if idx == 0 || idx > test_cases.len() {
-                            None
-                        } else {
-                            let idx = idx - 1;
-                            Some((test_cases[idx].0, test_cases[idx].1.clone()))
-                        }
+                let case_id = if let Ok(idx) = case.parse::<usize>() {
+                    if idx == 0 || idx > test_cases.len() {
+                        None
+                    } else {
+                        let idx = idx - 1;
+                        Some((test_cases[idx].0, test_cases[idx].1.clone()))
                     }
-                    Err(_) => {
-                        // Try to match substring
-                        let maybe_result: Vec<_> = test_cases
-                            .iter()
-                            .filter(|(_, title, _)| {
-                                title
-                                    .to_ascii_lowercase()
-                                    .contains(&case.to_ascii_lowercase())
-                            })
-                            .collect();
-                        if maybe_result.len() == 1 {
-                            Some((maybe_result[0].0, maybe_result[0].1.clone()))
-                        } else {
-                            None
-                        }
+                } else {
+                    // Try to match substring
+                    let maybe_result: Vec<_> = test_cases
+                        .iter()
+                        .filter(|(_, title, _)| {
+                            title
+                                .to_ascii_lowercase()
+                                .contains(&case.to_ascii_lowercase())
+                        })
+                        .collect();
+                    if maybe_result.len() == 1 {
+                        Some((maybe_result[0].0, maybe_result[0].1.clone()))
+                    } else {
+                        None
                     }
                 };
                 if case_id.is_none() {

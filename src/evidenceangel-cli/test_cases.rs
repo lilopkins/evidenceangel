@@ -6,8 +6,9 @@ use std::{
     rc::Rc,
 };
 
+use angelmark::{parse_angelmark, AngelmarkLine, AngelmarkTableAlignment};
 use chrono::FixedOffset;
-use clap::Subcommand;
+use clap::{Subcommand, ValueEnum};
 use colored::Colorize;
 use evidenceangel::{Evidence, EvidenceData, EvidenceKind, EvidencePackage, MediaFile};
 use schemars::JsonSchema;
@@ -51,6 +52,20 @@ pub enum TestCasesSubcommand {
         /// The one-based index of the test case to delete, or enough of the title to uniquely match against one test case.
         #[arg(index = 1)]
         case: String,
+    },
+    /// Move a particular test case to a new position
+    Move {
+        /// The one-based index of the test case to move, or enough of the title to uniquely match against one test case.
+        #[arg(index = 1)]
+        case: String,
+
+        /// Whether to position before or after a case.
+        #[arg(index = 2, value_enum)]
+        before_or_after: BeforeOrAfter,
+
+        /// The one-based index of the test case to position based upon, or enough of the title to uniquely match against one test case.
+        #[arg(index = 3)]
+        other_case: String,
     },
     /// Add evidence to a test case.
     AddEvidence {
@@ -101,6 +116,12 @@ pub enum EvidenceValue {
         #[arg(index = 1, default_value = "-")]
         value: String,
     },
+    /// Rich text-based evidence
+    RichText {
+        /// The text to add, or `-` to read from stdin.
+        #[arg(index = 1, default_value = "-")]
+        value: String,
+    },
     /// Image-based evidence
     Image {
         /// The image to add as evidence
@@ -128,6 +149,15 @@ pub enum EvidenceValue {
         #[arg(index = 2)]
         caption: Option<String>,
     },
+}
+
+/// Whether to position before or after
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
+pub enum BeforeOrAfter {
+    /// Position before the other case
+    Before,
+    /// Position after the other case
+    After,
 }
 
 /// The data of a test case
@@ -161,6 +191,81 @@ impl fmt::Display for CliTestCase {
                         })
                         .trim_end()
                         .to_string(),
+                    CliEvidence::RichText { data } => {
+                        if let Ok(rich) = parse_angelmark(data) {
+                            let mut rich_text = String::new();
+                            for line in rich {
+                                match line {
+                                    AngelmarkLine::Newline(_span) => rich_text.push('\n'),
+                                    AngelmarkLine::Table(table, _span) => {
+                                        for row in table.rows() {
+                                            rich_text.push_str("| ");
+                                            for (col, cell) in row.cells().iter().enumerate() {
+                                                let alignment =
+                                                    table.alignment().column_alignments()[col]
+                                                        .alignment();
+                                                let width = table.column_width(col);
+                                                let formatted = cell
+                                                    .content()
+                                                    .iter()
+                                                    .map(crate::angelmark::angelmark_to_term)
+                                                    .collect::<String>();
+                                                let text_width = cell
+                                                    .content()
+                                                    .iter()
+                                                    .map(crate::angelmark::angelmark_to_term_plain)
+                                                    .collect::<String>()
+                                                    .len();
+                                                let padding_left = match alignment {
+                                                    AngelmarkTableAlignment::Left => String::new(),
+                                                    AngelmarkTableAlignment::Center => {
+                                                        " ".repeat((width - text_width).div_ceil(2))
+                                                    }
+                                                    AngelmarkTableAlignment::Right => {
+                                                        " ".repeat(width - text_width)
+                                                    }
+                                                };
+                                                let padding_right = match alignment {
+                                                    AngelmarkTableAlignment::Right => String::new(),
+                                                    AngelmarkTableAlignment::Center => {
+                                                        " ".repeat((width - text_width) / 2)
+                                                    }
+                                                    AngelmarkTableAlignment::Left => {
+                                                        " ".repeat(width - text_width)
+                                                    }
+                                                };
+
+                                                rich_text.push_str(&format!(
+                                                    "{padding_left}{formatted}{padding_right} | "
+                                                ));
+                                            }
+                                            rich_text.push('\n');
+                                        }
+                                        rich_text.push('\n');
+                                    }
+                                    AngelmarkLine::Heading1(line, _span)
+                                    | AngelmarkLine::Heading2(line, _span)
+                                    | AngelmarkLine::Heading3(line, _span)
+                                    | AngelmarkLine::Heading4(line, _span)
+                                    | AngelmarkLine::Heading5(line, _span)
+                                    | AngelmarkLine::Heading6(line, _span) => {
+                                        for txt in line {
+                                            rich_text.push_str(
+                                                &crate::angelmark::angelmark_to_term(&txt),
+                                            );
+                                        }
+                                        rich_text.push('\n');
+                                    }
+                                    AngelmarkLine::TextLine(txt, _span) => rich_text
+                                        .push_str(&crate::angelmark::angelmark_to_term(&txt)),
+                                }
+                            }
+
+                            rich_text
+                        } else {
+                            "Invalid rich text".italic().red().to_string()
+                        }
+                    }
                     CliEvidence::Http => "HTTP request".magenta().to_string(),
                     CliEvidence::Image => "Image".magenta().to_string(),
                     CliEvidence::File { original_filename } => format!(
@@ -185,6 +290,11 @@ pub enum CliEvidence {
         /// The data in this textual evidence
         data: String,
     },
+    /// Rich text evidence
+    RichText {
+        /// The data in this textual evidence
+        data: String,
+    },
     /// An HTTP request and response
     Http,
     /// An image
@@ -198,8 +308,8 @@ pub enum CliEvidence {
 
 /// Match a test case by a string, either a number (id) of the test case, or a
 /// partial text match to the title
-fn match_test_case(package: &mut EvidencePackage, case: String) -> Option<Uuid> {
-    let mut test_cases: Vec<_> = package
+fn match_test_case(package: &mut EvidencePackage, case: &str) -> Option<Uuid> {
+    let test_cases: Vec<_> = package
         .test_case_iter()
         .unwrap()
         .map(|tc| {
@@ -210,32 +320,28 @@ fn match_test_case(package: &mut EvidencePackage, case: String) -> Option<Uuid> 
             )
         })
         .collect();
-    test_cases.sort_by(|(_, _, a), (_, _, b)| a.cmp(b));
 
-    match case.parse::<usize>() {
-        Ok(idx) => {
-            if idx == 0 || idx > test_cases.len() {
-                None
-            } else {
-                let idx = idx - 1;
-                Some(test_cases[idx].0)
-            }
+    if let Ok(idx) = case.parse::<usize>() {
+        if idx == 0 || idx > test_cases.len() {
+            None
+        } else {
+            let idx = idx - 1;
+            Some(test_cases[idx].0)
         }
-        Err(_) => {
-            // Try to match substring
-            let maybe_result: Vec<_> = test_cases
-                .iter()
-                .filter(|(_, title, _)| {
-                    title
-                        .to_ascii_lowercase()
-                        .contains(&case.to_ascii_lowercase())
-                })
-                .collect();
-            if maybe_result.len() == 1 {
-                Some(maybe_result[0].0)
-            } else {
-                None
-            }
+    } else {
+        // Try to match substring
+        let maybe_result: Vec<_> = test_cases
+            .iter()
+            .filter(|(_, title, _)| {
+                title
+                    .to_ascii_lowercase()
+                    .contains(&case.to_ascii_lowercase())
+            })
+            .collect();
+        if maybe_result.len() == 1 {
+            Some(maybe_result[0].0)
+        } else {
+            None
         }
     }
 }
@@ -243,7 +349,7 @@ fn match_test_case(package: &mut EvidencePackage, case: String) -> Option<Uuid> 
 /// Convert an [`EvidenceValue`] from the CLI args to an [`Evidence`] struct
 /// from EvidenceAngel.
 fn evidence_from_evidence_value(
-    evidence_value: EvidenceValue,
+    evidence_value: &EvidenceValue,
     package: &mut EvidencePackage,
 ) -> Result<Evidence, CliError> {
     match evidence_value.clone() {
@@ -257,6 +363,19 @@ fn evidence_from_evidence_value(
             }
             Ok(Evidence::new(
                 EvidenceKind::Text,
+                EvidenceData::Text { content: value },
+            ))
+        }
+        EvidenceValue::RichText { mut value } => {
+            let mut buf = vec![];
+            if value == "-" {
+                io::stdin()
+                    .read_to_end(&mut buf)
+                    .expect("failed to read stdin");
+                value = String::from_utf8_lossy(&buf).into_owned();
+            }
+            Ok(Evidence::new(
+                EvidenceKind::RichText,
                 EvidenceData::Text { content: value },
             ))
         }
@@ -348,6 +467,10 @@ pub fn process(path: PathBuf, command: &TestCasesSubcommand) -> CliData {
                                 data: String::from_utf8(ev.value().get_data(&mut package).unwrap())
                                     .unwrap(),
                             },
+                            EvidenceKind::RichText => CliEvidence::RichText {
+                                data: String::from_utf8(ev.value().get_data(&mut package).unwrap())
+                                    .unwrap(),
+                            },
                             EvidenceKind::Image => CliEvidence::Image,
                             EvidenceKind::Http => CliEvidence::Http,
                             EvidenceKind::File => CliEvidence::File {
@@ -361,7 +484,7 @@ pub fn process(path: PathBuf, command: &TestCasesSubcommand) -> CliData {
         },
         TestCasesSubcommand::Read { case } => match EvidencePackage::open(path) {
             Ok(mut package) => {
-                let case_id = match_test_case(&mut package, case.clone());
+                let case_id = match_test_case(&mut package, case);
                 if case_id.is_none() {
                     return CliError::CannotMatchTestCase(case.clone()).into();
                 }
@@ -375,6 +498,10 @@ pub fn process(path: PathBuf, command: &TestCasesSubcommand) -> CliData {
                         .iter()
                         .map(|ev| match ev.kind() {
                             EvidenceKind::Text => CliEvidence::Text {
+                                data: String::from_utf8(ev.value().get_data(&mut package).unwrap())
+                                    .unwrap(),
+                            },
+                            EvidenceKind::RichText => CliEvidence::RichText {
                                 data: String::from_utf8(ev.value().get_data(&mut package).unwrap())
                                     .unwrap(),
                             },
@@ -395,7 +522,7 @@ pub fn process(path: PathBuf, command: &TestCasesSubcommand) -> CliData {
             executed_at,
         } => match EvidencePackage::open(path) {
             Ok(mut package) => {
-                let case_id = match_test_case(&mut package, case.clone());
+                let case_id = match_test_case(&mut package, case);
                 if case_id.is_none() {
                     return CliError::CannotMatchTestCase(case.clone()).into();
                 }
@@ -431,6 +558,10 @@ pub fn process(path: PathBuf, command: &TestCasesSubcommand) -> CliData {
                                 data: String::from_utf8(ev.value().get_data(&mut package).unwrap())
                                     .unwrap(),
                             },
+                            EvidenceKind::RichText => CliEvidence::RichText {
+                                data: String::from_utf8(ev.value().get_data(&mut package).unwrap())
+                                    .unwrap(),
+                            },
                             EvidenceKind::Image => CliEvidence::Image,
                             EvidenceKind::Http => CliEvidence::Http,
                             EvidenceKind::File => CliEvidence::File {
@@ -444,7 +575,7 @@ pub fn process(path: PathBuf, command: &TestCasesSubcommand) -> CliData {
         },
         TestCasesSubcommand::Delete { case } => match EvidencePackage::open(path) {
             Ok(mut package) => {
-                let case_id = match_test_case(&mut package, case.clone());
+                let case_id = match_test_case(&mut package, case);
                 if case_id.is_none() {
                     return CliError::CannotMatchTestCase(case.clone()).into();
                 }
@@ -458,18 +589,70 @@ pub fn process(path: PathBuf, command: &TestCasesSubcommand) -> CliData {
             }
             Err(e) => CliError::FailedToReadPackage(Rc::new(e)).into(),
         },
-        TestCasesSubcommand::AddEvidence {
+        TestCasesSubcommand::Move {
             case,
-            evidence_value,
+            before_or_after,
+            other_case,
         } => match EvidencePackage::open(path) {
             Ok(mut package) => {
-                let case_id = match_test_case(&mut package, case.clone());
+                let case_id = match_test_case(&mut package, case);
                 if case_id.is_none() {
                     return CliError::CannotMatchTestCase(case.clone()).into();
                 }
                 let case_id = case_id.unwrap();
 
-                match evidence_from_evidence_value(evidence_value.clone(), &mut package) {
+                let other_case_id = match_test_case(&mut package, other_case);
+                if other_case_id.is_none() {
+                    return CliError::CannotMatchTestCase(other_case.clone()).into();
+                }
+                let other_case_id = other_case_id.unwrap();
+
+                // Establish new order
+                let mut new_order;
+                match package.test_case_iter() {
+                    Ok(cases) => {
+                        new_order = cases.map(|tc| *tc.id()).collect::<Vec<_>>();
+                        let pos = new_order.iter().position(|id| *id == case_id).unwrap();
+                        new_order.remove(pos);
+                        let other_pos = new_order
+                            .iter()
+                            .position(|id| *id == other_case_id)
+                            .unwrap();
+                        let new_pos = match before_or_after {
+                            BeforeOrAfter::Before => other_pos,
+                            BeforeOrAfter::After => other_pos + 1,
+                        };
+                        tracing::debug!("Reinserting at position {new_pos}");
+                        new_order.insert(new_pos, case_id);
+                    }
+                    Err(e) => return CliError::FailedToReadPackage(Rc::new(e)).into(),
+                };
+
+                // Update order
+                if let Err(e) = package.set_test_case_order(new_order) {
+                    return CliError::FailedToSavePackage(Rc::new(e)).into();
+                }
+
+                if let Err(e) = package.save() {
+                    return CliError::FailedToSavePackage(Rc::new(e)).into();
+                }
+
+                CliData::Success
+            }
+            Err(e) => CliError::FailedToReadPackage(Rc::new(e)).into(),
+        },
+        TestCasesSubcommand::AddEvidence {
+            case,
+            evidence_value,
+        } => match EvidencePackage::open(path) {
+            Ok(mut package) => {
+                let case_id = match_test_case(&mut package, case);
+                if case_id.is_none() {
+                    return CliError::CannotMatchTestCase(case.clone()).into();
+                }
+                let case_id = case_id.unwrap();
+
+                match evidence_from_evidence_value(evidence_value, &mut package) {
                     Ok(ev) => {
                         let test_case = package.test_case_mut(case_id).unwrap().unwrap();
                         test_case.evidence_mut().push(ev);
@@ -493,6 +676,10 @@ pub fn process(path: PathBuf, command: &TestCasesSubcommand) -> CliData {
                                 data: String::from_utf8(ev.value().get_data(&mut package).unwrap())
                                     .unwrap(),
                             },
+                            EvidenceKind::RichText => CliEvidence::RichText {
+                                data: String::from_utf8(ev.value().get_data(&mut package).unwrap())
+                                    .unwrap(),
+                            },
                             EvidenceKind::Image => CliEvidence::Image,
                             EvidenceKind::Http => CliEvidence::Http,
                             EvidenceKind::File => CliEvidence::File {
@@ -507,7 +694,7 @@ pub fn process(path: PathBuf, command: &TestCasesSubcommand) -> CliData {
         TestCasesSubcommand::ReadEvidence { case, evidence_id } => {
             match EvidencePackage::open(path) {
                 Ok(mut package) => {
-                    let case_id = match_test_case(&mut package, case.clone());
+                    let case_id = match_test_case(&mut package, case);
                     if case_id.is_none() {
                         return CliError::CannotMatchTestCase(case.clone()).into();
                     }
@@ -541,13 +728,13 @@ pub fn process(path: PathBuf, command: &TestCasesSubcommand) -> CliData {
             evidence_value,
         } => match EvidencePackage::open(path) {
             Ok(mut package) => {
-                let case_id = match_test_case(&mut package, case.clone());
+                let case_id = match_test_case(&mut package, case);
                 if case_id.is_none() {
                     return CliError::CannotMatchTestCase(case.clone()).into();
                 }
                 let case_id = case_id.unwrap();
 
-                match evidence_from_evidence_value(evidence_value.clone(), &mut package) {
+                match evidence_from_evidence_value(evidence_value, &mut package) {
                     Ok(ev) => {
                         let test_case = package.test_case_mut(case_id).unwrap().unwrap();
                         if *evidence_id < 1 || *evidence_id > test_case.evidence().len() {
@@ -575,6 +762,10 @@ pub fn process(path: PathBuf, command: &TestCasesSubcommand) -> CliData {
                                 data: String::from_utf8(ev.value().get_data(&mut package).unwrap())
                                     .unwrap(),
                             },
+                            EvidenceKind::RichText => CliEvidence::RichText {
+                                data: String::from_utf8(ev.value().get_data(&mut package).unwrap())
+                                    .unwrap(),
+                            },
                             EvidenceKind::Image => CliEvidence::Image,
                             EvidenceKind::Http => CliEvidence::Http,
                             EvidenceKind::File => CliEvidence::File {
@@ -589,7 +780,7 @@ pub fn process(path: PathBuf, command: &TestCasesSubcommand) -> CliData {
         TestCasesSubcommand::DeleteEvidence { case, evidence_id } => {
             match EvidencePackage::open(path) {
                 Ok(mut package) => {
-                    let case_id = match_test_case(&mut package, case.clone());
+                    let case_id = match_test_case(&mut package, case);
                     if case_id.is_none() {
                         return CliError::CannotMatchTestCase(case.clone()).into();
                     }
@@ -616,6 +807,12 @@ pub fn process(path: PathBuf, command: &TestCasesSubcommand) -> CliData {
                             .iter()
                             .map(|ev| match ev.kind() {
                                 EvidenceKind::Text => CliEvidence::Text {
+                                    data: String::from_utf8(
+                                        ev.value().get_data(&mut package).unwrap(),
+                                    )
+                                    .unwrap(),
+                                },
+                                EvidenceKind::RichText => CliEvidence::RichText {
                                     data: String::from_utf8(
                                         ev.value().get_data(&mut package).unwrap(),
                                     )
