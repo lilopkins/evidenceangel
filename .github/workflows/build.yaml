@@ -212,11 +212,10 @@ jobs:
           cargo build --release -F ui --bin evidenceangel-ui
 
           echo Generating Wix script...
-          set GTK4_PATH='${{ steps.wingtk-install.outputs.BASE_DIR }}'
           rm -rf ${{ steps.wingtk-install.outputs.BASE_DIR }}/include
           rm -rf ${{ steps.wingtk-install.outputs.BASE_DIR }}/bin/*.exe
           pushd wix || exit
-          ./generate_wix_script.sh
+          GTK4_PATH="${{ steps.wingtk-install.outputs.BASE_DIR }}" ./generate_wix_script.sh
           popd || exit
 
           echo Generating installer...
