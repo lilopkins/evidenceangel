@@ -132,6 +132,8 @@ jobs:
         if: matrix.platform.os_name == 'Windows'
         id: wingtk-install
         shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           REPO_OWNER="wingtk"  # Replace with the owner of the repository
           REPO_NAME="gvsbuild" # Replace with the name of the repository
