@@ -301,6 +301,7 @@ impl FactoryComponent for EvidenceFactoryModel {
 
                 let error_message = gtk::Box::new(gtk::Orientation::Horizontal, 4);
                 error_message.set_margin_start(8);
+                error_message.set_visible(false);
                 error_message.append(&{
                     let i = gtk::Image::new();
                     i.set_icon_name(Some(relm4_icons::icon_names::WARNING));
@@ -314,7 +315,7 @@ impl FactoryComponent for EvidenceFactoryModel {
                 let processing = Arc::new(Mutex::new(false));
                 {
                     let processing = processing.clone();
-                    let error_popover = error_message.clone();
+                    let error_message = error_message.clone();
                     let frame = frame.clone();
                     text_view.buffer().connect_changed(move |buf| {
                         if *processing.lock().unwrap() {
@@ -351,10 +352,10 @@ impl FactoryComponent for EvidenceFactoryModel {
 
                             buf.place_cursor(&buf.iter_at_offset(cursor_pos));
                             frame.remove_css_class("warning");
-                            error_popover.set_visible(false);
+                            error_message.set_visible(false);
                         } else {
                             frame.add_css_class("warning");
-                            error_popover.set_visible(true);
+                            error_message.set_visible(true);
                         }
                         *processing.lock().unwrap() = false;
                     });
