@@ -17,10 +17,10 @@ press <kbd>Ctrl+Shift+V</kbd>, or follow these steps:
 
 ## Inserting Evidence
 
-1. Select the type of _evidence_ you wish to add by clicking the appropriate "+
-   &lt;Type&gt;" button.
+1. Select the "+ Add Evidence" button.
 
    ![add evidence buttons](./images/taking_evidence/add_evidence.png)
+1. Select the type of _evidence_ you wish to add.
 1. Follow the steps to add the _evidence_.
 
 ### Supported Evidence
