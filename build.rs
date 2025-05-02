@@ -1,13 +1,16 @@
 fn main() {
     if cfg!(feature = "cli") || cfg!(feature = "ui") {
-        // Build hicolor icons
-        println!("cargo::rerun-if-changed=resources");
-        println!("cargo::rerun-if-changed=hicolor-icon.gresource.xml");
-        glib_build_tools::compile_resources(
-            &["resources"],
-            "hicolor-icon.gresource.xml",
-            "hicolor-icon.gresource",
-        );
+        #[cfg(feature = "ui")]
+        {
+            // Build hicolor icons
+            println!("cargo::rerun-if-changed=resources");
+            println!("cargo::rerun-if-changed=hicolor-icon.gresource.xml");
+            glib_build_tools::compile_resources(
+                &["resources"],
+                "hicolor-icon.gresource.xml",
+                "hicolor-icon.gresource",
+            );
+        }
 
         // Build documentation
         println!("cargo::rerun-if-changed=docs/book.toml");
