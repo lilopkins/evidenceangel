@@ -188,14 +188,13 @@ jobs:
           PKG_CONFIG_PATH="${{ steps.wingtk-install.outputs.BASE_DIR }}/lib/pkgconfig:$PKG_CONFIG_PATH"
 
           mkdir -p bundle/bin
+          cp -r ${{ steps.wingtk-install.outputs.BASE_DIR }}/* bundle/
+          rm -rf bundle/include
+          rm -rf bundle/bin/*.exe
           cargo build --release ${{ env.CARGO_EXTRA_BUILD_PARAMS }}
           mv target/release/${{ env.EXECUTABLE_NAME }}.exe bundle/bin/${{ env.EXECUTABLE_NAME }}-${{ matrix.platform.file_suffix }}.exe
           cargo build --release --features ${{ env.CARGO_KEEP_CONSOLE_ON_WINDOWS_FEATURE }} ${{ env.CARGO_EXTRA_BUILD_PARAMS }}
           mv target/release/${{ env.EXECUTABLE_NAME }}.exe bundle/bin/${{ env.EXECUTABLE_NAME }}-console-${{ matrix.platform.file_suffix }}.exe
-
-          rm -rf ${{ steps.wingtk-install.outputs.BASE_DIR }}/include
-          rm -rf ${{ steps.wingtk-install.outputs.BASE_DIR }}/bin/*.exe
-          cp -r ${{ steps.wingtk-install.outputs.BASE_DIR }}/* bundle/
 
       - name: Build MSI installer
         if: matrix.platform.os_name == 'Windows'
@@ -207,6 +206,8 @@ jobs:
           cargo build --release -F cli --bin evidenceangel-cli
           cargo build --release -F ui --bin evidenceangel-ui
           set GTK4_PATH='${{ steps.wingtk-install.outputs.BASE_DIR }}'
+          rm -rf ${{ steps.wingtk-install.outputs.BASE_DIR }}/include
+          rm -rf ${{ steps.wingtk-install.outputs.BASE_DIR }}/bin/*.exe
           pushd wix || exit
           ./generate_wix_script.sh
           popd || exit
