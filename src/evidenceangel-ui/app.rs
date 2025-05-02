@@ -43,7 +43,11 @@ relm4::new_stateless_action!(ExportTestCaseAction, MenuActionGroup, "export-test
 
 relm4::new_action_group!(AddEvidenceActionGroup, "add-evidence");
 relm4::new_stateless_action!(AddEvidenceTextAction, AddEvidenceActionGroup, "text");
-relm4::new_stateless_action!(AddEvidenceRichTextAction, AddEvidenceActionGroup, "rich-text");
+relm4::new_stateless_action!(
+    AddEvidenceRichTextAction,
+    AddEvidenceActionGroup,
+    "rich-text"
+);
 relm4::new_stateless_action!(AddEvidenceHttpAction, AddEvidenceActionGroup, "http");
 relm4::new_stateless_action!(AddEvidenceImageAction, AddEvidenceActionGroup, "image");
 relm4::new_stateless_action!(AddEvidenceFileAction, AddEvidenceActionGroup, "file");
