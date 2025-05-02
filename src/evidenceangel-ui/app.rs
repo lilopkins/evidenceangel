@@ -41,6 +41,13 @@ relm4::new_stateless_action!(PasteEvidenceAction, MenuActionGroup, "paste-eviden
 relm4::new_stateless_action!(ExportPackageAction, MenuActionGroup, "export-package");
 relm4::new_stateless_action!(ExportTestCaseAction, MenuActionGroup, "export-test-case");
 
+relm4::new_action_group!(AddEvidenceActionGroup, "add-evidence");
+relm4::new_stateless_action!(AddEvidenceTextAction, AddEvidenceActionGroup, "text");
+relm4::new_stateless_action!(AddEvidenceRichTextAction, AddEvidenceActionGroup, "rich-text");
+relm4::new_stateless_action!(AddEvidenceHttpAction, AddEvidenceActionGroup, "http");
+relm4::new_stateless_action!(AddEvidenceImageAction, AddEvidenceActionGroup, "image");
+relm4::new_stateless_action!(AddEvidenceFileAction, AddEvidenceActionGroup, "file");
+
 pub struct AppModel {
     open_package: Option<Arc<RwLock<EvidencePackage>>>,
     open_path: Option<PathBuf>,
@@ -591,59 +598,23 @@ impl Component for AppModel {
                                                     },
                                                 },
 
-                                                gtk::Box {
-                                                    set_orientation: gtk::Orientation::Horizontal,
+                                                adw::Bin {
                                                     set_margin_top: 8,
-                                                    set_halign: gtk::Align::Center,
-                                                    //set_spacing: 8,
-                                                    add_css_class: "linked",
 
-                                                    gtk::Button {
-                                                        connect_clicked => AppInput::AddTextEvidence,
+                                                    gtk::MenuButton {
+                                                        set_direction: gtk::ArrowType::Up,
                                                         add_css_class: "pill",
 
-                                                        adw::ButtonContent {
+                                                        #[wrap(Some)]
+                                                        set_child = &adw::ButtonContent {
                                                             set_icon_name: relm4_icons::icon_names::PLUS,
-                                                            set_label: &lang::lookup("evidence-text"),
-                                                        }
-                                                    },
-                                                    gtk::Button {
-                                                        connect_clicked => AppInput::AddRichTextEvidence,
-                                                        add_css_class: "pill",
+                                                            set_label: &lang::lookup("evidence-add"),
+                                                        },
 
-                                                        adw::ButtonContent {
-                                                            set_icon_name: relm4_icons::icon_names::PLUS,
-                                                            set_label: &lang::lookup("evidence-richtext"),
-                                                        }
-                                                    },
-                                                    gtk::Button {
-                                                        connect_clicked => AppInput::AddHttpEvidence,
-                                                        add_css_class: "pill",
-
-                                                        adw::ButtonContent {
-                                                            set_icon_name: relm4_icons::icon_names::PLUS,
-                                                            set_label: &lang::lookup("evidence-http"),
-                                                        }
-                                                    },
-                                                    gtk::Button {
-                                                        connect_clicked => AppInput::AddImageEvidence,
-                                                        add_css_class: "pill",
-
-                                                        adw::ButtonContent {
-                                                            set_icon_name: relm4_icons::icon_names::PLUS,
-                                                            set_label: &lang::lookup("evidence-image"),
-                                                        }
-                                                    },
-                                                    gtk::Button {
-                                                        connect_clicked => AppInput::AddFileEvidence,
-                                                        add_css_class: "pill",
-
-                                                        adw::ButtonContent {
-                                                            set_icon_name: relm4_icons::icon_names::PLUS,
-                                                            set_label: &lang::lookup("evidence-file"),
-                                                        }
-                                                    },
-                                                },
+                                                        #[wrap(Some)]
+                                                        set_popover = &gtk::PopoverMenu::from_model(Some(&add_evidence_menu)),
+                                                    }
+                                                }
                                             }
                                         }
                                     }
@@ -672,6 +643,13 @@ impl Component for AppModel {
             section! {
                 &lang::lookup("header-about") => AboutAction,
             },
+        },
+        add_evidence_menu: {
+            &lang::lookup("evidence-text") => AddEvidenceTextAction,
+            &lang::lookup("evidence-richtext") => AddEvidenceRichTextAction,
+            &lang::lookup("evidence-http") => AddEvidenceHttpAction,
+            &lang::lookup("evidence-image") => AddEvidenceImageAction,
+            &lang::lookup("evidence-file") => AddEvidenceFileAction,
         }
     }
 
@@ -748,6 +726,44 @@ impl Component for AppModel {
         group.add_action(action_paste_evidence.clone());
         group.add_action(action_export_package.clone());
         group.add_action(action_export_test_case.clone());
+        group.register_for_widget(&root);
+
+        let sender_c = sender.clone();
+        let action_add_evidence_text: RelmAction<AddEvidenceTextAction> =
+            RelmAction::new_stateless(move |_| {
+                sender_c.input(AppInput::AddTextEvidence);
+            });
+
+        let sender_c = sender.clone();
+        let action_add_evidence_rich_text: RelmAction<AddEvidenceRichTextAction> =
+            RelmAction::new_stateless(move |_| {
+                sender_c.input(AppInput::AddRichTextEvidence);
+            });
+
+        let sender_c = sender.clone();
+        let action_add_evidence_http: RelmAction<AddEvidenceHttpAction> =
+            RelmAction::new_stateless(move |_| {
+                sender_c.input(AppInput::AddHttpEvidence);
+            });
+
+        let sender_c = sender.clone();
+        let action_add_evidence_image: RelmAction<AddEvidenceImageAction> =
+            RelmAction::new_stateless(move |_| {
+                sender_c.input(AppInput::AddImageEvidence);
+            });
+
+        let sender_c = sender.clone();
+        let action_add_evidence_file: RelmAction<AddEvidenceFileAction> =
+            RelmAction::new_stateless(move |_| {
+                sender_c.input(AppInput::AddFileEvidence);
+            });
+
+        let mut group = RelmActionGroup::<AddEvidenceActionGroup>::new();
+        group.add_action(action_add_evidence_text);
+        group.add_action(action_add_evidence_rich_text);
+        group.add_action(action_add_evidence_http);
+        group.add_action(action_add_evidence_image);
+        group.add_action(action_add_evidence_file);
         group.register_for_widget(&root);
 
         let model = AppModel {
