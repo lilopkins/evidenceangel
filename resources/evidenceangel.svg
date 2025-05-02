@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="500"
+   height="500"
+   viewBox="0 0 500 500"
+   version="1.1"
+   id="svg1"
+   xmlns:xlink="http://www.w3.org/1999/xlink"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <title
+     id="title16">AngelSuite Iconography</title>
+  <defs
+     id="defs1">
+    <linearGradient
+       id="linearGradient3">
+      <stop
+         style="stop-color:#bdfff9;stop-opacity:1;"
+         offset="0"
+         id="stop3" />
+      <stop
+         style="stop-color:#2ba89e;stop-opacity:1;"
+         offset="1"
+         id="stop4" />
+    </linearGradient>
+    <linearGradient
+       xlink:href="#linearGradient3"
+       id="linearGradient4"
+       x1="250"
+       y1="50.477993"
+       x2="250"
+       y2="449.522"
+       gradientUnits="userSpaceOnUse" />
+  </defs>
+  <g
+     id="layer1">
+    <use
+       xlink:href="#g11"
+       id="use11"
+       transform="translate(495.74343,637.43111)" />
+    <use
+       xlink:href="#g11"
+       id="use1"
+       transform="translate(1005.7434,637.43111)" />
+    <use
+       xlink:href="#g11"
+       id="use1-4"
+       transform="translate(1515.7434,637.43111)" />
+    <g
+       id="g10"
+       transform="translate(0,18.496936)">
+      <circle
+         style="fill:#8efff5;fill-opacity:1;stroke:#000000;stroke-width:15;stroke-dasharray:none;stroke-opacity:1;paint-order:normal"
+         id="circle4"
+         cx="250"
+         cy="248.21703"
+         r="152.5" />
+      <path
+         style="fill:#f0fffe;fill-opacity:1;stroke:#000000;stroke-width:15;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1;paint-order:normal"
+         d="M 160.67979,235.63238 203.61955,222.87315 237.01714,253.1763 481.93276,44.244104 249.74003,329.73161 Z"
+         id="path5" />
+    </g>
+    <g
+       id="g10-6"
+       transform="translate(531.58388,3.7162413)">
+      <circle
+         style="fill:#ff8e8e;fill-opacity:1;stroke:#000000;stroke-width:15;stroke-dasharray:none;stroke-opacity:1;paint-order:normal"
+         id="circle4-9"
+         cx="228.41612"
+         cy="262.99771"
+         r="152.5" />
+      <path
+         id="path11"
+         style="fill:#fff0f0;fill-opacity:1;stroke:#000000;stroke-width:15;stroke-linejoin:round;stroke-dasharray:none"
+         d="m 753.0945,141.02434 -13.01841,27.30754 -0.19895,6.33111 4.06244,18.94199 -25.53945,10.57967 -10.5219,-16.269 -4.61758,-4.3352 -28.51407,-10.10154 -9.76461,9.76461 10.10155,28.51407 4.33519,4.61758 16.269,10.5219 -10.57967,25.53945 -18.94199,-4.06244 -6.33111,0.19895 -27.30754,13.01841 v 13.811 l 27.30754,13.01841 6.33111,0.19895 18.94199,-4.06244 10.57967,25.53945 -16.269,10.5219 -4.33519,4.61758 -10.10155,28.51407 9.76461,9.76461 28.51407,-10.10155 4.61758,-4.33519 10.5219,-16.269 25.53945,10.57967 -4.06244,18.94199 0.19895,6.33111 13.01841,27.30753 h 13.811 l 13.01841,-27.30753 0.19895,-6.33111 -4.06244,-18.94199 25.53945,-10.57967 10.5219,16.269 4.61758,4.33519 28.51407,10.10155 9.76461,-9.76461 -10.10155,-28.51407 -4.33519,-4.61758 -16.269,-10.5219 10.57967,-25.53945 18.94199,4.06244 6.33111,-0.19895 27.30754,-13.01841 v -13.811 l -27.30754,-13.01841 -6.33111,-0.19895 -18.94199,4.06244 -10.57967,-25.53945 16.269,-10.5219 4.33519,-4.61758 10.10155,-28.51407 -9.76461,-9.76461 -28.51407,10.10154 -4.61758,4.3352 -10.5219,16.269 -25.53945,-10.57967 4.06244,-18.94199 -0.19895,-6.33111 -13.01841,-27.30754 z M 760,228.39241 A 40.105187,40.105187 0 0 1 800.10453,268.49694 40.105187,40.105187 0 0 1 760,308.60147 40.105187,40.105187 0 0 1 719.89547,268.49694 40.105187,40.105187 0 0 1 760,228.39241 Z"
+         transform="translate(-531.58388,-3.7162413)" />
+    </g>
+    <g
+       id="g10-2"
+       transform="translate(1041.9801,26.999271)">
+      <ellipse
+         style="fill:#c08eff;fill-opacity:1;stroke:#000000;stroke-width:15;stroke-dasharray:none;stroke-opacity:1;paint-order:normal"
+         id="circle4-5"
+         cx="228.0199"
+         cy="239.71469"
+         rx="152.5"
+         ry="152.50056" />
+      <g
+         id="g13"
+         transform="matrix(0.5491616,-0.54913799,0.5491616,0.54913799,-41.238636,238.54782)"
+         style="stroke-width:1.28764">
+        <path
+           style="fill:#f7f0ff;fill-opacity:1;stroke:#000000;stroke-width:19.3146;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1;paint-order:normal"
+           d="m 240.5962,268.39824 v 11.04205 l -4.6717,4.67163 v 155.86275 h 21.6594 l -1.20122,-156.14171 -5.16918,-4.86889 v -10.4201"
+           id="path12" />
+        <circle
+           style="fill:#f7f0ff;fill-opacity:1;stroke:#000000;stroke-width:19.3146;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1;paint-order:normal"
+           id="path13"
+           cx="246.11716"
+           cy="171.99266"
+           r="95.556175" />
+      </g>
+    </g>
+    <g
+       id="g11"
+       transform="translate(-495.74343,-618.93417)">
+      <circle
+         style="fill:url(#linearGradient4);fill-opacity:1;stroke:#000000;stroke-width:15;stroke-dasharray:none;stroke-opacity:1;paint-order:normal"
+         id="path3"
+         cx="250"
+         cy="250"
+         r="198.58701" />
+    </g>
+    <path
+       id="path15"
+       style="fill:#ffc400;fill-opacity:1;stroke:#000000;stroke-width:15;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1;paint-order:normal"
+       d="M 250.00123,10.019562 A 158.40454,52.725264 0 0 0 91.595556,62.745163 158.40454,52.725264 0 0 0 250.00123,115.47076 158.40454,52.725264 0 0 0 408.40444,62.745163 158.40454,52.725264 0 0 0 250.00123,10.019562 Z m 0,23.030422 A 121.35072,29.695776 0 0 1 371.35147,62.745163 121.35072,29.695776 0 0 1 250.00123,92.440336 121.35072,29.695776 0 0 1 128.6485,62.745163 121.35072,29.695776 0 0 1 250.00123,33.049984 Z"
+       transform="translate(-495.74343,-618.93417)" />
+    <use
+       x="0"
+       y="0"
+       xlink:href="#path15"
+       id="use16"
+       transform="translate(495.74343,635.41732)" />
+    <use
+       x="0"
+       y="0"
+       xlink:href="#path15"
+       id="use16-4"
+       transform="translate(1005.7434,635.41732)" />
+    <use
+       x="0"
+       y="0"
+       xlink:href="#path15"
+       id="use16-48"
+       transform="translate(1515.7434,635.41732)" />
+  </g>
+  <metadata
+     id="metadata16">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:title>AngelSuite Iconography</dc:title>
+        <dc:date>2025-01-24</dc:date>
+        <dc:creator>
+          <cc:Agent>
+            <dc:title>Lily Hopkins</dc:title>
+          </cc:Agent>
+        </dc:creator>
+        <dc:rights>
+          <cc:Agent>
+            <dc:title>Copyright © Lily Hopkins 2025, permissible for use in relation to official AngelSuite only</dc:title>
+          </cc:Agent>
+        </dc:rights>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+</svg>

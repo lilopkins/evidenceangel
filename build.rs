@@ -1,7 +1,25 @@
 fn main() {
     if cfg!(feature = "cli") || cfg!(feature = "ui") {
-        println!("cargo::rerun-if-changed=icon.png");
+        // Build hicolor icons
+        println!("cargo::rerun-if-changed=resources");
+        println!("cargo::rerun-if-changed=hicolor-icon.gresource.xml");
+        glib_build_tools::compile_resources(
+            &["resources"],
+            "hicolor-icon.gresource.xml",
+            "hicolor-icon.gresource",
+        );
 
+        // Build documentation
+        println!("cargo::rerun-if-changed=docs/book.toml");
+        println!("cargo::rerun-if-changed=docs/src");
+        let docs_book =
+            mdbook::MDBook::load("docs").expect("Failed to load documentation for EvidenceAngel");
+        docs_book
+            .build()
+            .expect("Failed to build documentation for EvidenceAngel");
+
+        // Build icon
+        println!("cargo::rerun-if-changed=icon.png");
         #[cfg(windows)]
         {
             ico_builder::IcoBuilder::default()

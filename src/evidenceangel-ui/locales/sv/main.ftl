@@ -101,6 +101,7 @@ evidence-menu = Bevisåtgärder
 evidence-move-up = Flytta det här Upp
 evidence-move-down = Flytta det här Ner
 evidence-delete = Ta bort det här bevis
+evidence-add = Lägg till bevis
 evidence-text = Text
 evidence-richtext = Rik Text
 evidence-http = HTTP-begäran

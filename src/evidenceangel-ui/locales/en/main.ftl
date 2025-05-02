@@ -101,6 +101,7 @@ evidence-menu = Evidence Actions
 evidence-move-up = Move this Up
 evidence-move-down = Move this Down
 evidence-delete = Delete this Evidence
+evidence-add = Add Evidence
 evidence-text = Text
 evidence-richtext = Rich Text
 evidence-http = HTTP Request

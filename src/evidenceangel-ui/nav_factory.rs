@@ -44,8 +44,6 @@ impl FactoryComponent for NavFactoryModel {
         #[root]
         gtk::Box {
             gtk::Button {
-                #[watch]
-                set_label: &self.name,
                 add_css_class: "flat",
                 set_hexpand: true,
                 #[watch]
@@ -79,6 +77,12 @@ impl FactoryComponent for NavFactoryModel {
                 connect_clicked[sender, index, id] => move |_| {
                     let _ = sender.output(NavFactoryOutput::NavigateTo(index.current_index(), id));
                 },
+
+                gtk::Label {
+                    #[watch]
+                    set_text: &self.name,
+                    set_ellipsize: gtk::pango::EllipsizeMode::End,
+                }
             },
         }
     }

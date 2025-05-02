@@ -140,31 +140,16 @@ jobs:
           mkdir -p "${ASSET_PREFIX}"
           cd "${ASSET_PREFIX}" || exit 1
 
-          # Get the latest release
-          RELEASE_INFO=$(curl -s \
-          "https://api.github.com/repos/$REPO_OWNER/$REPO_NAME/releases/latest")
-
-          # Extract the asset URL that starts with the specified prefix
-          ASSET_URL=$(echo "$RELEASE_INFO" | jq -r --arg ASSET_PREFIX "$ASSET_PREFIX" \
-          '.assets[] | select(.name | startswith($ASSET_PREFIX)) | .url')
-
-          if [ -z "$ASSET_URL" ]; then
-          echo "No asset found starting with '$ASSET_PREFIX'!"
-          exit 1
-          fi
-
-          # Download the asset
-          curl -L \
-          -H "Accept: application/octet-stream" \
-          "$ASSET_URL" -o "${ASSET_PREFIX}_asset.zip"
-
+          gh release download --repo "$REPO_OWNER/$REPO_NAME" -O "${ASSET_PREFIX}_asset.zip" -p "${ASSET_PREFIX}*" || exit 2
           echo "Downloaded asset: ${ASSET_PREFIX}_asset.zip"
 
           unzip "${ASSET_PREFIX}_asset.zip"
-          rm -f "${ASSET_PREFIX}_asset.zip"
+          mv "${ASSET_PREFIX}_asset.zip" ".."
           rm -rf "include/" "python/" "wheels/"
           BASE_DIR=$(pwd)
-          echo "BASE_DIR=${BASE_DIR}" >> $GITHUB_OUTPUT
+          ASSET_PATH=$(realpath "../${ASSET_PREFIX}_asset.zip")
+          echo "BASE_DIR=$BASE_DIR" >> $GITHUB_OUTPUT
+          echo "ZIPPED_ASSET=$ASSET_PATH" >> $GITHUB_OUTPUT
 
       - name: Install Mac dependencies
         if: matrix.platform.os_name == 'Mac'
@@ -207,7 +192,23 @@ jobs:
           mv target/release/${{ env.EXECUTABLE_NAME }}.exe bundle/bin/${{ env.EXECUTABLE_NAME }}-console-${{ matrix.platform.file_suffix }}.exe
 
           rm -rf ${{ steps.wingtk-install.outputs.BASE_DIR }}/include
+          rm -rf ${{ steps.wingtk-install.outputs.BASE_DIR }}/bin/*.exe
           cp -r ${{ steps.wingtk-install.outputs.BASE_DIR }}/* bundle/
+
+      - name: Build MSI installer
+        if: matrix.platform.os_name == 'Windows'
+        shell: bash
+        run: |
+          echo Installing cargo-wix...
+          cargo install cargo-wix
+          echo Installing executables...
+          cargo build --release -F cli --bin evidenceangel-cli
+          cargo build --release -F ui --bin evidenceangel-ui
+          set GTK4_PATH='${{ steps.wingtk-install.outputs.BASE_DIR }}'
+          pushd wix || exit
+          ./generate_wix_script.sh
+          popd || exit
+          cargo wix --no-build
 
       - name: Save Cargo cache
         uses: actions/cache/save@v3
@@ -234,6 +235,7 @@ jobs:
           files: |
             target/release/${{ env.EXECUTABLE_NAME }}-${{ matrix.platform.file_suffix }}
             ${{ env.EXECUTABLE_NAME }}-${{ matrix.platform.file_suffix }}.zip
+            target/wix/*.msi
           fail_on_unmatched_files: false
           tag_name: ${{ needs.create-release.outputs.CARGO_PKG_VERSION }}
           prerelease: ${{ needs.create-release.outputs.CARGO_PKG_PRERELEASE }}
