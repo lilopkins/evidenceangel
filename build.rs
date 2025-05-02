@@ -1,7 +1,16 @@
 fn main() {
     if cfg!(feature = "cli") || cfg!(feature = "ui") {
-        println!("cargo::rerun-if-changed=icon.png");
+        // Build documentation
+        println!("cargo::rerun-if-changed=docs/book.toml");
+        println!("cargo::rerun-if-changed=docs/src");
+        let docs_book =
+            mdbook::MDBook::load("docs").expect("Failed to load documentation for EvidenceAngel");
+        docs_book
+            .build()
+            .expect("Failed to build documentation for EvidenceAngel");
 
+        // Build icon
+        println!("cargo::rerun-if-changed=icon.png");
         #[cfg(windows)]
         {
             ico_builder::IcoBuilder::default()

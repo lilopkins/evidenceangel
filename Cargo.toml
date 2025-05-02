@@ -93,3 +93,6 @@ zip = "2.4.1"
 [target.'cfg(windows)'.build-dependencies]
 winresource = "0.1"
 ico-builder = "0.1"
+
+[build-dependencies]
+mdbook = { version = "0.4.48", default-features = false, features = ["search"] }
