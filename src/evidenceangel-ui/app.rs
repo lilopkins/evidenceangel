@@ -272,6 +272,7 @@ impl Component for AppModel {
                         #[name = "nav_scrolled_window"]
                         gtk::ScrolledWindow {
                             set_hscrollbar_policy: gtk::PolicyType::Never,
+                            set_width_request: 280,
 
                             gtk::Box {
                                 set_orientation: gtk::Orientation::Vertical,
@@ -397,250 +398,254 @@ impl Component for AppModel {
                                     set_vexpand: true,
                                 },
 
-                                // Content
-                                match model.open_case {
-                                    OpenCase::Nothing => gtk::Box,
-                                    OpenCase::Metadata => gtk::Box {
-                                        set_orientation: gtk::Orientation::Vertical,
+                                // Metadata content
+                                gtk::Box {
+                                    set_orientation: gtk::Orientation::Vertical,
+                                    #[watch]
+                                    set_visible: model.open_case == OpenCase::Metadata,
 
-                                        // Generic Metadata
-                                        adw::PreferencesGroup {
-                                            set_title: &lang::lookup("metadata-group-title"),
+                                    // Generic Metadata
+                                    adw::PreferencesGroup {
+                                        set_title: &lang::lookup("metadata-group-title"),
 
-                                            #[name = "metadata_title"]
-                                            adw::EntryRow {
-                                                set_title: &lang::lookup("metadata-title"),
-                                                // TODO After adwaita 1.6 set_max_length: 30,
+                                        #[name = "metadata_title"]
+                                        adw::EntryRow {
+                                            set_title: &lang::lookup("metadata-title"),
+                                            // TODO After adwaita 1.6 set_max_length: 30,
 
-                                                connect_changed[sender] => move |entry| {
-                                                    sender.input(AppInput::SetMetadataTitle(entry.text().to_string()));
-                                                } @metadata_title_changed
-                                            },
-
-                                            #[name = "metadata_description"]
-                                            adw::EntryRow {
-                                                set_title: &lang::lookup("metadata-description"),
-
-                                                connect_changed[sender] => move |entry| {
-                                                    sender.input(AppInput::SetMetadataDescription(entry.text().to_string()));
-                                                } @metadata_description_changed
-                                            },
-
-                                            #[name = "metadata_title_error_popover"]
-                                            gtk::Popover {
-                                                set_autohide: false,
-
-                                                #[name = "metadata_title_error_popover_label"]
-                                                gtk::Label {
-                                                    set_text: &lang::lookup("toast-name-too-long"),
-                                                    add_css_class: "error",
-                                                }
-                                            },
+                                            connect_changed[sender] => move |entry| {
+                                                sender.input(AppInput::SetMetadataTitle(entry.text().to_string()));
+                                            } @metadata_title_changed
                                         },
 
-                                        // Authors
-                                        #[local_ref]
-                                        authors_list -> adw::PreferencesGroup {
-                                            set_title: &lang::lookup("metadata-authors"),
-                                            set_margin_top: 16,
-                                            #[wrap(Some)]
-                                            set_header_suffix = &adw::Bin {
-                                                gtk::Button {
-                                                    set_icon_name: relm4_icons::icon_names::PLUS,
-                                                    set_tooltip: &lang::lookup("author-create-title"),
+                                        #[name = "metadata_description"]
+                                        adw::EntryRow {
+                                            set_title: &lang::lookup("metadata-description"),
+
+                                            connect_changed[sender] => move |entry| {
+                                                sender.input(AppInput::SetMetadataDescription(entry.text().to_string()));
+                                            } @metadata_description_changed
+                                        },
+
+                                        #[name = "metadata_title_error_popover"]
+                                        gtk::Popover {
+                                            set_autohide: false,
+
+                                            #[name = "metadata_title_error_popover_label"]
+                                            gtk::Label {
+                                                set_text: &lang::lookup("toast-name-too-long"),
+                                                add_css_class: "error",
+                                            }
+                                        },
+                                    },
+
+                                    // Authors
+                                    #[local_ref]
+                                    authors_list -> adw::PreferencesGroup {
+                                        set_title: &lang::lookup("metadata-authors"),
+                                        set_margin_top: 16,
+                                        #[wrap(Some)]
+                                        set_header_suffix = &adw::Bin {
+                                            gtk::Button {
+                                                set_icon_name: relm4_icons::icon_names::PLUS,
+                                                set_tooltip: &lang::lookup("author-create-title"),
+                                                add_css_class: "flat",
+
+                                                connect_clicked[sender] => move |_entry| {
+                                                    sender.input(AppInput::CreateAuthor);
+                                                }
+                                            }
+                                        },
+                                    }
+                                },
+
+                                // Open case content
+                                gtk::Box {
+                                    #[watch]
+                                    set_visible: matches!(model.open_case, OpenCase::Case { .. }),
+
+                                    #[name = "test_case_scrolled"]
+                                    gtk::ScrolledWindow {
+                                        set_hscrollbar_policy: gtk::PolicyType::Never,
+                                        set_vexpand: true,
+
+                                        gtk::Box {
+                                            set_orientation: gtk::Orientation::Vertical,
+
+                                            gtk::Box {
+                                                set_orientation: gtk::Orientation::Horizontal,
+                                                set_halign: gtk::Align::End,
+
+                                                gtk::MenuButton {
+                                                    set_icon_name: relm4_icons::icon_names::MORE_VERTICAL_REGULAR,
+                                                    set_tooltip: &lang::lookup("test-case-menu"),
                                                     add_css_class: "flat",
 
-                                                    connect_clicked[sender] => move |_entry| {
-                                                        sender.input(AppInput::CreateAuthor);
+                                                    #[wrap(Some)]
+                                                    set_popover = &gtk::Popover {
+                                                        gtk::Box {
+                                                            set_orientation: gtk::Orientation::Vertical,
+                                                            set_spacing: 4,
+
+                                                            gtk::Button {
+                                                                set_label: &lang::lookup("test-case-move-up"),
+                                                                add_css_class: "flat",
+
+                                                                connect_clicked => AppInput::MoveSelectedCaseUp,
+                                                            },
+                                                            gtk::Button {
+                                                                set_label: &lang::lookup("test-case-move-down"),
+                                                                add_css_class: "flat",
+
+                                                                connect_clicked => AppInput::MoveSelectedCaseDown,
+                                                            },
+                                                            gtk::Button {
+                                                                set_label: &lang::lookup("nav-delete-case"),
+                                                                add_css_class: "flat",
+                                                                add_css_class: "destructive-action",
+
+                                                                connect_clicked => AppInput::DeleteSelectedCase,
+                                                            },
+                                                        }
                                                     }
                                                 }
                                             },
-                                        }
-                                    },
-                                    OpenCase::Case { .. } => gtk::Box {
-                                        #[name = "test_case_scrolled"]
-                                        gtk::ScrolledWindow {
-                                            set_hscrollbar_policy: gtk::PolicyType::Never,
-                                            set_vexpand: true,
+
+                                            adw::PreferencesGroup {
+                                                set_title: &lang::lookup("test-group-title"),
+
+                                                #[name = "test_title"]
+                                                adw::EntryRow {
+                                                    set_title: &lang::lookup("test-title"),
+                                                    // TODO After adwaita 1.6 set_max_length: 30,
+
+                                                    connect_changed[sender] => move |entry| {
+                                                        sender.input(AppInput::SetTestCaseTitle(entry.text().to_string()));
+                                                    } @test_title_changed_handler
+                                                },
+
+                                                #[name = "test_title_error_popover"]
+                                                gtk::Popover {
+                                                    set_autohide: false,
+
+                                                    #[name = "test_title_error_popover_label"]
+                                                    gtk::Label {
+                                                        set_text: &lang::lookup("toast-name-too-long"),
+                                                        add_css_class: "error",
+                                                    }
+                                                },
+
+                                                #[name = "test_execution"]
+                                                adw::EntryRow {
+                                                    set_title: &lang::lookup("test-execution"),
+
+                                                    connect_changed[sender] => move |entry| {
+                                                        sender.input(AppInput::TrySetExecutionDateTime(entry.text().to_string()));
+                                                    } @execution_time_changed_handler,
+
+                                                    connect_changed[sender] => move |entry| {
+                                                        sender.input(AppInput::ValidateExecutionDateTime(entry.text().to_string()));
+                                                    }
+                                                },
+
+                                                #[name = "test_execution_error_popover"]
+                                                gtk::Popover {
+                                                    set_autohide: false,
+
+                                                    #[name = "test_execution_error_popover_label"]
+                                                    gtk::Label {
+                                                        set_text: &lang::lookup("toast-name-too-long"),
+                                                        add_css_class: "error",
+                                                    }
+                                                },
+                                            },
+
+                                            // Test Case Screen
+                                            #[local_ref]
+                                            evidence_list -> gtk::Box {
+                                                set_orientation: gtk::Orientation::Vertical,
+                                                set_spacing: 8,
+                                                set_margin_top: 8,
+                                            },
 
                                             gtk::Box {
                                                 set_orientation: gtk::Orientation::Vertical,
+                                                set_hexpand: true,
+                                                set_halign: gtk::Align::Fill,
+                                                set_spacing: 2,
+
+                                                add_controller = gtk::DropTarget {
+                                                    set_actions: gtk::gdk::DragAction::MOVE,
+                                                    set_types: &[BoxedEvidenceJson::static_type()],
+
+                                                    connect_drop[sender] => move |_slf, val, _x, _y| {
+                                                        tracing::debug!("Dropped type: {:?}", val.type_());
+                                                        if let Ok(data) = val.get::<BoxedEvidenceJson>() {
+                                                            let ev = data.inner();
+                                                            tracing::debug!("Dropped data: {ev:?}");
+                                                            sender.input(AppInput::_AddEvidence(ev, None));
+                                                            return true;
+                                                        }
+                                                        false
+                                                    },
+                                                },
 
                                                 gtk::Box {
                                                     set_orientation: gtk::Orientation::Horizontal,
-                                                    set_halign: gtk::Align::End,
-
-                                                    gtk::MenuButton {
-                                                        set_icon_name: relm4_icons::icon_names::MORE_VERTICAL_REGULAR,
-                                                        set_tooltip: &lang::lookup("test-case-menu"),
-                                                        add_css_class: "flat",
-
-                                                        #[wrap(Some)]
-                                                        set_popover = &gtk::Popover {
-                                                            gtk::Box {
-                                                                set_orientation: gtk::Orientation::Vertical,
-                                                                set_spacing: 4,
-
-                                                                gtk::Button {
-                                                                    set_label: &lang::lookup("test-case-move-up"),
-                                                                    add_css_class: "flat",
-
-                                                                    connect_clicked => AppInput::MoveSelectedCaseUp,
-                                                                },
-                                                                gtk::Button {
-                                                                    set_label: &lang::lookup("test-case-move-down"),
-                                                                    add_css_class: "flat",
-
-                                                                    connect_clicked => AppInput::MoveSelectedCaseDown,
-                                                                },
-                                                                gtk::Button {
-                                                                    set_label: &lang::lookup("nav-delete-case"),
-                                                                    add_css_class: "flat",
-                                                                    add_css_class: "destructive-action",
-
-                                                                    connect_clicked => AppInput::DeleteSelectedCase,
-                                                                },
-                                                            }
-                                                        }
-                                                    }
-                                                },
-
-                                                adw::PreferencesGroup {
-                                                    set_title: &lang::lookup("test-group-title"),
-
-                                                    #[name = "test_title"]
-                                                    adw::EntryRow {
-                                                        set_title: &lang::lookup("test-title"),
-                                                        // TODO After adwaita 1.6 set_max_length: 30,
-
-                                                        connect_changed[sender] => move |entry| {
-                                                            sender.input(AppInput::SetTestCaseTitle(entry.text().to_string()));
-                                                        } @test_title_changed_handler
-                                                    },
-
-                                                    #[name = "test_title_error_popover"]
-                                                    gtk::Popover {
-                                                        set_autohide: false,
-
-                                                        #[name = "test_title_error_popover_label"]
-                                                        gtk::Label {
-                                                            set_text: &lang::lookup("toast-name-too-long"),
-                                                            add_css_class: "error",
-                                                        }
-                                                    },
-
-                                                    #[name = "test_execution"]
-                                                    adw::EntryRow {
-                                                        set_title: &lang::lookup("test-execution"),
-
-                                                        connect_changed[sender] => move |entry| {
-                                                            sender.input(AppInput::TrySetExecutionDateTime(entry.text().to_string()));
-                                                        } @execution_time_changed_handler,
-
-                                                        connect_changed[sender] => move |entry| {
-                                                            sender.input(AppInput::ValidateExecutionDateTime(entry.text().to_string()));
-                                                        }
-                                                    },
-
-                                                    #[name = "test_execution_error_popover"]
-                                                    gtk::Popover {
-                                                        set_autohide: false,
-
-                                                        #[name = "test_execution_error_popover_label"]
-                                                        gtk::Label {
-                                                            set_text: &lang::lookup("toast-name-too-long"),
-                                                            add_css_class: "error",
-                                                        }
-                                                    },
-                                                },
-
-                                                // Test Case Screen
-                                                #[local_ref]
-                                                evidence_list -> gtk::Box {
-                                                    set_orientation: gtk::Orientation::Vertical,
-                                                    set_spacing: 8,
                                                     set_margin_top: 8,
+                                                    set_halign: gtk::Align::Center,
+                                                    //set_spacing: 8,
+                                                    add_css_class: "linked",
+
+                                                    gtk::Button {
+                                                        connect_clicked => AppInput::AddTextEvidence,
+                                                        add_css_class: "pill",
+
+                                                        adw::ButtonContent {
+                                                            set_icon_name: relm4_icons::icon_names::PLUS,
+                                                            set_label: &lang::lookup("evidence-text"),
+                                                        }
+                                                    },
+                                                    gtk::Button {
+                                                        connect_clicked => AppInput::AddRichTextEvidence,
+                                                        add_css_class: "pill",
+
+                                                        adw::ButtonContent {
+                                                            set_icon_name: relm4_icons::icon_names::PLUS,
+                                                            set_label: &lang::lookup("evidence-richtext"),
+                                                        }
+                                                    },
+                                                    gtk::Button {
+                                                        connect_clicked => AppInput::AddHttpEvidence,
+                                                        add_css_class: "pill",
+
+                                                        adw::ButtonContent {
+                                                            set_icon_name: relm4_icons::icon_names::PLUS,
+                                                            set_label: &lang::lookup("evidence-http"),
+                                                        }
+                                                    },
+                                                    gtk::Button {
+                                                        connect_clicked => AppInput::AddImageEvidence,
+                                                        add_css_class: "pill",
+
+                                                        adw::ButtonContent {
+                                                            set_icon_name: relm4_icons::icon_names::PLUS,
+                                                            set_label: &lang::lookup("evidence-image"),
+                                                        }
+                                                    },
+                                                    gtk::Button {
+                                                        connect_clicked => AppInput::AddFileEvidence,
+                                                        add_css_class: "pill",
+
+                                                        adw::ButtonContent {
+                                                            set_icon_name: relm4_icons::icon_names::PLUS,
+                                                            set_label: &lang::lookup("evidence-file"),
+                                                        }
+                                                    },
                                                 },
-
-                                                gtk::Box {
-                                                    set_orientation: gtk::Orientation::Vertical,
-                                                    set_hexpand: true,
-                                                    set_halign: gtk::Align::Fill,
-                                                    set_spacing: 2,
-
-                                                    add_controller = gtk::DropTarget {
-                                                        set_actions: gtk::gdk::DragAction::MOVE,
-                                                        set_types: &[BoxedEvidenceJson::static_type()],
-
-                                                        connect_drop[sender] => move |_slf, val, _x, _y| {
-                                                            tracing::debug!("Dropped type: {:?}", val.type_());
-                                                            if let Ok(data) = val.get::<BoxedEvidenceJson>() {
-                                                                let ev = data.inner();
-                                                                tracing::debug!("Dropped data: {ev:?}");
-                                                                sender.input(AppInput::_AddEvidence(ev, None));
-                                                                return true;
-                                                            }
-                                                            false
-                                                        },
-                                                    },
-
-                                                    gtk::Box {
-                                                        set_orientation: gtk::Orientation::Horizontal,
-                                                        set_margin_top: 8,
-                                                        set_halign: gtk::Align::Center,
-                                                        //set_spacing: 8,
-                                                        add_css_class: "linked",
-
-                                                        gtk::Button {
-                                                            connect_clicked => AppInput::AddTextEvidence,
-                                                            add_css_class: "pill",
-
-                                                            adw::ButtonContent {
-                                                                set_icon_name: relm4_icons::icon_names::PLUS,
-                                                                set_label: &lang::lookup("evidence-text"),
-                                                            }
-                                                        },
-                                                        gtk::Button {
-                                                            connect_clicked => AppInput::AddRichTextEvidence,
-                                                            add_css_class: "pill",
-
-                                                            adw::ButtonContent {
-                                                                set_icon_name: relm4_icons::icon_names::PLUS,
-                                                                set_label: &lang::lookup("evidence-richtext"),
-                                                            }
-                                                        },
-                                                        gtk::Button {
-                                                            connect_clicked => AppInput::AddHttpEvidence,
-                                                            add_css_class: "pill",
-
-                                                            adw::ButtonContent {
-                                                                set_icon_name: relm4_icons::icon_names::PLUS,
-                                                                set_label: &lang::lookup("evidence-http"),
-                                                            }
-                                                        },
-                                                        gtk::Button {
-                                                            connect_clicked => AppInput::AddImageEvidence,
-                                                            add_css_class: "pill",
-
-                                                            adw::ButtonContent {
-                                                                set_icon_name: relm4_icons::icon_names::PLUS,
-                                                                set_label: &lang::lookup("evidence-image"),
-                                                            }
-                                                        },
-                                                        gtk::Button {
-                                                            connect_clicked => AppInput::AddFileEvidence,
-                                                            add_css_class: "pill",
-
-                                                            adw::ButtonContent {
-                                                                set_icon_name: relm4_icons::icon_names::PLUS,
-                                                                set_label: &lang::lookup("evidence-file"),
-                                                            }
-                                                        },
-                                                    },
-                                                }
                                             }
                                         }
-                                    },
+                                    }
                                 }
                             },
                         }
