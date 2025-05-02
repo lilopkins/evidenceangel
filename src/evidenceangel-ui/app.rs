@@ -579,7 +579,7 @@ impl Component for AppModel {
                                                 set_orientation: gtk::Orientation::Vertical,
                                                 set_hexpand: true,
                                                 set_halign: gtk::Align::Fill,
-                                                set_height_request: 350,
+                                                set_height_request: 300,
                                                 set_spacing: 2,
 
                                                 add_controller = gtk::DropTarget {
