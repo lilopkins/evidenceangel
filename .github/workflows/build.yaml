@@ -202,15 +202,24 @@ jobs:
         run: |
           echo Installing cargo-wix...
           cargo install cargo-wix
-          echo Installing executables...
+
+          PATH="${{ steps.wingtk-install.outputs.BASE_DIR }}/bin:$PATH"
+          LIB="${{ steps.wingtk-install.outputs.BASE_DIR }}/lib:$LIB"
+          INCLUDE="${{ steps.wingtk-install.outputs.BASE_DIR }}/include:${{ steps.wingtk-install.outputs.BASE_DIR }}/include/cairo:${{ steps.wingtk-install.outputs.BASE_DIR }}/include/glib-2.0:${{ steps.wingtk-install.outputs.BASE_DIR }}/include/gobject-introspection-1.0:${{ steps.wingtk-install.outputs.BASE_DIR }}/lib/glib-2.0/include:$INCLUDE"
+          PKG_CONFIG_PATH="${{ steps.wingtk-install.outputs.BASE_DIR }}/lib/pkgconfig:$PKG_CONFIG_PATH"
+          echo Building executables...
           cargo build --release -F cli --bin evidenceangel-cli
           cargo build --release -F ui --bin evidenceangel-ui
+
+          echo Generating Wix script...
           set GTK4_PATH='${{ steps.wingtk-install.outputs.BASE_DIR }}'
           rm -rf ${{ steps.wingtk-install.outputs.BASE_DIR }}/include
           rm -rf ${{ steps.wingtk-install.outputs.BASE_DIR }}/bin/*.exe
           pushd wix || exit
           ./generate_wix_script.sh
           popd || exit
+
+          echo Generating installer...
           cargo wix --no-build
 
       - name: Save Cargo cache
