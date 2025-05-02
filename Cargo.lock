@@ -786,7 +786,7 @@ dependencies = [
 
 [[package]]
 name = "evidenceangel"
-version = "1.5.0-alpha.4"
+version = "1.5.0-alpha.5"
 dependencies = [
  "angelmark",
  "base64",
