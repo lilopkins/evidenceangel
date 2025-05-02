@@ -77,9 +77,11 @@ fn main() {
 
     lang::initialise_i18n();
     relm4_icons::initialize_icons();
+    gtk::gio::resources_register_include!("hicolor-icon.gresource").unwrap();
     let display = gtk::gdk::Display::default().unwrap();
     let theme = gtk::IconTheme::for_display(&display);
     theme.add_resource_path("/uk/hpkns/EvidenceAngel/icons/");
+    theme.add_resource_path("/uk/hpkns/EvidenceAngel/icons/hicolor/scalable/");
     theme.add_resource_path("/uk/hpkns/EvidenceAngel/icons/scalable/actions/");
 
     app.run::<app::AppModel>(cli.file);

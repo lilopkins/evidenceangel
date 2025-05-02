@@ -14,7 +14,7 @@ impl SimpleComponent for AppAbout {
         #[root]
         #[name = "about"]
         adw::AboutWindow {
-            // set_application_icon: "evidenceangel",
+            set_application_icon: "evidenceangel",
             set_application_name: &lang::lookup("app-name"),
             set_version: env!("CARGO_PKG_VERSION"),
             set_copyright: "© 2024 Lily Hopkins",
