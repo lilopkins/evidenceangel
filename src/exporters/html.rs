@@ -1,6 +1,6 @@
 use std::fs;
 
-use angelmark::{parse_angelmark, AngelmarkLine, AngelmarkTableAlignment, AngelmarkText};
+use angelmark::{AngelmarkLine, AngelmarkTableAlignment, AngelmarkText, parse_angelmark};
 use base64::Engine;
 use build_html::{Html, HtmlContainer, HtmlElement, HtmlPage, HtmlTag};
 use uuid::Uuid;

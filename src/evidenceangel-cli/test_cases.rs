@@ -6,7 +6,7 @@ use std::{
     rc::Rc,
 };
 
-use angelmark::{parse_angelmark, AngelmarkLine, AngelmarkTableAlignment};
+use angelmark::{AngelmarkLine, AngelmarkTableAlignment, parse_angelmark};
 use chrono::FixedOffset;
 use clap::{Subcommand, ValueEnum};
 use colored::Colorize;

@@ -1,4 +1,4 @@
-use angelmark::{parse_angelmark, AngelmarkLine, AngelmarkTableAlignment, AngelmarkText};
+use angelmark::{AngelmarkLine, AngelmarkTableAlignment, AngelmarkText, parse_angelmark};
 use rust_xlsxwriter::{Format, FormatAlign, FormatBorder, Image, Workbook, Worksheet};
 use uuid::Uuid;
 

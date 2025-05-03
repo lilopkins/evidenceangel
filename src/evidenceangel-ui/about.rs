@@ -1,4 +1,4 @@
-use relm4::{adw, gtk, SimpleComponent};
+use relm4::{SimpleComponent, adw, gtk};
 
 use crate::lang;
 

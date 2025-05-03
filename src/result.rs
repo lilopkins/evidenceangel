@@ -37,11 +37,15 @@ pub enum Error {
     MediaMissing(String),
 
     /// Validation against the manifest schema failed.
-    #[error("Manifest schema validation failed. Perhaps this package is from a newer version of EvidenceAngel.")]
+    #[error(
+        "Manifest schema validation failed. Perhaps this package is from a newer version of EvidenceAngel."
+    )]
     ManifestSchemaValidationFailed,
 
     /// Validation against the test case schema failed.
-    #[error("Test case schema validation failed. Perhaps this package is from a newer version of EvidenceAngel.")]
+    #[error(
+        "Test case schema validation failed. Perhaps this package is from a newer version of EvidenceAngel."
+    )]
     TestCaseSchemaValidationFailed,
 
     /// An otherwise unhandled error occured during export.

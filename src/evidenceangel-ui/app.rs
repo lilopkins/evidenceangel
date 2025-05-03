@@ -5,20 +5,20 @@ use std::{
 
 use adw::prelude::*;
 use evidenceangel::{
-    exporters::{
-        excel::ExcelExporter, html::HtmlExporter, zip_of_files::ZipOfFilesExporter, Exporter,
-    },
     Author, Evidence, EvidenceData, EvidenceKind, EvidencePackage, MediaFile,
+    exporters::{
+        Exporter, excel::ExcelExporter, html::HtmlExporter, zip_of_files::ZipOfFilesExporter,
+    },
 };
 #[allow(unused)]
 use gtk::prelude::*;
 use relm4::{
+    Component, ComponentParts, ComponentSender,
     actions::{AccelsPlus, RelmAction, RelmActionGroup},
     adw,
     factory::FactoryVecDeque,
     gtk::{self, gio::Cancellable},
     prelude::*,
-    Component, ComponentParts, ComponentSender,
 };
 use uuid::Uuid;
 
@@ -471,6 +471,7 @@ impl Component for AppModel {
                                 },
 
                                 // Open case content
+                                #[name = "test_case_content"]
                                 gtk::Box {
                                     #[watch]
                                     set_visible: matches!(model.open_case, OpenCase::Case { .. }),
@@ -579,11 +580,11 @@ impl Component for AppModel {
                                                 set_margin_top: 8,
                                             },
 
+                                            #[name = "test_case_content_bottom_box"]
                                             gtk::Box {
                                                 set_orientation: gtk::Orientation::Vertical,
                                                 set_hexpand: true,
                                                 set_halign: gtk::Align::Fill,
-                                                set_height_request: 300,
                                                 set_spacing: 2,
 
                                                 add_controller = gtk::DropTarget {
@@ -860,6 +861,9 @@ impl Component for AppModel {
         root: &Self::Root,
     ) {
         tracing::debug!("Handling event: {message:?}");
+        widgets
+            .test_case_content_bottom_box
+            .set_height_request(widgets.test_case_content.height() / 2);
         match message {
             AppInput::Exit => {
                 relm4::main_application().quit();

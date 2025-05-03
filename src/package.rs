@@ -12,7 +12,7 @@ use test_cases::TESTCASE_SCHEMA_2;
 use uuid::Uuid;
 use zip::{result::ZipError, write::SimpleFileOptions};
 
-use crate::{result::Error, zip_read_writer::ZipReaderWriter, Result};
+use crate::{Result, result::Error, zip_read_writer::ZipReaderWriter};
 
 /// Package manifests
 mod manifest;
@@ -248,7 +248,7 @@ impl EvidencePackage {
                     let res = old_archive.by_name(&format!("media/{hash}"));
                     match res {
                         Err(ZipError::FileNotFound) => {
-                            return Err(Error::MediaMissing(hash.clone()))
+                            return Err(Error::MediaMissing(hash.clone()));
                         }
                         Err(e) => {
                             tracing::error!("Error migrating from old package: {e}");

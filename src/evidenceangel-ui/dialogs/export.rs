@@ -2,9 +2,9 @@ use std::{fs, path::PathBuf};
 
 use adw::prelude::*;
 use relm4::{
+    Component, ComponentParts, ComponentSender, RelmWidgetExt,
     adw::{self, ApplicationWindow},
     gtk::{self, StringList},
-    Component, ComponentParts, ComponentSender, RelmWidgetExt,
 };
 
 use crate::{lang, lang_args};

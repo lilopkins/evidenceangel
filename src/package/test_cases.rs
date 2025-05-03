@@ -2,8 +2,8 @@ use base64::Engine;
 use chrono::{DateTime, FixedOffset};
 use getset::{Getters, MutGetters, Setters};
 use serde::{
-    de::{self, Visitor},
     Deserialize, Serialize,
+    de::{self, Visitor},
 };
 use uuid::Uuid;
 
