@@ -9,7 +9,9 @@ use thiserror::Error;
 #[derive(Error, Debug, Clone)]
 pub enum CliError {
     /// --file is mandated for all subcommands except a `shell-completions` and `json-schema`
-    #[error("all subcommands except `shell-completions` and `json-schema` require --file to be specified")]
+    #[error(
+        "all subcommands except `shell-completions` and `json-schema` require --file to be specified"
+    )]
     MissingFile,
 
     /// the data you requested cannot be serialized as JSON
@@ -33,7 +35,9 @@ pub enum CliError {
     FailedToExport(Rc<evidenceangel::Error>),
 
     /// the provided string is not a one-based index and does not match a single test case exclusively
-    #[error("the value `{0}` is not a one-based index of a test case and does not exclusively match one test case")]
+    #[error(
+        "the value `{0}` is not a one-based index of a test case and does not exclusively match one test case"
+    )]
     CannotMatchTestCase(String),
 
     /// the provided value does not match a one-based index of some evidence

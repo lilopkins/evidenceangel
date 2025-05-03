@@ -1,8 +1,9 @@
 use adw::prelude::*;
 use evidenceangel::Author;
 use relm4::{
+    Component, ComponentParts, ComponentSender, RelmWidgetExt,
     adw::{self, ApplicationWindow},
-    gtk, Component, ComponentParts, ComponentSender, RelmWidgetExt,
+    gtk,
 };
 
 use crate::lang;

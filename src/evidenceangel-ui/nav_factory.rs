@@ -1,9 +1,9 @@
 use gtk::prelude::*;
 use relm4::{
+    FactorySender,
     factory::FactoryView,
     gtk,
     prelude::{DynamicIndex, FactoryComponent},
-    FactorySender,
 };
 use uuid::Uuid;
 

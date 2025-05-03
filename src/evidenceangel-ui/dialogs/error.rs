@@ -1,7 +1,7 @@
 use adw::prelude::*;
 use relm4::{
-    adw::{self, ApplicationWindow},
     Component, ComponentParts, ComponentSender,
+    adw::{self, ApplicationWindow},
 };
 
 use crate::lang;

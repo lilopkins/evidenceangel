@@ -7,8 +7,9 @@ use std::{
 use adw::prelude::*;
 use evidenceangel::{Evidence, EvidenceData, EvidenceKind, EvidencePackage, MediaFile};
 use relm4::{
+    Component, ComponentParts, ComponentSender, RelmWidgetExt,
     adw::{self, ApplicationWindow},
-    gtk, Component, ComponentParts, ComponentSender, RelmWidgetExt,
+    gtk,
 };
 
 use crate::{filter, lang, lang_args};

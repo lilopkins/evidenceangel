@@ -14,12 +14,12 @@ use std::{env, path::PathBuf, sync::Mutex};
 
 use clap::Parser;
 use relm4::{
+    RelmApp,
     gtk::{
         self,
         gio::ApplicationFlags,
         prelude::{ApplicationExt, ApplicationExtManual},
     },
-    RelmApp,
 };
 use tracing_subscriber_multi::*;
 

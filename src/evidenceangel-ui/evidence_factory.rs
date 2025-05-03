@@ -5,18 +5,18 @@ use std::{
 
 use adw::prelude::*;
 use angelmark::{
-    parse_angelmark, AngelmarkLine, AngelmarkTable, AngelmarkTableRow, AngelmarkText, OwnedSpan,
+    AngelmarkLine, AngelmarkTable, AngelmarkTableRow, AngelmarkText, OwnedSpan, parse_angelmark,
 };
 use evidenceangel::{Evidence, EvidenceData, EvidenceKind, EvidencePackage};
 #[allow(unused_imports)]
 use gtk::prelude::*;
 use relm4::{
+    FactorySender, RelmWidgetExt,
     actions::{RelmAction, RelmActionGroup},
     adw,
     factory::FactoryView,
     gtk,
     prelude::{DynamicIndex, FactoryComponent},
-    FactorySender, RelmWidgetExt,
 };
 
 use crate::util::BoxedEvidenceJson;

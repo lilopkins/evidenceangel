@@ -2,7 +2,7 @@
 name = "evidenceangel"
 description = "Library and executables to work with EvidenceAngel evidence packages (*.evp)."
 version = "1.5.0-alpha.7"
-edition = "2021"
+edition = "2024"
 license = "GPL-3.0-or-later"
 authors = [
     "Lily Hopkins <lily@hpkns.uk>",

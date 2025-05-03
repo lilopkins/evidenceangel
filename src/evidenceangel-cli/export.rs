@@ -2,10 +2,10 @@ use std::{fmt, path::PathBuf, rc::Rc};
 
 use clap::Subcommand;
 use evidenceangel::{
-    exporters::{
-        excel::ExcelExporter, html::HtmlExporter, zip_of_files::ZipOfFilesExporter, Exporter,
-    },
     EvidencePackage,
+    exporters::{
+        Exporter, excel::ExcelExporter, html::HtmlExporter, zip_of_files::ZipOfFilesExporter,
+    },
 };
 use schemars::JsonSchema;
 use serde::Serialize;

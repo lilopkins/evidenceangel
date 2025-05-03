@@ -1,7 +1,7 @@
 use std::fmt;
 
 use colored::Colorize;
-use schemars::{schema_for, JsonSchema};
+use schemars::{JsonSchema, schema_for};
 use serde::Serialize;
 
 use crate::{export::CliExportResult, package::CliPackage, test_cases::CliTestCase};

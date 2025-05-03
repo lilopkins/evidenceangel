@@ -5,20 +5,20 @@ use std::{
 
 use adw::prelude::*;
 use evidenceangel::{
-    exporters::{
-        excel::ExcelExporter, html::HtmlExporter, zip_of_files::ZipOfFilesExporter, Exporter,
-    },
     Author, Evidence, EvidenceData, EvidenceKind, EvidencePackage, MediaFile,
+    exporters::{
+        Exporter, excel::ExcelExporter, html::HtmlExporter, zip_of_files::ZipOfFilesExporter,
+    },
 };
 #[allow(unused)]
 use gtk::prelude::*;
 use relm4::{
+    Component, ComponentParts, ComponentSender,
     actions::{AccelsPlus, RelmAction, RelmActionGroup},
     adw,
     factory::FactoryVecDeque,
     gtk::{self, gio::Cancellable},
     prelude::*,
-    Component, ComponentParts, ComponentSender,
 };
 use uuid::Uuid;
 
@@ -861,7 +861,9 @@ impl Component for AppModel {
         root: &Self::Root,
     ) {
         tracing::debug!("Handling event: {message:?}");
-        widgets.test_case_content_bottom_box.set_height_request(widgets.test_case_content.height() / 2);
+        widgets
+            .test_case_content_bottom_box
+            .set_height_request(widgets.test_case_content.height() / 2);
         match message {
             AppInput::Exit => {
                 relm4::main_application().quit();
