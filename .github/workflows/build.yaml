@@ -216,6 +216,7 @@ jobs:
           rm -rf ${{ steps.wingtk-install.outputs.BASE_DIR }}/bin/*.exe
           pushd wix || exit
           GTK4_PATH="${{ steps.wingtk-install.outputs.BASE_DIR }}" ./generate_wix_script.sh
+          sed -i 's|/d/|D:/|g' main.wxs
           popd || exit
 
           echo Generating installer...
