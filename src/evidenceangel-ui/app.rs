@@ -203,6 +203,7 @@ pub enum AppInput {
     ValidateExecutionDateTime(String),
     MoveSelectedCaseUp,
     MoveSelectedCaseDown,
+    DuplicateCase,
     DeleteSelectedCase,
     _DeleteSelectedCase,
     AddTextEvidence,
@@ -510,6 +511,12 @@ impl Component for AppModel {
                                                                 add_css_class: "flat",
 
                                                                 connect_clicked => AppInput::MoveSelectedCaseDown,
+                                                            },
+                                                            gtk::Button {
+                                                                set_label: &lang::lookup("test-case-duplicate"),
+                                                                add_css_class: "flat",
+
+                                                                connect_clicked => AppInput::DuplicateCase,
                                                             },
                                                             gtk::Button {
                                                                 set_label: &lang::lookup("nav-delete-case"),
@@ -1181,6 +1188,36 @@ impl Component for AppModel {
                 let adj = widgets.nav_scrolled_window.vadjustment();
                 adj.set_value(adj.upper());
                 widgets.nav_scrolled_window.set_vadjustment(Some(&adj));
+            }
+            AppInput::DuplicateCase => {
+                if let OpenCase::Case { id, .. } = &self.open_case {
+                    let mut new_case_id = Uuid::default();
+                    if let Some(pkg) = self.get_package() {
+                        let mut pkg = pkg.write().unwrap();
+                        let case = pkg.duplicate_test_case(*id).unwrap(); // doesn't fail
+                        new_case_id = *case.id();
+
+                        // Add case to navigation
+                        let mut test_case_data = self.test_case_nav_factory.guard();
+                        test_case_data.push_back(NavFactoryInit {
+                            id: new_case_id,
+                            name: case.metadata().title().clone(),
+                        });
+                    }
+                    self.needs_saving = true;
+
+                    // Switch to case
+                    sender.input(AppInput::NavigateTo(OpenCase::Case {
+                        // index will be calculated by NavigateTo
+                        index: 0,
+                        id: new_case_id,
+                    }));
+
+                    // Move to bottom of list
+                    let adj = widgets.nav_scrolled_window.vadjustment();
+                    adj.set_value(adj.upper());
+                    widgets.nav_scrolled_window.set_vadjustment(Some(&adj));
+                }
             }
             AppInput::SetMetadataTitle(new_title) => {
                 if new_title.trim().is_empty() {
