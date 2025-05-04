@@ -466,6 +466,30 @@ impl EvidencePackage {
         Ok(self.test_case_data.get_mut(&new_id).unwrap())
     }
 
+    /// Create a new test case as a duplicate of another.
+    ///
+    /// # Errors
+    ///
+    /// - [`Error::DoesntExist`] the test case to duplicate doesn't exist.
+    #[allow(clippy::missing_panics_doc)]
+    pub fn duplicate_test_case(&mut self, case_id_to_duplicate: Uuid) -> Result<&mut TestCase> {
+        let case = self
+            .test_case(case_id_to_duplicate)?
+            .cloned()
+            .ok_or(Error::DoesntExist(case_id_to_duplicate))?;
+        let mut new_case = case.clone();
+        let new_id = Uuid::new_v4();
+        new_case.set_id(new_id);
+
+        // Create new manifest entry
+        self.test_cases.push(TestCaseManifestEntry::new(new_id));
+
+        // Create test case
+        self.test_case_data.insert(new_id, new_case);
+
+        Ok(self.test_case_data.get_mut(&new_id).unwrap())
+    }
+
     /// Delete a test case.
     /// Returns true if a case was deleted.
     ///

@@ -48,6 +48,10 @@ pub enum Error {
     )]
     TestCaseSchemaValidationFailed,
 
+    /// The specified test case doesn't exist
+    #[error("The specified test case doesn't exist")]
+    DoesntExist(Uuid),
+
     /// An otherwise unhandled error occured during export.
     #[error("Export failed: {0}")]
     OtherExportError(Box<dyn std::error::Error>),
