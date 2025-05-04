@@ -59,7 +59,7 @@
 <Wix xmlns='http://schemas.microsoft.com/wix/2006/wi'>
 
     <Product
-        Id='*'
+        Id='F7DE0A66-A51F-44D7-828B-6CA983508335'
         Name='EvidenceAngel'
         UpgradeCode='76B23EEA-15E0-41DC-BEC6-CAD4CEFD52AE'
         Manufacturer='Lily Hopkins; Eden Turner'
