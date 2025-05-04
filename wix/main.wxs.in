@@ -83,7 +83,10 @@
             DowngradeErrorMessage='A newer version of [ProductName] is already installed. Setup will now exit.'/>
 
         <Media Id='1' Cabinet='media1.cab' EmbedCab='yes' DiskPrompt='CD-ROM #1'/>
-        <Property Id='DiskPrompt' Value='evidenceangel Installation'/>
+        <Property Id='DiskPrompt' Value='EvidenceAngel Installation'/>
+
+        <Property Id='ApplicationFolderName' Value='AngelSuite\EvidenceAngel' />
+        <Property Id='WixAppFolder' Value='WixPerMachineFolder' />
 
         <Directory Id='TARGETDIR' Name='SourceDir'>
             <Directory Id='$(var.PlatformProgramFilesFolder)' Name='AppData'>
@@ -112,7 +115,27 @@
             </Component>
         </DirectoryRef>
         <DirectoryRef Id='Bin'>
-            <Component Id='Path' Guid='C00985BE-0C82-460A-B3DE-9E5BC2EE386A'>
+            <Component Id='PathPerMachine' Guid='C00985BE-0C82-460A-B3DE-9E5BC2EE386A'>
+                <Condition>ALLUSERS=1</Condition>
+                <RegistryKey Root='HKLM' Key='Software\AngelSuite\EvidenceAngel'>
+                    <RegistryValue
+                        Name='PathSet'
+                        Type='integer'
+                        Value='1'
+                        KeyPath='yes' />
+                </RegistryKey>
+                <Environment
+                    Id='PathVarPerMachine'
+                    Name='PATH'
+                    Value='[Bin]'
+                    Permanent='no'
+                    Part='last'
+                    Action='set'
+                    System='yes' />
+            </Component>
+
+            <Component Id='PathPerUser' Guid='B1073C1E-4B72-4FAE-9EA6-284A8F052486'>
+                <Condition>ALLUSERS=0</Condition>
                 <RegistryKey Root='HKCU' Key='Software\AngelSuite\EvidenceAngel'>
                     <RegistryValue
                         Name='PathSet'
@@ -121,13 +144,13 @@
                         KeyPath='yes' />
                 </RegistryKey>
                 <Environment
-                    Id='PATH'
+                    Id='PathVarPerUser'
                     Name='PATH'
                     Value='[Bin]'
                     Permanent='no'
                     Part='last'
                     Action='set'
-                    System='yes' />
+                    System='no' />
             </Component>
 
             <Component Id='binary0' Guid='861736AE-6CC3-4F91-866F-325D0253AFA3'>
@@ -148,7 +171,8 @@
                     KeyPath='yes' />
             </Component>
 
-            <Component Id='FileAssociationsComp' Guid='119429FD-9F07-4D6A-9426-90FC8B519E50'>
+            <Component Id='FileAssociationsPerMachine' Guid='119429FD-9F07-4D6A-9426-90FC8B519E50'>
+                <Condition>ALLUSERS=1</Condition>
                 <RegistryKey Root='HKLM' Key='Software\AngelSuite\EvidenceAngel'>
                     <RegistryValue
                         Name='FileAssoc'
@@ -170,16 +194,57 @@
                     </RegistryKey>
                 </RegistryKey>
             </Component>
+            <Component Id='FileAssociationsPerUser' Guid='0BFF108B-4D8D-4DE0-9536-47EC554CF7BB'>
+                <Condition>ALLUSERS=0</Condition>
+                <RegistryKey Root='HKCU' Key='Software\AngelSuite\EvidenceAngel'>
+                    <RegistryValue
+                        Name='FileAssoc'
+                        Type='integer'
+                        Value='1'
+                        KeyPath='yes' />
+                </RegistryKey>
+                <RegistryKey Root='HKCU' Key='Software\Classes\.evp'>
+                    <RegistryValue Type='string' Value='EvidencePackage' />
+                </RegistryKey>
+                <RegistryKey Root='HKCU' Key='Software\Classes\EvidencePackage'>
+                    <RegistryValue Type='string' Value='Evidence Package' />
+                    <RegistryKey Key='Shell'>
+                        <RegistryKey Key='Open'>
+                            <RegistryKey Key='Command'>
+                                <RegistryValue Type='string' Value='[Bin]evidenceangel-ui.exe "%1"' />
+                            </RegistryKey>
+                        </RegistryKey>
+                    </RegistryKey>
+                </RegistryKey>
+            </Component>
         </DirectoryRef>
 
         <DirectoryRef Id='ApplicationProgramsFolder'>
-            <Component Id='ApplicationShortcut' Guid='3E3799C7-68BF-40D0-9D58-0628AE21132B'>
+            <Component Id='ApplicationShortcutStartMenuPerMachine' Guid='3E3799C7-68BF-40D0-9D58-0628AE21132B'>
+                <Condition>ALLUSERS=1</Condition>
                 <Shortcut Id='ApplicationStartMenuShortcut'
                         Name='EvidenceAngel'
                         Description='Take, store and manage evidence.'
                         Target='[Bin]\evidenceangel-ui.exe'
                         WorkingDirectory='APPLICATIONROOTDIRECTORY'/>
                 <RemoveFolder Id='CleanUpShortCut' Directory='ApplicationProgramsFolder' On='uninstall'/>
+                <!-- TODO Review this HKCU/HKLM -->
+                <RegistryValue
+                    Root='HKCU'
+                    Key='Software\AngelSuite\EvidenceAngel'
+                    Name='StartMenuShortcutInstalled'
+                    Type='integer'
+                    Value='1'
+                    KeyPath='yes' />
+            </Component>
+            <Component Id='ApplicationShortcutStartMenuPerUser' Guid='05088F66-E2F6-42EE-AB0C-18DA78DEFCA8'>
+                <Condition>ALLUSERS=0</Condition>
+                <Shortcut Id='ApplicationStartMenuShortcutUser'
+                        Name='EvidenceAngel'
+                        Description='Take, store and manage evidence.'
+                        Target='[Bin]\evidenceangel-ui.exe'
+                        WorkingDirectory='APPLICATIONROOTDIRECTORY'/>
+                <RemoveFolder Id='CleanUpShortCutUser' Directory='ApplicationProgramsFolder' On='uninstall'/>
                 <RegistryValue
                     Root='HKCU'
                     Key='Software\AngelSuite\EvidenceAngel'
@@ -191,13 +256,31 @@
         </DirectoryRef>
 
         <DirectoryRef Id='DesktopFolder'>
-            <Component Id='ApplicationShortcutDesktop' Guid='17DBCB12-F1F9-431B-8900-D8B08311622C'>
+            <Component Id='ApplicationShortcutDesktopPerMachine' Guid='17DBCB12-F1F9-431B-8900-D8B08311622C'>
+                <Condition>ALLUSERS=1</Condition>
                 <Shortcut Id='ApplicationDesktopShortcut'
                     Name='EvidenceAngel'
                     Description='Start taking evidence with EvidenceAngel'
                     Target='[Bin]evidenceangel-ui.exe'
                     WorkingDirectory='APPLICATIONFOLDER'/>
                 <RemoveFolder Id='DesktopFolder' On='uninstall'/>
+                <!-- TODO Review this HKCU/HKLM -->
+                <RegistryValue
+                    Root='HKCU'
+                    Key='Software\AngelSuite\EvidenceAngel'
+                    Name='DesktopShortcutInstalled'
+                    Type='integer'
+                    Value='1'
+                    KeyPath='yes' />
+            </Component>
+            <Component Id='ApplicationShortcutDesktopPerUser' Guid='6942EAF8-B1CA-4060-9FDC-D64FE6A9EFE6'>
+                <Condition>ALLUSERS=0</Condition>
+                <Shortcut Id='ApplicationDesktopShortcutUser'
+                    Name='EvidenceAngel'
+                    Description='Start taking evidence with EvidenceAngel'
+                    Target='[Bin]evidenceangel-ui.exe'
+                    WorkingDirectory='APPLICATIONFOLDER'/>
+                <RemoveFolder Id='DesktopFolderUser' On='uninstall'/>
                 <RegistryValue
                     Root='HKCU'
                     Key='Software\AngelSuite\EvidenceAngel'
@@ -221,7 +304,8 @@
             <ComponentRef Id='License' />
             <ComponentRef Id='binary0' />
             <ComponentRef Id='binary1' />
-            <ComponentRef Id='ApplicationShortcut' />
+            <ComponentRef Id='ApplicationShortcutStartMenuPerMachine' />
+            <ComponentRef Id='ApplicationShortcutStartMenuPerUser' />
             <!-- GTK_COMPONENT_REFS_HERE -->
 
             <Feature
@@ -230,7 +314,8 @@
                 Description='Place a shortcut on your desktop to run EvidenceAngel'
                 Level='1'
                 Absent='allow'>
-                <ComponentRef Id='ApplicationShortcutDesktop' />
+                <ComponentRef Id='ApplicationShortcutDesktopPerMachine' />
+                <ComponentRef Id='ApplicationShortcutDesktopPerUser' />
             </Feature>
             <Feature
                 Id='Environment'
@@ -238,7 +323,8 @@
                 Description='Add the install location of the [ProductName] executable to the PATH system environment variable. This allows the [ProductName] executable to be called from any location.'
                 Level='1'
                 Absent='allow'>
-                <ComponentRef Id='Path' />
+                <ComponentRef Id='PathPerMachine' />
+                <ComponentRef Id='PathPerUser' />
             </Feature>
 
             <Feature
@@ -247,7 +333,8 @@
                 Description='Configure Windows to open .evp files with [ProductName].'
                 Level='1'
                 Absent='allow'>
-                <ComponentRef Id='FileAssociationsComp' />
+                <ComponentRef Id='FileAssociationsPerMachine' />
+                <ComponentRef Id='FileAssociationsPerUser' />
             </Feature>
         </Feature>
 
@@ -268,19 +355,29 @@
         <!--<Property Id='ARPHELPLINK' Value='ChangeMe'/>-->
 
         <UI>
-            <UIRef Id='WixUI_FeatureTree'/>
-            <Publish Dialog="ExitDialog"
-                Control="Finish"
-                Event="DoAction"
-                Value="LaunchApplication">WIXUI_EXITDIALOGOPTIONALCHECKBOX = 1 and NOT Installed</Publish>
+            <UIRef Id='WixUI_Advanced'/>
+
+            <Publish Dialog='ExitDialog'
+                Control='Finish'
+                Event='DoAction'
+                Value='LaunchApplication'>WIXUI_EXITDIALOGOPTIONALCHECKBOX = 1 and NOT Installed</Publish>
         </UI>
+
+        <!-- Workaround for bug in WixUI_Advanced always storing in 32-bit Prog Files -->
+        <CustomAction Id="Overwrite_WixSetDefaultPerMachineFolder" Property="WixPerMachineFolder" Value="[ProgramFiles64Folder][ApplicationFolderName]" Execute="immediate" />
+        <InstallUISequence>
+            <Custom Action="Overwrite_WixSetDefaultPerMachineFolder" After="WixSetDefaultPerMachineFolder" />
+        </InstallUISequence>
+        <InstallExecuteSequence>
+            <Custom Action="Overwrite_WixSetDefaultPerMachineFolder" After="WixSetDefaultPerMachineFolder" />
+        </InstallExecuteSequence>
 
         <WixVariable Id='WixUILicenseRtf' Value='wix\license.rtf'/>
 
         <!-- Open after installation complete -->
-        <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOXTEXT" Value="Launch EvidenceAngel" />
-        <Property Id="WixShellExecTarget" Value="[Bin]evidenceangel-ui.exe" />
-        <CustomAction Id="LaunchApplication" BinaryKey="WixCA" DllEntry="WixShellExec" Impersonate="yes" />
+        <Property Id='WIXUI_EXITDIALOGOPTIONALCHECKBOXTEXT' Value='Launch EvidenceAngel' />
+        <Property Id='WixShellExecTarget' Value='[Bin]evidenceangel-ui.exe' />
+        <CustomAction Id='LaunchApplication' BinaryKey='WixCA' DllEntry='WixShellExec' Impersonate='yes' />
 
         <!--
           The banner BMP dimensions are 493 x 58 pixels.
