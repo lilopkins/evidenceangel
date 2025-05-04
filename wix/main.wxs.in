@@ -227,9 +227,18 @@
 
         <UI>
             <UIRef Id='WixUI_FeatureTree'/>
+            <Publish Dialog="ExitDialog"
+                Control="Finish"
+                Event="DoAction"
+                Value="LaunchApplication">WIXUI_EXITDIALOGOPTIONALCHECKBOX = 1 and NOT Installed</Publish>
         </UI>
 
         <WixVariable Id='WixUILicenseRtf' Value='wix\license.rtf'/>
+
+        <!-- Open after installation complete -->
+        <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOXTEXT" Value="Launch EvidenceAngel" />
+        <Property Id="WixShellExecTarget" Value="[Bin]evidenceangel-ui.exe" />
+        <CustomAction Id="LaunchApplication" BinaryKey="WixCA" DllEntry="WixShellExec" Impersonate="yes" />
 
         <!--
           The banner BMP dimensions are 493 x 58 pixels.
