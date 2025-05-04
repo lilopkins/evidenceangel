@@ -94,6 +94,8 @@
                     </Directory>
                 </Directory>
             </Directory>
+
+            <Directory Id='DesktopFolder' Name='Desktop' />
             <Directory Id='ProgramMenuFolder'>
                 <Directory Id='ApplicationProgramsFolder' Name='EvidenceAngel' />
             </Directory>
@@ -112,7 +114,11 @@
         <DirectoryRef Id='Bin'>
             <Component Id='Path' Guid='C00985BE-0C82-460A-B3DE-9E5BC2EE386A'>
                 <RegistryKey Root='HKCU' Key='Software\AngelSuite\EvidenceAngel'>
-                    <RegistryValue Name='PathSet' Type='string' Value='Installed' KeyPath='yes' />
+                    <RegistryValue
+                        Name='PathSet'
+                        Type='integer'
+                        Value='1'
+                        KeyPath='yes' />
                 </RegistryKey>
                 <Environment
                     Id='PATH'
@@ -144,7 +150,11 @@
 
             <Component Id='FileAssociationsComp' Guid='119429FD-9F07-4D6A-9426-90FC8B519E50'>
                 <RegistryKey Root='HKLM' Key='Software\AngelSuite\EvidenceAngel'>
-                    <RegistryValue Name='FileAssoc' Type='string' Value='Installed' KeyPath='yes' />
+                    <RegistryValue
+                        Name='FileAssoc'
+                        Type='integer'
+                        Value='1'
+                        KeyPath='yes' />
                 </RegistryKey>
                 <RegistryKey Root='HKCR' Key='.evp'>
                     <RegistryValue Type='string' Value='EvidencePackage' />
@@ -170,7 +180,31 @@
                         Target='[Bin]\evidenceangel-ui.exe'
                         WorkingDirectory='APPLICATIONROOTDIRECTORY'/>
                 <RemoveFolder Id='CleanUpShortCut' Directory='ApplicationProgramsFolder' On='uninstall'/>
-                <RegistryValue Root='HKCU' Key='Software\AngelSuite\EvidenceAngel' Name='installed' Type='integer' Value='1' KeyPath='yes'/>
+                <RegistryValue
+                    Root='HKCU'
+                    Key='Software\AngelSuite\EvidenceAngel'
+                    Name='StartMenuShortcutInstalled'
+                    Type='integer'
+                    Value='1'
+                    KeyPath='yes' />
+            </Component>
+        </DirectoryRef>
+
+        <DirectoryRef Id='DesktopFolder'>
+            <Component Id='ApplicationShortcutDesktop' Guid='17DBCB12-F1F9-431B-8900-D8B08311622C'>
+                <Shortcut Id='ApplicationDesktopShortcut'
+                    Name='EvidenceAngel'
+                    Description='Start taking evidence with EvidenceAngel'
+                    Target='[Bin]evidenceangel-ui.exe'
+                    WorkingDirectory='APPLICATIONFOLDER'/>
+                <RemoveFolder Id='DesktopFolder' On='uninstall'/>
+                <RegistryValue
+                    Root='HKCU'
+                    Key='Software\AngelSuite\EvidenceAngel'
+                    Name='DesktopShortcutInstalled'
+                    Type='integer'
+                    Value='1'
+                    KeyPath='yes' />
             </Component>
         </DirectoryRef>
 
@@ -184,19 +218,27 @@
             Display='expand'
             Absent='disallow'>
 
-            <ComponentRef Id='License'/>
-            <ComponentRef Id='binary0'/>
-            <ComponentRef Id='binary1'/>
+            <ComponentRef Id='License' />
+            <ComponentRef Id='binary0' />
+            <ComponentRef Id='binary1' />
             <ComponentRef Id='ApplicationShortcut' />
             <!-- GTK_COMPONENT_REFS_HERE -->
 
+            <Feature
+                Id='DesktopShortcut'
+                Title='Create a Desktop Shortcut'
+                Description='Place a shortcut on your desktop to run EvidenceAngel'
+                Level='1'
+                Absent='allow'>
+                <ComponentRef Id='ApplicationShortcutDesktop' />
+            </Feature>
             <Feature
                 Id='Environment'
                 Title='Add to PATH Environment Variable'
                 Description='Add the install location of the [ProductName] executable to the PATH system environment variable. This allows the [ProductName] executable to be called from any location.'
                 Level='1'
                 Absent='allow'>
-                <ComponentRef Id='Path'/>
+                <ComponentRef Id='Path' />
             </Feature>
 
             <Feature
@@ -205,13 +247,13 @@
                 Description='Configure Windows to open .evp files with [ProductName].'
                 Level='1'
                 Absent='allow'>
-                <ComponentRef Id='FileAssociationsComp'/>
+                <ComponentRef Id='FileAssociationsComp' />
             </Feature>
         </Feature>
 
-        <SetProperty Id='ARPINSTALLLOCATION' Value='[APPLICATIONFOLDER]' After='CostFinalize'/>
+        <SetProperty Id='ARPINSTALLLOCATION' Value='[APPLICATIONFOLDER]' After='CostFinalize' />
 
-        <Icon Id='ProductICO' SourceFile='icon.ico'/>
+        <Icon Id='ProductICO' SourceFile='icon.ico' />
         <Property Id='ARPPRODUCTICON' Value='ProductICO' />
 
         <!--
