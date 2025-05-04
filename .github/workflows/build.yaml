@@ -220,7 +220,7 @@ jobs:
           popd || exit
 
           echo Generating installer...
-          cargo wix --no-build
+          cargo wix --no-build -L -sice:ICE57
 
       - name: Save Cargo cache
         uses: actions/cache/save@v3

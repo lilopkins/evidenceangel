@@ -99,9 +99,7 @@
             </Directory>
 
             <Directory Id='DesktopFolder' Name='Desktop' />
-            <Directory Id='ProgramMenuFolder'>
-                <Directory Id='ApplicationProgramsFolder' Name='EvidenceAngel' />
-            </Directory>
+            <Directory Id='ProgramMenuFolder' />
         </Directory>
 
         <DirectoryRef Id='APPLICATIONFOLDER'>
@@ -219,34 +217,15 @@
             </Component>
         </DirectoryRef>
 
-        <DirectoryRef Id='ApplicationProgramsFolder'>
-            <Component Id='ApplicationShortcutStartMenuPerMachine' Guid='3E3799C7-68BF-40D0-9D58-0628AE21132B'>
-                <Condition>ALLUSERS=1</Condition>
+        <DirectoryRef Id='ProgramMenuFolder'>
+            <Component Id='ApplicationShortcutStartMenu' Guid='3E3799C7-68BF-40D0-9D58-0628AE21132B'>
                 <Shortcut Id='ApplicationStartMenuShortcut'
                         Name='EvidenceAngel'
                         Description='Take, store and manage evidence.'
                         Target='[Bin]\evidenceangel-ui.exe'
                         WorkingDirectory='APPLICATIONROOTDIRECTORY'/>
-                <RemoveFolder Id='CleanUpShortCut' Directory='ApplicationProgramsFolder' On='uninstall'/>
-                <!-- TODO Review this HKCU/HKLM -->
                 <RegistryValue
-                    Root='HKCU'
-                    Key='Software\AngelSuite\EvidenceAngel'
-                    Name='StartMenuShortcutInstalled'
-                    Type='integer'
-                    Value='1'
-                    KeyPath='yes' />
-            </Component>
-            <Component Id='ApplicationShortcutStartMenuPerUser' Guid='05088F66-E2F6-42EE-AB0C-18DA78DEFCA8'>
-                <Condition>ALLUSERS=0</Condition>
-                <Shortcut Id='ApplicationStartMenuShortcutUser'
-                        Name='EvidenceAngel'
-                        Description='Take, store and manage evidence.'
-                        Target='[Bin]\evidenceangel-ui.exe'
-                        WorkingDirectory='APPLICATIONROOTDIRECTORY'/>
-                <RemoveFolder Id='CleanUpShortCutUser' Directory='ApplicationProgramsFolder' On='uninstall'/>
-                <RegistryValue
-                    Root='HKCU'
+                    Root='HKMU'
                     Key='Software\AngelSuite\EvidenceAngel'
                     Name='StartMenuShortcutInstalled'
                     Type='integer'
@@ -256,33 +235,14 @@
         </DirectoryRef>
 
         <DirectoryRef Id='DesktopFolder'>
-            <Component Id='ApplicationShortcutDesktopPerMachine' Guid='17DBCB12-F1F9-431B-8900-D8B08311622C'>
-                <Condition>ALLUSERS=1</Condition>
+            <Component Id='ApplicationShortcutDesktop' Guid='17DBCB12-F1F9-431B-8900-D8B08311622C'>
                 <Shortcut Id='ApplicationDesktopShortcut'
                     Name='EvidenceAngel'
                     Description='Start taking evidence with EvidenceAngel'
                     Target='[Bin]evidenceangel-ui.exe'
                     WorkingDirectory='APPLICATIONFOLDER'/>
-                <RemoveFolder Id='DesktopFolder' On='uninstall'/>
-                <!-- TODO Review this HKCU/HKLM -->
                 <RegistryValue
-                    Root='HKCU'
-                    Key='Software\AngelSuite\EvidenceAngel'
-                    Name='DesktopShortcutInstalled'
-                    Type='integer'
-                    Value='1'
-                    KeyPath='yes' />
-            </Component>
-            <Component Id='ApplicationShortcutDesktopPerUser' Guid='6942EAF8-B1CA-4060-9FDC-D64FE6A9EFE6'>
-                <Condition>ALLUSERS=0</Condition>
-                <Shortcut Id='ApplicationDesktopShortcutUser'
-                    Name='EvidenceAngel'
-                    Description='Start taking evidence with EvidenceAngel'
-                    Target='[Bin]evidenceangel-ui.exe'
-                    WorkingDirectory='APPLICATIONFOLDER'/>
-                <RemoveFolder Id='DesktopFolderUser' On='uninstall'/>
-                <RegistryValue
-                    Root='HKCU'
+                    Root='HKMU'
                     Key='Software\AngelSuite\EvidenceAngel'
                     Name='DesktopShortcutInstalled'
                     Type='integer'
@@ -304,8 +264,7 @@
             <ComponentRef Id='License' />
             <ComponentRef Id='binary0' />
             <ComponentRef Id='binary1' />
-            <ComponentRef Id='ApplicationShortcutStartMenuPerMachine' />
-            <ComponentRef Id='ApplicationShortcutStartMenuPerUser' />
+            <ComponentRef Id='ApplicationShortcutStartMenu' />
             <!-- GTK_COMPONENT_REFS_HERE -->
 
             <Feature
@@ -314,8 +273,7 @@
                 Description='Place a shortcut on your desktop to run EvidenceAngel'
                 Level='1'
                 Absent='allow'>
-                <ComponentRef Id='ApplicationShortcutDesktopPerMachine' />
-                <ComponentRef Id='ApplicationShortcutDesktopPerUser' />
+                <ComponentRef Id='ApplicationShortcutDesktop' />
             </Feature>
             <Feature
                 Id='Environment'
