@@ -183,10 +183,9 @@
                 </RegistryKey>
                 <RegistryKey Root='HKCR' Key='EvidencePackage'>
                     <RegistryValue Type='string' Value='Evidence Package' />
-                    <RegistryValue
-                        Name='DefaultIcon'
-                        Type='string'
-                        Value='[Bin]evidenceangel-ui.exe,2' />
+                    <RegistryKey Key='DefaultIcon'>
+                        <RegistryValue Type='string' Value='[Bin]evidenceangel-ui.exe,1' />
+                    </RegistryKey>
                     <RegistryKey Key='Shell'>
                         <RegistryKey Key='Open'>
                             <RegistryKey Key='Command'>
@@ -210,10 +209,9 @@
                 </RegistryKey>
                 <RegistryKey Root='HKCU' Key='Software\Classes\EvidencePackage'>
                     <RegistryValue Type='string' Value='Evidence Package' />
-                    <RegistryValue
-                        Name='DefaultIcon'
-                        Type='string'
-                        Value='[Bin]evidenceangel-ui.exe,2' />
+                    <RegistryKey Key='DefaultIcon'>
+                        <RegistryValue Type='string' Value='[Bin]evidenceangel-ui.exe,1' />
+                    </RegistryKey>
                     <RegistryKey Key='Shell'>
                         <RegistryKey Key='Open'>
                             <RegistryKey Key='Command'>
