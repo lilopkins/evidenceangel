@@ -1196,6 +1196,13 @@ impl Component for AppModel {
                         let mut pkg = pkg.write().unwrap();
                         let case = pkg.duplicate_test_case(*id).unwrap(); // doesn't fail
                         new_case_id = *case.id();
+                        let old_title = case.metadata().title();
+                        let duplicate_suffix = lang::lookup("test-case-duplicate-suffix");
+                        let new_title = format!(
+                            "{} {duplicate_suffix}",
+                            &old_title[0..old_title.len().min(29 - duplicate_suffix.len())]
+                        );
+                        case.metadata_mut().set_title(new_title);
 
                         // Add case to navigation
                         let mut test_case_data = self.test_case_nav_factory.guard();

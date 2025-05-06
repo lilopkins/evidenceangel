@@ -114,6 +114,7 @@ test-case-menu = Test Case Actions
 test-case-move-up = Move this Up
 test-case-move-down = Move this Down
 test-case-duplicate = Duplicate
+test-case-duplicate-suffix = (Copy)
 delete-case-title = Delete { $name }?
 delete-case-message = Do you really want to irreversibly delete test case { $name }?
 delete-case-affirm = Delete
