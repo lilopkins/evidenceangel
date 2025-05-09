@@ -30,8 +30,14 @@ fn main() {
                 .build_file("icon.ico")
                 .unwrap();
 
+            ico_builder::IcoBuilder::default()
+                .add_source_file("file_icon.png")
+                .build_file("file_icon.ico")
+                .unwrap();
+
             let mut res = winresource::WindowsResource::new();
             res.set_icon("icon.ico");
+            res.set_icon_with_id("file_icon.ico", "2");
             res.compile().unwrap();
         }
     }
