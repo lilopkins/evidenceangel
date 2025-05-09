@@ -56,8 +56,8 @@ title-no-package = No package open
 title-no-case = No case open
 
 metadata-group-title = Package Metadata
-metadata-title = Package Title
-metadata-description = Package Description
+metadata-title = Title
+metadata-description = Description
 metadata-authors = Package Authors
 
 author-create-title = Add Author
@@ -67,8 +67,8 @@ author-create-submit = Add
 author-remove = Delete Author
 
 test-group-title = Test Case Metadata
-test-title = Test Case Title
-test-execution = Test Case Execution Time
+test-title = Title
+test-execution = Execution Time
 test-evidence-caption = Caption
 test-evidence-file-unnamed = <b>Unnamed file</b>
 test-evidence-file-named = <b>File:</b> { $filename }
@@ -110,7 +110,7 @@ evidence-http-response = Response
 evidence-image = Image
 evidence-file = File
 
-test-case-menu = Test Case Actions
+test-case-menu = Actions
 test-case-move-up = Move this Up
 test-case-move-down = Move this Down
 test-case-duplicate = Duplicate
