@@ -13,6 +13,7 @@
 use std::{env, path::PathBuf, sync::Mutex};
 
 use clap::Parser;
+use directories::ProjectDirs;
 use relm4::{
     RelmApp,
     gtk::{
@@ -42,6 +43,9 @@ struct Args {
 }
 
 fn main() {
+    let dirs = ProjectDirs::from("uk.hpkns", "AngelSuite", "EvidenceAngel")
+        .expect("Failed to get directories");
+
     let subscriber = FmtSubscriber::builder()
         .with_max_level(
             if cfg!(debug_assertions) || env::var("EA_DEBUG").is_ok_and(|v| !v.is_empty()) {
@@ -54,11 +58,7 @@ fn main() {
         .with_writer(Mutex::new(DualWriter::new(
             std::io::stderr(),
             AnsiStripper::new(RotatingFile::new(
-                env::current_exe()
-                    .ok()
-                    .and_then(|p| p.parent().map(std::path::Path::to_path_buf))
-                    .unwrap_or(PathBuf::from("."))
-                    .join("evidenceangel.log"),
+                dirs.cache_dir().join("evidenceangel.log"),
                 AppendCount::new(3),
                 ContentLimit::Lines(1000),
                 Compression::OnRotate(0),

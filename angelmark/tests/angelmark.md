@@ -17,8 +17,6 @@ _also italic_
 
 _**bold and italic**_
 
-// Also comments
-
 Formatting **in** a line *as well* as _on it's own_!
 
 `monospace`

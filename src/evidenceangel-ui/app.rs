@@ -592,6 +592,7 @@ impl Component for AppModel {
                                                 set_orientation: gtk::Orientation::Vertical,
                                                 set_hexpand: true,
                                                 set_halign: gtk::Align::Fill,
+                                                set_height_request: 300,
                                                 set_spacing: 2,
 
                                                 add_controller = gtk::DropTarget {
@@ -616,6 +617,7 @@ impl Component for AppModel {
                                                     gtk::MenuButton {
                                                         set_direction: gtk::ArrowType::Up,
                                                         add_css_class: "pill",
+                                                        set_halign: gtk::Align::Center,
 
                                                         #[wrap(Some)]
                                                         set_child = &adw::ButtonContent {
@@ -868,9 +870,6 @@ impl Component for AppModel {
         root: &Self::Root,
     ) {
         tracing::debug!("Handling event: {message:?}");
-        widgets
-            .test_case_content_bottom_box
-            .set_height_request(widgets.test_case_content.height() / 2);
         match message {
             AppInput::Exit => {
                 relm4::main_application().quit();
@@ -1196,6 +1195,13 @@ impl Component for AppModel {
                         let mut pkg = pkg.write().unwrap();
                         let case = pkg.duplicate_test_case(*id).unwrap(); // doesn't fail
                         new_case_id = *case.id();
+                        let old_title = case.metadata().title();
+                        let duplicate_suffix = lang::lookup("test-case-duplicate-suffix");
+                        let new_title = format!(
+                            "{} {duplicate_suffix}",
+                            &old_title[0..old_title.len().min(29 - duplicate_suffix.len())]
+                        );
+                        case.metadata_mut().set_title(new_title);
 
                         // Add case to navigation
                         let mut test_case_data = self.test_case_nav_factory.guard();

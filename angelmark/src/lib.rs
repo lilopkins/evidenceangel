@@ -71,7 +71,6 @@ pub fn parse_angelmark<S: AsRef<str>>(input: S) -> Result<Vec<AngelmarkLine>, Er
         let span = pair.as_span();
         match pair.as_rule() {
             Rule::EOI => break,
-            Rule::Comment => (),
             Rule::Newline => {
                 if let Some(AngelmarkLine::Newline(_)) = content.last() {
                 } else {

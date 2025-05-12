@@ -56,8 +56,8 @@ title-no-package = Inget paket öppet
 title-no-case = Inget fall öppet
 
 metadata-group-title = Paketmetadata
-metadata-title = Paketets Titel
-metadata-description = Packetets Beskrivning
+metadata-title = Titel
+metadata-description = Beskrivning
 metadata-authors = Paketets Författare
 
 author-create-title = Lägg till Författare
@@ -67,8 +67,8 @@ author-create-submit = Lägg till
 author-remove = Ta bort Författare
 
 test-group-title = Testfallsmetadata
-test-title = Testfallstitel
-test-execution = Tidpunkt för Testfallet
+test-title = Titel
+test-execution = Tidpunkt
 test-evidence-caption = Rubrik
 test-evidence-file-unnamed = <b>Namnlös fil</b>
 test-evidence-file-named = <b>Fil:</b> { $filename }
@@ -110,10 +110,11 @@ evidence-http-response = Svar
 evidence-image = Bild
 evidence-file = Fil
 
-test-case-menu = Testfall åtgärder
+test-case-menu = Åtgärder
 test-case-move-up = Flytta det här Upp
 test-case-move-down = Flytta det här Ner
 test-case-duplicate = Duplicera
+test-case-duplicate-suffix = (Kopiera)
 delete-case-title = Radera { $name }?
 delete-case-message = Vill du verkligen oåterkalleligt radera testfallet { $name }?
 delete-case-affirm = Radera

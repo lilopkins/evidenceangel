@@ -1,0 +1,82 @@
+{
+  "$id": "https://evidenceangel-schemas.hpkns.uk/testcase.3.schema.json",
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "type": "object",
+  "description": "A test case file `testcases/<UUID>.json` as part of an evidence package.",
+  "properties": {
+    "metadata": {
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string",
+          "description": "The title of the test case",
+          "minLength": 1,
+          "maxLength": 30
+        },
+        "execution_datetime": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The date and time of the execution of this test case starting."
+        },
+        "passed": {
+          "type": "string",
+          "description": "The state of the test case",
+          "enum": [
+            "pass",
+            "fail",
+            "undetermined"
+          ]
+        },
+        "custom": {
+          "type": "object",
+          "description": "Custom metadata values",
+          "patternProperties": {
+            ".+": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "required": ["title", "execution_datetime", "passed"]
+    },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "A piece of evidence as part of this test case.",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "description": "The type of data stored. Note that where `Http` is used, a Record Separator character (0x1e) can be used to split the request and response portion.",
+            "enum": ["Text", "RichText", "Image", "Http", "File"]
+          },
+          "value": {
+            "type": "string",
+            "description": "Either `plain:` followed by plain text, `media:` followed by a media SHA256 hash, or `base64:` followed by a base64 string of data without padding.",
+            "pattern": "^(plain:.*)|(media:[0-9a-f]{64})|(base64:[A-z0-9+/]*)$"
+          },
+          "caption": {
+            "type": "string",
+            "description": "An optional caption for this piece of evidence."
+          },
+          "original_filename": {
+            "type": "string",
+            "description": "The original filename for File evidence"
+          }
+        },
+        "required": ["kind", "value"],
+        "if": {
+          "properties": {
+            "kind": { "const": "File" }
+          }
+        },
+        "else": {
+          "not": {
+            "required": ["original_filename"]
+          }
+        }
+      }
+    }
+  },
+  "required": ["metadata", "evidence"]
+}

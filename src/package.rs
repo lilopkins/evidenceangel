@@ -28,9 +28,9 @@ pub use test_cases::{Evidence, EvidenceData, EvidenceKind, TestCase, TestCaseMet
 
 /// The URL for $schema for manifest.json
 const MANIFEST_SCHEMA_LOCATION: &str =
-    "https://evidenceangel-schemas.hpkns.uk/manifest.1.schema.json";
+    "https://evidenceangel-schemas.hpkns.uk/manifest.2.schema.json";
 /// The schema to validate manifest.json against
-const MANIFEST_SCHEMA: &str = include_str!("../schemas/manifest.1.schema.json");
+const MANIFEST_SCHEMA: &str = include_str!("../schemas/manifest.2.schema.json");
 
 /// An Evidence Package.
 #[derive(Serialize, Deserialize, Getters, MutGetters)]
@@ -47,7 +47,7 @@ pub struct EvidencePackage {
 
     /// The JSON schema for for this package
     #[serde(rename = "$schema")]
-    schema: String,
+    schema: Option<String>,
     /// The metadata for the package.
     #[getset(get = "pub", get_mut = "pub")]
     metadata: Metadata,
@@ -55,6 +55,10 @@ pub struct EvidencePackage {
     media: Vec<MediaFileManifestEntry>,
     /// The manifest entries for the test cases in this package
     test_cases: Vec<TestCaseManifestEntry>,
+    /// Extra fields that this implementation doesn't understand.
+    #[get = "pub"]
+    #[serde(flatten)]
+    extra_fields: HashMap<String, serde_json::Value>,
 }
 
 impl Clone for EvidencePackage {
@@ -63,8 +67,9 @@ impl Clone for EvidencePackage {
             zip: self.zip.clone(),
             media_data: HashMap::new(),
             test_case_data: self.test_case_data.clone(),
+            extra_fields: HashMap::new(),
 
-            schema: MANIFEST_SCHEMA_LOCATION.to_string(),
+            schema: Some(MANIFEST_SCHEMA_LOCATION.to_string()),
             metadata: self.metadata.clone(),
             media: self.media.clone(),
             test_cases: self.test_cases.clone(),
@@ -78,6 +83,7 @@ impl fmt::Debug for EvidencePackage {
             .field("metadata", &self.metadata)
             .field("media", &self.media)
             .field("test_cases", &self.test_cases)
+            .field("extra_fields", &self.extra_fields)
             .finish_non_exhaustive()
     }
 }
@@ -121,14 +127,16 @@ impl EvidencePackage {
             media_data: HashMap::new(),
             test_case_data: HashMap::new(),
 
-            schema: MANIFEST_SCHEMA_LOCATION.to_string(),
+            schema: Some(MANIFEST_SCHEMA_LOCATION.to_string()),
             media: vec![],
             test_cases: vec![],
             metadata: Metadata {
                 title,
                 description,
                 authors,
+                extra_fields: HashMap::new(),
             },
+            extra_fields: HashMap::new(),
         };
         let manifest_clone = manifest.clone_serde();
 
@@ -192,7 +200,7 @@ impl EvidencePackage {
 
         // Write any files as needed
         for test_case in &self.test_cases {
-            let id = test_case.name();
+            let id = test_case.id();
             if let Some(data) = self.test_case_data.get(id) {
                 // Whilst we are here, let's figure out what media we use.
                 for evidence in data.evidence() {
@@ -324,7 +332,7 @@ impl EvidencePackage {
 
         // Read test cases
         for test_case in &evidence_package.test_cases {
-            let id = test_case.name();
+            let id = test_case.id();
             let data = zip
                 .by_name(&format!("testcases/{id}.json"))
                 .map_err(|_| Error::CorruptEvidencePackage(format!("missing test case {id}")))?;
@@ -365,10 +373,11 @@ impl EvidencePackage {
             media_data: HashMap::new(),
             test_case_data: HashMap::new(),
 
-            schema: MANIFEST_SCHEMA_LOCATION.to_string(),
+            schema: Some(MANIFEST_SCHEMA_LOCATION.to_string()),
             metadata: self.metadata.clone(),
             media: self.media.clone(),
             test_cases: self.test_cases.clone(),
+            extra_fields: HashMap::new(),
         }
     }
 
@@ -382,7 +391,7 @@ impl EvidencePackage {
         Ok(self
             .test_cases
             .iter()
-            .map(|tcme| self.test_case(*tcme.name()).unwrap().unwrap()))
+            .map(|tcme| self.test_case(*tcme.id()).unwrap().unwrap()))
     }
 
     /// Obtain an iterator over test cases.
@@ -409,7 +418,7 @@ impl EvidencePackage {
         let required_uuids = self
             .test_cases
             .iter()
-            .map(|tcme| *tcme.name())
+            .map(|tcme| *tcme.id())
             .collect::<Vec<_>>();
         for uuid in required_uuids {
             assert!(
@@ -504,7 +513,7 @@ impl EvidencePackage {
         let id = id.into();
 
         // Search for matching case
-        let index = self.test_cases.iter().position(|tc| *tc.name() == id);
+        let index = self.test_cases.iter().position(|tc| *tc.id() == id);
 
         // Check a case was found
         if index.is_none() {
@@ -513,7 +522,7 @@ impl EvidencePackage {
 
         // Remove case and data object
         let case = self.test_cases.remove(index.unwrap());
-        self.test_case_data.remove(case.name());
+        self.test_case_data.remove(case.id());
         Ok(true)
     }
 
@@ -529,10 +538,10 @@ impl EvidencePackage {
         let id = id.into();
 
         // Search for matching case
-        let case = self.test_cases.iter().find(|tc| *tc.name() == id);
+        let case = self.test_cases.iter().find(|tc| *tc.id() == id);
 
         // Return case
-        Ok(case.and_then(|tcme| self.test_case_data.get(tcme.name())))
+        Ok(case.and_then(|tcme| self.test_case_data.get(tcme.id())))
     }
 
     /// Mutably get a test case
@@ -547,10 +556,10 @@ impl EvidencePackage {
         let id = id.into();
 
         // Search for matching case
-        let case = self.test_cases.iter().find(|tc| *tc.name() == id);
+        let case = self.test_cases.iter().find(|tc| *tc.id() == id);
 
         // Return case
-        Ok(case.and_then(|tcme| self.test_case_data.get_mut(tcme.name())))
+        Ok(case.and_then(|tcme| self.test_case_data.get_mut(tcme.id())))
     }
 
     /// Add media to this package.

@@ -2,7 +2,7 @@ use getset::{Getters, MutGetters, Setters};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use std::fmt;
+use std::{collections::HashMap, fmt};
 
 /// [`EvidencePackage`](super::EvidencePackage) metadata.
 #[derive(Clone, Debug, Getters, MutGetters, Setters, Serialize, Deserialize)]
@@ -18,6 +18,11 @@ pub struct Metadata {
     /// The package authors.
     #[get_mut = "pub"]
     pub(super) authors: Vec<Author>,
+
+    /// Extra fields that this implementation doesn't understand.
+    #[get = "pub"]
+    #[serde(flatten)]
+    pub(super) extra_fields: HashMap<String, serde_json::Value>,
 }
 
 /// An author of an [`EvidencePackage`](super::EvidencePackage).
@@ -29,6 +34,11 @@ pub struct Author {
     /// The author's email address.
     #[serde(skip_serializing_if = "Option::is_none")]
     email: Option<String>,
+
+    /// Extra fields that this implementation doesn't understand.
+    #[get = "pub"]
+    #[serde(flatten)]
+    extra_fields: HashMap<String, serde_json::Value>,
 }
 
 impl Author {
@@ -37,6 +47,7 @@ impl Author {
         Self {
             name: name.into(),
             email: None,
+            extra_fields: HashMap::new(),
         }
     }
 
@@ -45,6 +56,7 @@ impl Author {
         Self {
             name: name.into(),
             email: Some(email_address.into()),
+            extra_fields: HashMap::new(),
         }
     }
 }
@@ -67,6 +79,11 @@ pub(super) struct MediaFileManifestEntry {
     sha256_checksum: String,
     /// The MIME type of the media file.
     mime_type: String,
+
+    /// Extra fields that this implementation doesn't understand.
+    #[get = "pub"]
+    #[serde(flatten)]
+    extra_fields: HashMap<String, serde_json::Value>,
 }
 
 impl From<&crate::MediaFile> for MediaFileManifestEntry {
@@ -77,6 +94,7 @@ impl From<&crate::MediaFile> for MediaFileManifestEntry {
                 .mime_type()
                 .map_or("unknown", |t| t.mime_type())
                 .to_string(),
+            extra_fields: HashMap::new(),
         }
     }
 }
@@ -87,12 +105,21 @@ impl From<&crate::MediaFile> for MediaFileManifestEntry {
 #[getset(get = "pub")]
 pub(super) struct TestCaseManifestEntry {
     /// A string to reference the test case internally. Usually a UUID.
-    name: Uuid,
+    #[serde(alias = "name")] // Compatibility with previous pre-RFC field name `name`.
+    id: Uuid,
+
+    /// Extra fields that this implementation doesn't understand.
+    #[get = "pub"]
+    #[serde(flatten)]
+    extra_fields: HashMap<String, serde_json::Value>,
 }
 
 impl TestCaseManifestEntry {
     /// Create a new test case manifest entry
-    pub(super) fn new(name: Uuid) -> Self {
-        Self { name }
+    pub(super) fn new(id: Uuid) -> Self {
+        Self {
+            id,
+            extra_fields: HashMap::new(),
+        }
     }
 }

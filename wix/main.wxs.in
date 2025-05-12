@@ -133,7 +133,7 @@
             </Component>
 
             <Component Id='PathPerUser' Guid='B1073C1E-4B72-4FAE-9EA6-284A8F052486'>
-                <Condition>ALLUSERS=0</Condition>
+                <Condition>ALLUSERS="" OR (ALLUSERS=2 AND MSIINSTALLPERUSER=1)</Condition>
                 <RegistryKey Root='HKCU' Key='Software\AngelSuite\EvidenceAngel'>
                     <RegistryValue
                         Name='PathSet'
@@ -183,6 +183,9 @@
                 </RegistryKey>
                 <RegistryKey Root='HKCR' Key='EvidencePackage'>
                     <RegistryValue Type='string' Value='Evidence Package' />
+                    <RegistryKey Key='DefaultIcon'>
+                        <RegistryValue Type='string' Value='[Bin]evidenceangel-ui.exe,1' />
+                    </RegistryKey>
                     <RegistryKey Key='Shell'>
                         <RegistryKey Key='Open'>
                             <RegistryKey Key='Command'>
@@ -193,7 +196,7 @@
                 </RegistryKey>
             </Component>
             <Component Id='FileAssociationsPerUser' Guid='0BFF108B-4D8D-4DE0-9536-47EC554CF7BB'>
-                <Condition>ALLUSERS=0</Condition>
+                <Condition>ALLUSERS="" OR (ALLUSERS=2 AND MSIINSTALLPERUSER=1)</Condition>
                 <RegistryKey Root='HKCU' Key='Software\AngelSuite\EvidenceAngel'>
                     <RegistryValue
                         Name='FileAssoc'
@@ -206,6 +209,9 @@
                 </RegistryKey>
                 <RegistryKey Root='HKCU' Key='Software\Classes\EvidencePackage'>
                     <RegistryValue Type='string' Value='Evidence Package' />
+                    <RegistryKey Key='DefaultIcon'>
+                        <RegistryValue Type='string' Value='[Bin]evidenceangel-ui.exe,1' />
+                    </RegistryKey>
                     <RegistryKey Key='Shell'>
                         <RegistryKey Key='Open'>
                             <RegistryKey Key='Command'>
