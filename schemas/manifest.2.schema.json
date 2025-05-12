@@ -1,0 +1,101 @@
+{
+  "$id": "https://evidenceangel-schemas.hpkns.uk/manifest.2.schema.json",
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "type": "object",
+  "description": "The metadata file `metadata.json` as part of an evidence package.",
+  "properties": {
+    "metadata": {
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string",
+          "description": "The name of the evidence package.",
+          "minLength": 1,
+          "maxLength": 30
+        },
+        "authors": {
+          "type": "array",
+          "description": "The authors attributed to this evidence package.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "The author's name."
+              },
+              "email": {
+                "type": "string",
+                "description": "The author's email address, although format is not verified."
+              }
+            },
+            "required": ["name"]
+          }
+        },
+        "description": {
+          "type": "string",
+          "description": "An optional description of the package."
+        }
+      },
+      "required": ["title", "authors"]
+    },
+    "custom_test_case_metadata": {
+      "type": "object",
+      "description": "Custom metadata fields for test cases",
+      "patternProperties": {
+        ".+": {
+          "type": "object",
+          "description": "A custom metadata field",
+          "properties": {
+            "name": {
+              "type": "string",
+              "description": "A user-friendly name for this custom property."
+            },
+            "description": {
+              "type": "string",
+              "description": "A description for this custom property."
+            },
+            "primary": {
+              "type": "boolean",
+              "description": "Is this custom property the main one in this package? This may influence how it is displayed in editors."
+            }
+          },
+          "required": ["name", "description", "primary"]
+        }
+      }
+    },
+    "media": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "A media entry. When an entry is present in this manifest, it MUST also be present in the `media` directory of the package.",
+        "properties": {
+          "sha256_checksum": {
+            "type": "string",
+            "description": "The SHA256 checksum of the media file. This MUST also match identically the name of the file with no extension in the `media` directory.",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "mime_type": {
+            "type": "string",
+            "description": "The MIME type of the media file."
+          }
+        },
+        "required": ["sha256_checksum", "mime_type"]
+      }
+    },
+    "test_cases": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The UUID of the test case. If present here, there MUST be an associated test case file in the `testcases` directory of the package with the name `<UUID>.json`."
+          }
+        },
+        "required": ["id"]
+      }
+    }
+  },
+  "required": ["metadata", "media", "test_cases"]
+}

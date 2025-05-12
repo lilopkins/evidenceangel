@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use base64::Engine;
 use chrono::{DateTime, FixedOffset};
 use getset::{Getters, MutGetters, Setters};
@@ -9,16 +11,16 @@ use uuid::Uuid;
 
 /// The URL for $schema in the test case manifests
 const TESTCASE_SCHEMA_LOCATION: &str =
-    "https://evidenceangel-schemas.hpkns.uk/testcase.2.schema.json";
+    "https://evidenceangel-schemas.hpkns.uk/testcase.3.schema.json";
 /// The schema itself for test case manifests (version 2)
-pub(crate) const TESTCASE_SCHEMA_2: &str = include_str!("../../schemas/testcase.2.schema.json");
+pub(crate) const TESTCASE_SCHEMA_2: &str = include_str!("../../schemas/testcase.3.schema.json");
 
 /// A test case stored within an [`EvidencePackage`](super::EvidencePackage).
 #[derive(Clone, Debug, Serialize, Deserialize, Getters, MutGetters, Setters)]
 pub struct TestCase {
     /// The $schema from this test case
     #[serde(rename = "$schema")]
-    schema: String,
+    schema: Option<String>,
 
     /// The internal ID of this test case.
     #[serde(skip)]
@@ -32,25 +34,32 @@ pub struct TestCase {
     /// The evidence in this test case.
     #[getset(get = "pub", get_mut = "pub")]
     evidence: Vec<Evidence>,
+
+    /// Extra fields that this implementation doesn't understand.
+    #[get = "pub"]
+    #[serde(flatten)]
+    extra_fields: HashMap<String, serde_json::Value>,
 }
 
 impl TestCase {
     /// Create a new test case
     pub(super) fn new(id: Uuid, title: String, execution_datetime: DateTime<FixedOffset>) -> Self {
         Self {
-            schema: TESTCASE_SCHEMA_LOCATION.to_string(),
+            schema: Some(TESTCASE_SCHEMA_LOCATION.to_string()),
             id,
             metadata: TestCaseMetadata {
                 title,
                 execution_datetime,
+                extra_fields: HashMap::new(),
             },
             evidence: vec![],
+            extra_fields: HashMap::new(),
         }
     }
 
     /// Update the JSON schema tag to the latest schema
     pub(super) fn update_schema(&mut self) {
-        self.schema = TESTCASE_SCHEMA_LOCATION.to_string();
+        self.schema = Some(TESTCASE_SCHEMA_LOCATION.to_string());
     }
 }
 
@@ -62,6 +71,11 @@ pub struct TestCaseMetadata {
     title: String,
     /// The time of execution of the associated [`TestCase`].
     execution_datetime: DateTime<FixedOffset>,
+
+    /// Extra fields that this implementation doesn't understand.
+    #[get = "pub"]
+    #[serde(flatten)]
+    extra_fields: HashMap<String, serde_json::Value>,
 }
 
 /// Evidence in a [`TestCase`].
@@ -85,6 +99,11 @@ pub struct Evidence {
     #[serde(skip_serializing_if = "Option::is_none")]
     #[getset(get_mut = "pub", set = "pub")]
     original_filename: Option<String>,
+
+    /// Extra fields that this implementation doesn't understand.
+    #[get = "pub"]
+    #[serde(flatten)]
+    extra_fields: HashMap<String, serde_json::Value>,
 }
 
 impl Evidence {
@@ -96,6 +115,7 @@ impl Evidence {
             value,
             caption: None,
             original_filename: None,
+            extra_fields: HashMap::new(),
         }
     }
 }
