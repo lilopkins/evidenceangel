@@ -1,0 +1,39 @@
+name: Publish Documentation
+
+on:
+  push:
+    branches:
+      - main
+      - next
+
+jobs:
+  deploy:
+    name: Deploy Documentation
+    runs-on: ubuntu-latest
+    permissions: write-all
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Determine Cargo version
+        id: version
+        run: |
+          export CARGO_PKG_VERSION=$(awk -F '["=]' '/^\[(workspace.)?package\]/{p=1} p && /^version[[:space:]]*=/ {gsub(/"/, "", $3); print $3; p=0}' Cargo.toml)
+          export CARGO_PKG_PRERELEASE=$([[ $CARGO_PKG_VERSION =~ -[0-9A-Za-z]+ ]] && echo "true" || echo "false")
+          echo "CARGO_PKG_VERSION=${CARGO_PKG_VERSION}" >> $GITHUB_OUTPUT
+          echo "CARGO_PKG_PRERELEASE=${CARGO_PKG_PRERELEASE}" >> $GITHUB_OUTPUT
+      - name: Build book
+        run: |
+          cd docs || exit
+          cargo install mdbook
+          mdbook build -d ${{ steps.version.outputs.CARGO_PKG_VERSION }}
+      - name: Upload documentation
+        uses: appleboy/scp-action@v1
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          password: ${{ secrets.SSH_PASSWORD }}
+          source: docs/${{ steps.version.outputs.CARGO_PKG_VERSION }}
+          target: ${{ secrets.SSH_DOCS_TARGET_PATH }}
+
+

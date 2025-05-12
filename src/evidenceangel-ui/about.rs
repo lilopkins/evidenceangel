@@ -22,6 +22,7 @@ impl SimpleComponent for AppAbout {
             set_issue_url: &support_url,
             set_developer_name: "Lily Hopkins",
             set_debug_info: &log_data,
+            set_support_url: &format!("https://evidenceangel.hpkns.uk/{}/", env!("CARGO_PKG_VERSION")),
 
             add_acknowledgement_section: (Some(&lang::lookup("acknowledgements-code-title")), &["Lily Hopkins", "Eden Turner"]),
             add_acknowledgement_section: (Some(&lang::lookup("acknowledgements-testing-title")), &["John Chander", "Eden Turner"]),
