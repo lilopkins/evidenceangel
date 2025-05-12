@@ -117,6 +117,9 @@ pub(super) struct TestCaseManifestEntry {
 impl TestCaseManifestEntry {
     /// Create a new test case manifest entry
     pub(super) fn new(id: Uuid) -> Self {
-        Self { id, extra_fields: HashMap::new(), }
+        Self {
+            id,
+            extra_fields: HashMap::new(),
+        }
     }
 }
