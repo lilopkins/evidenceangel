@@ -11,9 +11,9 @@ use uuid::Uuid;
 
 /// The URL for $schema in the test case manifests
 const TESTCASE_SCHEMA_LOCATION: &str =
-    "https://evidenceangel-schemas.hpkns.uk/testcase.3.schema.json";
+    "https://evidenceangel-schemas.hpkns.uk/testcase.1.schema.json";
 /// The schema itself for test case manifests (version 2)
-pub(crate) const TESTCASE_SCHEMA_2: &str = include_str!("../../schemas/testcase.3.schema.json");
+pub(crate) const TESTCASE_SCHEMA: &str = include_str!("../../schemas/testcase.1.schema.json");
 
 /// A test case stored within an [`EvidencePackage`](super::EvidencePackage).
 #[derive(Clone, Debug, Serialize, Deserialize, Getters, MutGetters, Setters)]
