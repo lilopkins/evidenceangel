@@ -5,7 +5,7 @@ use base64::Engine;
 use build_html::{Html, HtmlContainer, HtmlElement, HtmlPage, HtmlTag};
 use uuid::Uuid;
 
-use crate::{EvidenceData, EvidenceKind, EvidencePackage, MediaFile, TestCase};
+use crate::{EvidenceData, EvidenceKind, EvidencePackage, MediaFile, TestCase, TestCasePassStatus};
 
 use super::Exporter;
 
@@ -68,7 +68,11 @@ impl Exporter for HtmlExporter {
         for (idx, test_case) in test_cases.iter().enumerate() {
             let mut tab_elem = HtmlElement::new(HtmlTag::ListElement)
                 .with_attribute("data-tab-index", idx)
-                .with_link(format!("#tab{idx}"), test_case.metadata().title());
+                .with_link(format!("#tab{idx}"), format!("{}{}", match test_case.metadata().passed() {
+                    None => "",
+                    Some(TestCasePassStatus::Pass) => "✅&nbsp;",
+                    Some(TestCasePassStatus::Fail) => "❌&nbsp;",
+                }, test_case.metadata().title()));
             if first {
                 tab_elem.add_attribute("class", "selected");
             }
@@ -144,6 +148,20 @@ fn create_test_case_div(
                 .with_attribute("class", "execution-time")
                 .with_raw(test_case.metadata().execution_datetime().to_rfc2822()),
         );
+    match test_case.metadata().passed() {
+        None => (),
+        Some(s) => {
+            let s = match s {
+                TestCasePassStatus::Pass => "✅ Pass",
+                TestCasePassStatus::Fail => "❌ Fail",
+            };
+            elem.add_html(
+                    HtmlElement::new(HtmlTag::ParagraphText)
+                        .with_attribute("class", "status")
+                        .with_raw(s),
+                );
+        }
+    };
 
     // Write evidence
     for evidence in test_case.evidence() {

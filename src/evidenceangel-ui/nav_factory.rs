@@ -95,9 +95,9 @@ impl FactoryComponent for NavFactoryModel {
                     gtk::Label {
                         #[watch]
                         set_text: &match &self.status {
-                            None => lang::lookup("test-status-unset"),
-                            Some(TestCasePassStatus::Pass) => lang::lookup("test-status-pass"),
-                            Some(TestCasePassStatus::Fail) => lang::lookup("test-status-fail"),
+                            None => lang::lookup("test-status-unset-display"),
+                            Some(TestCasePassStatus::Pass) => lang::lookup("test-status-pass-display"),
+                            Some(TestCasePassStatus::Fail) => lang::lookup("test-status-fail-display"),
                         },
                         set_halign: gtk::Align::Start,
                         add_css_class: "caption",

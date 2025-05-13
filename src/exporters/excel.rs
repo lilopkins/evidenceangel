@@ -2,7 +2,7 @@ use angelmark::{AngelmarkLine, AngelmarkTableAlignment, AngelmarkText, parse_ang
 use rust_xlsxwriter::{Format, FormatAlign, FormatBorder, Image, Workbook, Worksheet};
 use uuid::Uuid;
 
-use crate::{EvidenceKind, EvidencePackage, TestCase};
+use crate::{EvidenceKind, EvidencePackage, TestCase, TestCasePassStatus};
 
 use super::Exporter;
 
@@ -134,7 +134,19 @@ fn create_test_case_sheet(
         &test_case.metadata().execution_datetime().naive_local(),
         &Format::new().set_num_format("yyyy-mm-dd hh:mm"),
     )?;
-    row += 2;
+    row += 1;
+    match test_case.metadata().passed() {
+        None => (),
+        Some(s) => {
+            let s = match s {
+                TestCasePassStatus::Pass => "✅ Pass",
+                TestCasePassStatus::Fail => "❌ Fail",
+            };
+            worksheet.write(row, 1, s)?;
+            row += 1;
+        }
+    };
+    row += 1;
 
     // Write evidence
     for evidence in test_case.evidence() {
@@ -165,15 +177,15 @@ fn create_test_case_sheet(
                         match line {
                             AngelmarkLine::Newline(_span) => {
                                 if !line_buffer.is_empty() {
-                                worksheet.write_rich_string(
-                                    row,
-                                    1,
-                                    &line_buffer
-                                        .iter()
-                                        .map(|(f, s)| (f, s.as_str()))
-                                        .collect::<Vec<_>>(),
-                                )?;
-                                line_buffer.clear();
+                                    worksheet.write_rich_string(
+                                        row,
+                                        1,
+                                        &line_buffer
+                                            .iter()
+                                            .map(|(f, s)| (f, s.as_str()))
+                                            .collect::<Vec<_>>(),
+                                    )?;
+                                    line_buffer.clear();
                                 }
                                 row += 1;
                             }
@@ -196,7 +208,7 @@ fn create_test_case_sheet(
                                         row,
                                         1,
                                         &fragments,
-                                )?;
+                                    )?;
                                 }
                                 row += 1;
                             }
@@ -219,7 +231,7 @@ fn create_test_case_sheet(
                                         row,
                                         1,
                                         &fragments,
-                                )?;
+                                    )?;
                                 }
                                 row += 1;
                             }
@@ -242,7 +254,7 @@ fn create_test_case_sheet(
                                         row,
                                         1,
                                         &fragments,
-                                )?;
+                                    )?;
                                 }
                                 row += 1;
                             }
@@ -265,7 +277,7 @@ fn create_test_case_sheet(
                                         row,
                                         1,
                                         &fragments,
-                                )?;
+                                    )?;
                                 }
                                 row += 1;
                             }
@@ -288,7 +300,7 @@ fn create_test_case_sheet(
                                         row,
                                         1,
                                         &fragments,
-                                )?;
+                                    )?;
                                 }
                                 row += 1;
                             }
@@ -311,7 +323,7 @@ fn create_test_case_sheet(
                                         row,
                                         1,
                                         &fragments,
-                                )?;
+                                    )?;
                                 }
                                 row += 1;
                             }

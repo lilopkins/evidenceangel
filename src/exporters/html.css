@@ -50,6 +50,11 @@ td {
 
 .execution-time {
     margin-top: 2px;
+    margin-bottom: 4px;
+}
+
+.status {
+    margin-top: 2px;
     margin-bottom: 32px;
 }
 
