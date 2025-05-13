@@ -68,11 +68,18 @@ impl Exporter for HtmlExporter {
         for (idx, test_case) in test_cases.iter().enumerate() {
             let mut tab_elem = HtmlElement::new(HtmlTag::ListElement)
                 .with_attribute("data-tab-index", idx)
-                .with_link(format!("#tab{idx}"), format!("{}{}", match test_case.metadata().passed() {
-                    None => "",
-                    Some(TestCasePassStatus::Pass) => "✅&nbsp;",
-                    Some(TestCasePassStatus::Fail) => "❌&nbsp;",
-                }, test_case.metadata().title()));
+                .with_link(
+                    format!("#tab{idx}"),
+                    format!(
+                        "{}{}",
+                        match test_case.metadata().passed() {
+                            None => "",
+                            Some(TestCasePassStatus::Pass) => "✅&nbsp;",
+                            Some(TestCasePassStatus::Fail) => "❌&nbsp;",
+                        },
+                        test_case.metadata().title()
+                    ),
+                );
             if first {
                 tab_elem.add_attribute("class", "selected");
             }
@@ -156,10 +163,10 @@ fn create_test_case_div(
                 TestCasePassStatus::Fail => "❌ Fail",
             };
             elem.add_html(
-                    HtmlElement::new(HtmlTag::ParagraphText)
-                        .with_attribute("class", "status")
-                        .with_raw(s),
-                );
+                HtmlElement::new(HtmlTag::ParagraphText)
+                    .with_attribute("class", "status")
+                    .with_raw(s),
+            );
         }
     };
 
