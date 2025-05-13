@@ -14,8 +14,8 @@
 /// The types of data in a package
 mod package;
 pub use package::{
-    Author, Evidence, EvidenceData, EvidenceKind, EvidencePackage, MediaFile, Metadata, TestCase,
-    TestCaseMetadata, TestCasePassStatus,
+    Author, CustomMetadataField, Evidence, EvidenceData, EvidenceKind, EvidencePackage, MediaFile,
+    Metadata, TestCase, TestCaseMetadata, TestCasePassStatus,
 };
 /// The results of this crate
 mod result;

@@ -85,6 +85,18 @@ pub struct TestCaseMetadata {
     extra_fields: HashMap<String, serde_json::Value>,
 }
 
+impl TestCaseMetadata {
+    /// Get a mutable reference to custom metadata parameters
+    #[allow(clippy::missing_panics_doc, reason = "safety is explained inline")]
+    pub fn custom_mut(&mut self) -> &mut HashMap<String, String> {
+        if self.custom.is_none() {
+            self.custom = Some(HashMap::new());
+        }
+        // SAFETY: just initialised if wasn't previously
+        self.custom.as_mut().unwrap()
+    }
+}
+
 /// Valid test case statuses.
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum TestCasePassStatus {

@@ -20,7 +20,6 @@ pub struct Metadata {
     pub(super) authors: Vec<Author>,
 
     /// Custom metadata fields for test cases
-    #[get_mut = "pub"]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(super) custom_test_case_metadata: Option<HashMap<String, CustomMetadataField>>,
 
@@ -28,6 +27,46 @@ pub struct Metadata {
     #[get = "pub"]
     #[serde(flatten)]
     pub(super) extra_fields: HashMap<String, serde_json::Value>,
+}
+
+impl Metadata {
+    /// Get a mutable reference to custom metadata fields for test cases
+    #[allow(clippy::missing_panics_doc, reason = "safety is explained inline")]
+    pub fn custom_test_case_metadata_mut(&mut self) -> &mut HashMap<String, CustomMetadataField> {
+        if self.custom_test_case_metadata.is_none() {
+            self.custom_test_case_metadata = Some(HashMap::new());
+        }
+        // SAFETY: just initialised if wasn't previously
+        self.custom_test_case_metadata.as_mut().unwrap()
+    }
+
+    /// Create a new custom metadata field
+    pub fn insert_custom_metadata_field(
+        &mut self,
+        id: Option<String>,
+        name: String,
+        description: String,
+        make_primary: bool,
+    ) -> (String, CustomMetadataField) {
+        let custom_fields = self.custom_test_case_metadata_mut();
+
+        if make_primary {
+            // Make all other fields not primary
+            custom_fields
+                .iter_mut()
+                .for_each(|(_key, item)| item.primary = false);
+        }
+
+        let new_id = id.unwrap_or_else(|| Uuid::new_v4().to_string());
+        let field = CustomMetadataField {
+            name,
+            description,
+            primary: make_primary,
+            extra_fields: HashMap::new(),
+        };
+        custom_fields.insert(new_id.clone(), field.clone());
+        (new_id, field)
+    }
 }
 
 /// An author of an [`EvidencePackage`](super::EvidencePackage).

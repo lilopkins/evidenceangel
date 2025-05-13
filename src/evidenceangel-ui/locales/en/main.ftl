@@ -59,6 +59,16 @@ metadata-group-title = Package Metadata
 metadata-title = Title
 metadata-description = Description
 metadata-authors = Package Authors
+metadata-custom = Custom Metadata
+metadata-custom-create = Add
+metadata-edit-id = Internal ID
+metadata-edit-name = Name
+metadata-edit-description = Description
+metadata-edit-title = Edit Custom Metadata Field
+metadata-edit-submit = Save
+custom-metadata-edit = Edit
+custom-metadata-promote = Make Primary
+custom-metadata-remove = Delete
 
 author-create-title = Add Author
 author-create-name = Author Name

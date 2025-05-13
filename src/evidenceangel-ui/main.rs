@@ -27,6 +27,8 @@ use tracing_subscriber_multi::*;
 mod about;
 mod app;
 mod author_factory;
+mod custom_metadata_editor_factory;
+mod custom_metadata_factory;
 mod dialogs;
 mod evidence_factory;
 mod filter;

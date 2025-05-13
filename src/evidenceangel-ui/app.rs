@@ -24,7 +24,22 @@ use uuid::Uuid;
 
 use crate::{
     author_factory::{AuthorFactoryModel, AuthorFactoryOutput},
-    dialogs::{add_evidence::*, error::*, export::*, new_author::*},
+    custom_metadata_editor_factory::{
+        CustomMetadataEditorFactoryInit, CustomMetadataEditorFactoryInput,
+        CustomMetadataEditorFactoryModel, CustomMetadataEditorFactoryOutput,
+    },
+    custom_metadata_factory::{
+        CustomMetadataFactoryInit, CustomMetadataFactoryModel, CustomMetadataFactoryOutput,
+    },
+    dialogs::{
+        add_evidence::*,
+        custom_metadata_field::{
+            CustomMetadataDialogInput, CustomMetadataDialogModel, CustomMetadataDialogOutput,
+        },
+        error::*,
+        export::*,
+        new_author::*,
+    },
     evidence_factory::{EvidenceFactoryInit, EvidenceFactoryModel, EvidenceFactoryOutput},
     filter, lang, lang_args,
     nav_factory::{NavFactoryInit, NavFactoryInput, NavFactoryModel, NavFactoryOutput},
@@ -65,6 +80,7 @@ pub struct AppModel {
     action_paste_evidence: RelmAction<PasteEvidenceAction>,
 
     latest_new_author_dlg: Option<Controller<NewAuthorDialogModel>>,
+    latest_new_custom_metadata_dlg: Option<Controller<CustomMetadataDialogModel>>,
     latest_add_evidence_image_dlg: Option<Controller<AddImageEvidenceDialogModel>>,
     latest_add_evidence_file_dlg: Option<Controller<AddFileEvidenceDialogModel>>,
     latest_error_dlg: Option<Controller<ErrorDialogModel>>,
@@ -74,6 +90,8 @@ pub struct AppModel {
     test_case_nav_factory: FactoryVecDeque<NavFactoryModel>,
     authors_factory: FactoryVecDeque<AuthorFactoryModel>,
     test_evidence_factory: FactoryVecDeque<EvidenceFactoryModel>,
+    custom_metadata_factory: FactoryVecDeque<CustomMetadataFactoryModel>,
+    custom_metadata_editor_factory: FactoryVecDeque<CustomMetadataEditorFactoryModel>,
 }
 
 impl AppModel {
@@ -127,11 +145,23 @@ impl AppModel {
         test_case_data.clear();
         if let Some(pkg) = self.open_package.as_ref() {
             let pkg = pkg.read().unwrap();
+            let primary_field = pkg
+                .metadata()
+                .custom_test_case_metadata()
+                .as_ref()
+                .and_then(|m| m.iter().find(|(_k, v)| *v.primary()));
+
             for case in pkg.test_case_iter()? {
                 test_case_data.push_back(NavFactoryInit {
                     id: *case.id(),
                     name: case.metadata().title().clone(),
                     status: *case.metadata().passed(),
+                    primary_custom_value: primary_field.and_then(|(k, _f)| {
+                        case.metadata()
+                            .custom()
+                            .as_ref()
+                            .and_then(|m| m.get(k).cloned())
+                    }),
                 });
             }
         }
@@ -201,6 +231,29 @@ pub enum AppInput {
 
     SetTestCaseTitle(String),
     SetTestCaseStatus(u32),
+    CreateCustomMetadataField,
+    _CreateCustomMetadataField {
+        key: Option<String>,
+        name: String,
+        description: String,
+    },
+    SetCustomMetadataValue {
+        key: String,
+        new_value: String,
+    },
+    UpdateCustomField {
+        key: String,
+        name: String,
+        description: String,
+    },
+    DeleteCustomField {
+        index: DynamicIndex,
+        key: String,
+    },
+    MakeFieldPrimary {
+        index: DynamicIndex,
+        key: String,
+    },
     TrySetExecutionDateTime(String),
     ValidateExecutionDateTime(String),
     MoveSelectedCaseUp,
@@ -474,7 +527,26 @@ impl Component for AppModel {
                                                 }
                                             }
                                         },
-                                    }
+                                    },
+
+                                    // Custom metadata editor
+                                    #[local_ref]
+                                    custom_metadata_editor_list -> adw::PreferencesGroup {
+                                        set_title: &lang::lookup("metadata-custom"),
+                                        set_margin_top: 16,
+                                        #[wrap(Some)]
+                                        set_header_suffix = &adw::Bin {
+                                            gtk::Button {
+                                                set_icon_name: relm4_icons::icon_names::PLUS,
+                                                set_tooltip: &lang::lookup("metadata-custom-create"),
+                                                add_css_class: "flat",
+
+                                                connect_clicked[sender] => move |_entry| {
+                                                    sender.input(AppInput::CreateCustomMetadataField);
+                                                }
+                                            }
+                                        },
+                                    },
                                 },
 
                                 // Open case content
@@ -597,6 +669,15 @@ impl Component for AppModel {
                                                         sender.input(AppInput::SetTestCaseStatus(entry.selected()));
                                                     } @case_status_changed_handler
                                                 },
+                                            },
+
+                                            // Custom metadata
+                                            #[local_ref]
+                                            custom_metadata_list -> adw::PreferencesGroup {
+                                                set_title: &lang::lookup("metadata-custom"),
+                                                set_margin_top: 16,
+                                                #[watch]
+                                                set_visible: !model.custom_metadata_factory.is_empty(),
                                             },
 
                                             // Test Case Screen
@@ -814,6 +895,7 @@ impl Component for AppModel {
 
             latest_error_dlg: None,
             latest_new_author_dlg: None,
+            latest_new_custom_metadata_dlg: None,
             latest_add_evidence_image_dlg: None,
             latest_add_evidence_file_dlg: None,
             latest_export_dlg: None,
@@ -864,10 +946,40 @@ impl Component for AppModel {
                     }
                 },
             ),
+            custom_metadata_factory: FactoryVecDeque::builder().launch_default().forward(
+                sender.input_sender(),
+                |output| match output {
+                    CustomMetadataFactoryOutput::ValueChanged { key, new_value } => {
+                        AppInput::SetCustomMetadataValue { key, new_value }
+                    }
+                },
+            ),
+            custom_metadata_editor_factory: FactoryVecDeque::builder().launch_default().forward(
+                sender.input_sender(),
+                |output| match output {
+                    CustomMetadataEditorFactoryOutput::UpdateCustomField {
+                        key,
+                        name,
+                        description,
+                    } => AppInput::UpdateCustomField {
+                        key,
+                        name,
+                        description,
+                    },
+                    CustomMetadataEditorFactoryOutput::MakeFieldPrimary { index, key } => {
+                        AppInput::MakeFieldPrimary { index, key }
+                    }
+                    CustomMetadataEditorFactoryOutput::DeleteCustomField { index, key } => {
+                        AppInput::DeleteCustomField { index, key }
+                    }
+                },
+            ),
         };
 
         let test_case_list = model.test_case_nav_factory.widget();
         let authors_list = model.authors_factory.widget();
+        let custom_metadata_list = model.custom_metadata_factory.widget();
+        let custom_metadata_editor_list = model.custom_metadata_editor_factory.widget();
         let evidence_list = model.test_evidence_factory.widget();
         let widgets = view_output!();
         if cfg!(debug_assertions) {
@@ -1106,6 +1218,32 @@ impl Component for AppModel {
                         for author in pkg_authors {
                             authors.push_back(author);
                         }
+
+                        let mut custom_fields = self.custom_metadata_editor_factory.guard();
+                        custom_fields.clear();
+                        let pkg_fields = self
+                            .open_package
+                            .as_ref()
+                            .map(|pkg| {
+                                pkg.read()
+                                    .unwrap()
+                                    .metadata()
+                                    .custom_test_case_metadata()
+                                    .clone()
+                            })
+                            .expect("Cannot navigate to metadata when no package is open");
+                        if let Some(fields) = &pkg_fields {
+                            let mut fields: Vec<_> = fields.iter().collect();
+                            fields.sort_by(|(a, _), (b, _)| a.cmp(b));
+                            for (key, field) in fields {
+                                custom_fields.push_back(CustomMetadataEditorFactoryInit {
+                                    root: root.clone(),
+                                    key: key.clone(),
+                                    field: field.clone(),
+                                });
+                            }
+                        }
+
                         widgets.nav_metadata.set_has_frame(true);
                     }
                     OpenCase::Case { id, .. } => {
@@ -1167,6 +1305,28 @@ impl Component for AppModel {
                                     .test_status
                                     .unblock_signal(&widgets.case_status_changed_handler);
 
+                                let mut custom_metadata = self.custom_metadata_factory.guard();
+                                custom_metadata.clear();
+                                if let Some(fields) =
+                                    pkg.read().unwrap().metadata().custom_test_case_metadata()
+                                {
+                                    let mut fields: Vec<_> = fields.iter().collect();
+                                    fields.sort_by(|(a, _), (b, _)| a.cmp(b));
+                                    for (key, field) in fields {
+                                        custom_metadata.push_back(CustomMetadataFactoryInit {
+                                            key: key.clone(),
+                                            field: field.clone(),
+                                            value: tc
+                                                .metadata()
+                                                .custom()
+                                                .as_ref()
+                                                .and_then(|m| m.get(key))
+                                                .cloned()
+                                                .unwrap_or_default(),
+                                        });
+                                    }
+                                }
+
                                 for ev in tc.evidence() {
                                     new_evidence.push(EvidenceFactoryInit {
                                         evidence: ev.clone(),
@@ -1194,6 +1354,13 @@ impl Component for AppModel {
 
                 let mut case_id = Uuid::default();
                 if let Some(pkg) = self.get_package() {
+                    let primary_field = {
+                        let pkg = pkg.read().unwrap();
+                        pkg.metadata()
+                            .custom_test_case_metadata()
+                            .clone()
+                            .and_then(|m| m.into_iter().find(|(_k, v)| *v.primary()).clone())
+                    };
                     let mut pkg = pkg.write().unwrap();
                     let case = pkg
                         .create_test_case(lang::lookup("default-case-title"))
@@ -1206,6 +1373,11 @@ impl Component for AppModel {
                         id: case_id,
                         name: case.metadata().title().clone(),
                         status: *case.metadata().passed(),
+                        primary_custom_value: if primary_field.is_some() {
+                            Some(String::new())
+                        } else {
+                            None
+                        },
                     });
                 }
                 self.needs_saving = true;
@@ -1226,6 +1398,13 @@ impl Component for AppModel {
                 if let OpenCase::Case { id, .. } = &self.open_case {
                     let mut new_case_id = Uuid::default();
                     if let Some(pkg) = self.get_package() {
+                        let primary_field = {
+                            let pkg = pkg.read().unwrap();
+                            pkg.metadata()
+                                .custom_test_case_metadata()
+                                .clone()
+                                .and_then(|m| m.into_iter().find(|(_k, v)| *v.primary()).clone())
+                        };
                         let mut pkg = pkg.write().unwrap();
                         let case = pkg.duplicate_test_case(*id).unwrap(); // doesn't fail
                         new_case_id = *case.id();
@@ -1243,6 +1422,12 @@ impl Component for AppModel {
                             id: new_case_id,
                             name: case.metadata().title().clone(),
                             status: *case.metadata().passed(),
+                            primary_custom_value: primary_field.and_then(|(k, _f)| {
+                                case.metadata()
+                                    .custom()
+                                    .as_ref()
+                                    .and_then(|m| m.get(&k).cloned())
+                            }),
                         });
                     }
                     self.needs_saving = true;
@@ -1335,7 +1520,11 @@ impl Component for AppModel {
                     new_order.remove(pos);
                     let mut test_case_guard = self.test_case_nav_factory.guard();
                     let NavFactoryModel {
-                        id, name, status, ..
+                        id,
+                        name,
+                        status,
+                        primary_custom_value,
+                        ..
                     } = test_case_guard.remove(pos).unwrap();
 
                     if let Some(other_case_id) = before {
@@ -1344,7 +1533,15 @@ impl Component for AppModel {
                             .position(|id| *id == other_case_id)
                             .unwrap();
                         new_order.insert(other_pos, case_to_move);
-                        test_case_guard.insert(other_pos, NavFactoryInit { id, name, status });
+                        test_case_guard.insert(
+                            other_pos,
+                            NavFactoryInit {
+                                id,
+                                name,
+                                status,
+                                primary_custom_value,
+                            },
+                        );
                     } else {
                         #[allow(clippy::cast_possible_wrap)]
                         if let Some(offset) = offset {
@@ -1352,11 +1549,24 @@ impl Component for AppModel {
                             let new_pos =
                                 (pos as i32 + offset).max(0).min(new_order.len() as i32) as usize;
                             new_order.insert(new_pos, case_to_move);
-                            test_case_guard.insert(new_pos, NavFactoryInit { id, name, status });
+                            test_case_guard.insert(
+                                new_pos,
+                                NavFactoryInit {
+                                    id,
+                                    name,
+                                    status,
+                                    primary_custom_value,
+                                },
+                            );
                         } else {
                             // add to end
                             new_order.push(case_to_move);
-                            test_case_guard.push_back(NavFactoryInit { id, name, status });
+                            test_case_guard.push_back(NavFactoryInit {
+                                id,
+                                name,
+                                status,
+                                primary_custom_value,
+                            });
                         }
                     }
 
@@ -1456,6 +1666,134 @@ impl Component for AppModel {
                         }
                     }
                 }
+            }
+            AppInput::SetCustomMetadataValue { key, new_value } => {
+                if let OpenCase::Case { index, id, .. } = &self.open_case {
+                    if let Some(pkg) = self.get_package() {
+                        let primary_field = {
+                            let pkg = pkg.read().unwrap();
+                            pkg.metadata()
+                                .custom_test_case_metadata()
+                                .clone()
+                                .and_then(|m| m.into_iter().find(|(_k, v)| *v.primary()).clone())
+                        };
+
+                        if let Some(tc) = pkg.write().unwrap().test_case_mut(*id).ok().flatten() {
+                            tc.metadata_mut()
+                                .custom_mut()
+                                .insert(key.clone(), new_value.clone());
+                            self.needs_saving = true;
+
+                            // Determine if primary
+
+                            if let Some((primary_key, _field)) = primary_field {
+                                if key == *primary_key {
+                                    self.test_case_nav_factory.send(
+                                        *index,
+                                        NavFactoryInput::UpdatePrimaryCustomValue(Some(new_value)),
+                                    );
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            AppInput::CreateCustomMetadataField => {
+                let new_custom_metadata_dlg = CustomMetadataDialogModel::builder()
+                    .launch(())
+                    .forward(sender.input_sender(), |msg| match msg {
+                        CustomMetadataDialogOutput::SaveField {
+                            key,
+                            name,
+                            description,
+                            ..
+                        } => AppInput::_CreateCustomMetadataField {
+                            key,
+                            name,
+                            description,
+                        },
+                    });
+                new_custom_metadata_dlg
+                    .emit(CustomMetadataDialogInput::Present(root.clone(), None));
+                self.latest_new_custom_metadata_dlg = Some(new_custom_metadata_dlg);
+            }
+            AppInput::_CreateCustomMetadataField {
+                key,
+                name,
+                description,
+            } => {
+                if let Some(pkg) = self.get_package() {
+                    let (key, field) = pkg
+                        .write()
+                        .unwrap()
+                        .metadata_mut()
+                        .insert_custom_metadata_field(key, name, description, false);
+                    self.needs_saving = true;
+                    // Add to list
+                    let mut custom_metadata = self.custom_metadata_editor_factory.guard();
+                    custom_metadata.push_back(CustomMetadataEditorFactoryInit {
+                        root: root.clone(),
+                        key,
+                        field,
+                    });
+                }
+            }
+            AppInput::UpdateCustomField {
+                key,
+                name,
+                description,
+            } => {
+                if let Some(pkg) = self.get_package() {
+                    if let Some(field) = pkg
+                        .write()
+                        .unwrap()
+                        .metadata_mut()
+                        .custom_test_case_metadata_mut()
+                        .get_mut(&key)
+                    {
+                        field.set_name(name);
+                        field.set_description(description);
+                    }
+                    self.needs_saving = true;
+                }
+            }
+            AppInput::DeleteCustomField { index, key } => {
+                if let Some(pkg) = self.get_package() {
+                    pkg.write()
+                        .unwrap()
+                        .metadata_mut()
+                        .custom_test_case_metadata_mut()
+                        .remove(&key);
+                    self.needs_saving = true;
+                    // Remove from list
+                    let mut custom_metadata = self.custom_metadata_editor_factory.guard();
+                    custom_metadata.remove(index.current_index());
+                }
+                // Update nav menu values
+                self.update_nav_menu().unwrap();
+            }
+            AppInput::MakeFieldPrimary { index, key } => {
+                if let Some(pkg) = self.get_package() {
+                    pkg.write()
+                        .unwrap()
+                        .metadata_mut()
+                        .custom_test_case_metadata_mut()
+                        .iter_mut()
+                        .for_each(|(k, f)| {
+                            f.set_primary(**k == key);
+                        });
+                    self.needs_saving = true;
+                    // Update list
+                    let custom_metadata = self.custom_metadata_editor_factory.guard();
+                    custom_metadata
+                        .broadcast(CustomMetadataEditorFactoryInput::UpdatePrimary(false));
+                    custom_metadata.send(
+                        index.current_index(),
+                        CustomMetadataEditorFactoryInput::UpdatePrimary(true),
+                    );
+                }
+                // Update nav menu values
+                self.update_nav_menu().unwrap();
             }
             AppInput::TrySetExecutionDateTime(new_exec_time) => {
                 match parse_datetime::parse_datetime_at_date(chrono::Local::now(), new_exec_time) {

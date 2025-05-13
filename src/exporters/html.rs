@@ -144,7 +144,9 @@ fn create_test_case_div(
     test_case: &TestCase,
 ) -> Result<HtmlElement, Box<dyn std::error::Error>> {
     tracing::debug!("Creating HTML element for test case {}", test_case.id());
-    let mut elem = HtmlElement::new(HtmlTag::Div)
+    let mut elem = HtmlElement::new(HtmlTag::Div);
+    let mut meta_elem = HtmlElement::new(HtmlTag::Div)
+        .with_attribute("class", "metadata")
         .with_html(
             HtmlElement::new(HtmlTag::Heading2)
                 .with_attribute("class", "title")
@@ -162,13 +164,40 @@ fn create_test_case_div(
                 TestCasePassStatus::Pass => "✅ Pass",
                 TestCasePassStatus::Fail => "❌ Fail",
             };
-            elem.add_html(
+            meta_elem.add_html(
                 HtmlElement::new(HtmlTag::ParagraphText)
                     .with_attribute("class", "status")
                     .with_raw(s),
             );
         }
     };
+    if let Some(fields) = test_case.metadata().custom() {
+        let mut dl = HtmlElement::new(HtmlTag::DescriptionList)
+            .with_attribute("class", "custom-metadata-fields");
+        for (key, value) in fields {
+            let field = package
+                .metadata()
+                .custom_test_case_metadata()
+                .as_ref()
+                // SAFETY: guanteed by EVP spec
+                .unwrap()
+                .get(key)
+                // SAFETY: guanteed by EVP spec
+                .unwrap();
+            dl.add_html(
+                HtmlElement::new(HtmlTag::DescriptionListTerm)
+                    .with_attribute("class", "custom-metadata-field-name")
+                    .with_raw(field.name()),
+            );
+            dl.add_html(
+                HtmlElement::new(HtmlTag::DescriptionListDescription)
+                    .with_attribute("class", "custom-metadata-field-value")
+                    .with_raw(value),
+            );
+        }
+        meta_elem.add_html(dl);
+    }
+    elem.add_html(meta_elem);
 
     // Write evidence
     for evidence in test_case.evidence() {

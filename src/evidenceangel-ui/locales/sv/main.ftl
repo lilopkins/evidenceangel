@@ -59,6 +59,16 @@ metadata-group-title = Paketmetadata
 metadata-title = Titel
 metadata-description = Beskrivning
 metadata-authors = Paketets Författare
+metadata-custom = Anpassad Metadata
+metadata-custom-create = Lägg till
+metadata-edit-id = Internt ID
+metadata-edit-name = Namn
+metadata-edit-description = Beskrivning
+metadata-edit-title = Redigera Anpassa Metadata Fält
+metadata-edit-submit = Spara
+custom-metadata-edit = Redigera
+custom-metadata-promote = Gör Primär
+custom-metadata-remove = Ta bort
 
 author-create-title = Lägg till Författare
 author-create-name = Författarens Namn

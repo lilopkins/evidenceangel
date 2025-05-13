@@ -146,6 +146,21 @@ fn create_test_case_sheet(
             row += 1;
         }
     };
+    if let Some(fields) = test_case.metadata().custom() {
+        for (key, value) in fields {
+            let field = package
+                .metadata()
+                .custom_test_case_metadata()
+                .as_ref()
+                // SAFETY: guanteed by EVP spec
+                .unwrap()
+                .get(key)
+                // SAFETY: guanteed by EVP spec
+                .unwrap();
+            worksheet.write(row, 1, format!("{}: {}", field.name(), value))?;
+            row += 1;
+        }
+    }
     row += 1;
 
     // Write evidence

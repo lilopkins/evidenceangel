@@ -48,14 +48,17 @@ td {
     margin-bottom: 0;
 }
 
-.execution-time {
+.execution-time,
+.status,
+.custom-metadata-fields {
     margin-top: 2px;
     margin-bottom: 4px;
 }
 
-.status {
-    margin-top: 2px;
+.metadata {
     margin-bottom: 32px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid lightgray;
 }
 
 .tabs {

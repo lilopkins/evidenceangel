@@ -15,6 +15,7 @@ pub struct NavFactoryModel {
     pub name: String,
     pub status: Option<TestCasePassStatus>,
     pub id: Uuid,
+    pub primary_custom_value: Option<String>,
 }
 
 #[derive(Clone, Debug)]
@@ -22,6 +23,7 @@ pub enum NavFactoryInput {
     ShowAsSelected(bool),
     UpdateTitle(String),
     UpdateStatus(Option<TestCasePassStatus>),
+    UpdatePrimaryCustomValue(Option<String>),
 }
 
 #[derive(Debug)]
@@ -34,6 +36,7 @@ pub struct NavFactoryInit {
     pub id: Uuid,
     pub name: String,
     pub status: Option<TestCasePassStatus>,
+    pub primary_custom_value: Option<String>,
 }
 
 #[relm4::factory(pub)]
@@ -94,12 +97,17 @@ impl FactoryComponent for NavFactoryModel {
                     },
                     gtk::Label {
                         #[watch]
-                        set_text: &match &self.status {
+                        set_text: &format!("{}{}", match &self.status {
                             None => lang::lookup("test-status-unset-display"),
                             Some(TestCasePassStatus::Pass) => lang::lookup("test-status-pass-display"),
                             Some(TestCasePassStatus::Fail) => lang::lookup("test-status-fail-display"),
-                        },
+                        }, if let Some(value) = &self.primary_custom_value {
+                            format!(" • {value}")
+                        } else {
+                            String::new()
+                        }),
                         set_halign: gtk::Align::Start,
+                        set_ellipsize: gtk::pango::EllipsizeMode::End,
                         add_css_class: "caption",
                         add_css_class: "dimmed",
                     },
@@ -109,11 +117,19 @@ impl FactoryComponent for NavFactoryModel {
     }
 
     fn init_model(init: Self::Init, _index: &DynamicIndex, _sender: FactorySender<Self>) -> Self {
+        let Self::Init {
+            name,
+            id,
+            status,
+            primary_custom_value,
+            ..
+        } = init;
         Self {
             selected: false,
-            name: init.name,
-            id: init.id,
-            status: init.status,
+            name,
+            id,
+            status,
+            primary_custom_value,
         }
     }
 
@@ -139,6 +155,9 @@ impl FactoryComponent for NavFactoryModel {
             }
             NavFactoryInput::UpdateStatus(new_status) => {
                 self.status = new_status;
+            }
+            NavFactoryInput::UpdatePrimaryCustomValue(new_value) => {
+                self.primary_custom_value = new_value;
             }
         }
     }
