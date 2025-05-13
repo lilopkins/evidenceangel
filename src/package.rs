@@ -8,7 +8,7 @@ use std::{
 use chrono::{DateTime, FixedOffset, Local};
 use getset::{Getters, MutGetters};
 use serde::{Deserialize, Serialize};
-use test_cases::TESTCASE_SCHEMA_2;
+use test_cases::TESTCASE_SCHEMA;
 use uuid::Uuid;
 use zip::{result::ZipError, write::SimpleFileOptions};
 
@@ -24,13 +24,17 @@ pub use media::MediaFile;
 
 /// Test cases from packages
 mod test_cases;
-pub use test_cases::{Evidence, EvidenceData, EvidenceKind, TestCase, TestCaseMetadata};
+pub use test_cases::{
+    Evidence, EvidenceData, EvidenceKind, TestCase, TestCaseMetadata, TestCasePassStatus,
+};
 
 /// The URL for $schema for manifest.json
 const MANIFEST_SCHEMA_LOCATION: &str =
     "https://evidenceangel-schemas.hpkns.uk/manifest.2.schema.json";
 /// The schema to validate manifest.json against
 const MANIFEST_SCHEMA: &str = include_str!("../schemas/manifest.2.schema.json");
+/// The version 1 schema to validate manifest.json against
+const MANIFEST_SCHEMA_V1: &str = include_str!("../schemas/manifest.1.schema.json");
 
 /// An Evidence Package.
 #[derive(Serialize, Deserialize, Getters, MutGetters)]
@@ -134,6 +138,7 @@ impl EvidencePackage {
                 title,
                 description,
                 authors,
+                custom_test_case_metadata: None,
                 extra_fields: HashMap::new(),
             },
             extra_fields: HashMap::new(),
@@ -212,8 +217,7 @@ impl EvidencePackage {
                 let data = serde_json::to_string(data)
                     .map_err(crate::result::Error::FailedToSaveTestCase)?;
                 if !jsonschema::is_valid(
-                    &serde_json::from_str(TESTCASE_SCHEMA_2)
-                        .expect("Schema is validated statically"),
+                    &serde_json::from_str(TESTCASE_SCHEMA).expect("Schema is validated statically"),
                     &serde_json::from_str(&data).expect("JSON just generated, shouldn't fail"),
                 ) {
                     let _ = self.zip.interrupt_write();
@@ -323,7 +327,17 @@ impl EvidencePackage {
             &serde_json::from_str(&manifest_data)
                 .map_err(|_| Error::ManifestSchemaValidationFailed)?,
         ) {
-            return Err(Error::ManifestSchemaValidationFailed);
+            // Check if v1 matches
+            if jsonschema::is_valid(
+                &serde_json::from_str(MANIFEST_SCHEMA_V1).expect("Schema is validated statically"),
+                &serde_json::from_str(&manifest_data)
+                    .map_err(|_| Error::ManifestSchemaValidationFailed)?,
+            ) {
+                // Upgrade to v2 by changing "name" to "id" will be performed by serde
+                tracing::debug!("Upgrade will happen for manifest to version 2");
+            } else {
+                return Err(Error::ManifestSchemaValidationFailed);
+            }
         }
 
         // Parse manifest
@@ -345,13 +359,12 @@ impl EvidencePackage {
 
             // Validate test case against schema
             if jsonschema::is_valid(
-                &serde_json::from_str(TESTCASE_SCHEMA_2).expect("Schema is validated statically"),
+                &serde_json::from_str(TESTCASE_SCHEMA).expect("Schema is validated statically"),
                 &serde_json::from_str(&test_case_data)
                     .map_err(|_| Error::TestCaseSchemaValidationFailed)?,
             ) {
-                // Read as version 2/1
-                // The version 2 schema can read version 1 (fully backwards compatible)
-                tracing::debug!("Test case {id} opened as version 2");
+                // Read as version 1
+                tracing::debug!("Test case {id} opened as version 1");
                 let mut test_case: TestCase = serde_json::from_str(&test_case_data)
                     .map_err(|e| Error::InvalidTestCase(e, *id))?;
                 test_case.set_id(*id);

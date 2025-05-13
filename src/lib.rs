@@ -15,7 +15,7 @@
 mod package;
 pub use package::{
     Author, Evidence, EvidenceData, EvidenceKind, EvidencePackage, MediaFile, Metadata, TestCase,
-    TestCaseMetadata,
+    TestCaseMetadata, TestCasePassStatus,
 };
 /// The results of this crate
 mod result;

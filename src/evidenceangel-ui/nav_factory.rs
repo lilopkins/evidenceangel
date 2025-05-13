@@ -1,3 +1,4 @@
+use evidenceangel::TestCasePassStatus;
 use gtk::prelude::*;
 use relm4::{
     FactorySender,
@@ -7,11 +8,12 @@ use relm4::{
 };
 use uuid::Uuid;
 
-use crate::util::BoxedTestCaseById;
+use crate::{lang, util::BoxedTestCaseById};
 
 pub struct NavFactoryModel {
     selected: bool,
     pub name: String,
+    pub status: Option<TestCasePassStatus>,
     pub id: Uuid,
 }
 
@@ -19,6 +21,7 @@ pub struct NavFactoryModel {
 pub enum NavFactoryInput {
     ShowAsSelected(bool),
     UpdateTitle(String),
+    UpdateStatus(Option<TestCasePassStatus>),
 }
 
 #[derive(Debug)]
@@ -30,6 +33,7 @@ pub enum NavFactoryOutput {
 pub struct NavFactoryInit {
     pub id: Uuid,
     pub name: String,
+    pub status: Option<TestCasePassStatus>,
 }
 
 #[relm4::factory(pub)]
@@ -78,10 +82,27 @@ impl FactoryComponent for NavFactoryModel {
                     let _ = sender.output(NavFactoryOutput::NavigateTo(index.current_index(), id));
                 },
 
-                gtk::Label {
-                    #[watch]
-                    set_text: &self.name,
-                    set_ellipsize: gtk::pango::EllipsizeMode::End,
+                gtk::Box {
+                    set_orientation: gtk::Orientation::Vertical,
+                    set_spacing: 2,
+
+                    gtk::Label {
+                        #[watch]
+                        set_text: &self.name,
+                        set_ellipsize: gtk::pango::EllipsizeMode::End,
+                        set_halign: gtk::Align::Start,
+                    },
+                    gtk::Label {
+                        #[watch]
+                        set_text: &match &self.status {
+                            None => lang::lookup("test-status-unset"),
+                            Some(TestCasePassStatus::Pass) => lang::lookup("test-status-pass"),
+                            Some(TestCasePassStatus::Fail) => lang::lookup("test-status-fail"),
+                        },
+                        set_halign: gtk::Align::Start,
+                        add_css_class: "caption",
+                        add_css_class: "dimmed",
+                    },
                 }
             },
         }
@@ -92,6 +113,7 @@ impl FactoryComponent for NavFactoryModel {
             selected: false,
             name: init.name,
             id: init.id,
+            status: init.status,
         }
     }
 
@@ -114,6 +136,9 @@ impl FactoryComponent for NavFactoryModel {
             }
             NavFactoryInput::UpdateTitle(new_title) => {
                 self.name = new_title;
+            }
+            NavFactoryInput::UpdateStatus(new_status) => {
+                self.status = new_status;
             }
         }
     }

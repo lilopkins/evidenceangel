@@ -175,7 +175,7 @@ See an example <uuid>.json file in (#example-test-case).
 |--------------------|-----------|------|---|
 | title              | Mandatory | String | The title of the test case. |
 | execution_datetime | Mandatory | String | The ISO8601 date and time of the execution of this test case starting. |
-| passed             | Mandatory | String | The state of the test case, **MUST** be one of "pass", "fail", or "undetermined". |
+| passed             | Mandatory | String | The state of the test case, if present **MUST** be either "pass", "fail", or null. If absent, it **MUST** be interpreted as null. |
 | custom             | Mandatory | Object | Custom metadata values. |
 
 The "custom" field is used to add custom metadata that has been
@@ -354,7 +354,7 @@ example.evp
   "metadata": {
     "title": "Example Test Case",
     "execution_datetime": "2025-05-01T11:13:29+01:00",
-    "passed": "undetermined",
+    "passed": null,
     "custom": {
       "example": "Example custom metadata field value"
     }
@@ -384,4 +384,4 @@ example.evp
 
 # JSON Schema for Test Case Manifest
 
-<{{testcase.3.schema.json}}
+<{{testcase.1.schema.json}}

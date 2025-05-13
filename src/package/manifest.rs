@@ -19,6 +19,11 @@ pub struct Metadata {
     #[get_mut = "pub"]
     pub(super) authors: Vec<Author>,
 
+    /// Custom metadata fields for test cases
+    #[get_mut = "pub"]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(super) custom_test_case_metadata: Option<HashMap<String, CustomMetadataField>>,
+
     /// Extra fields that this implementation doesn't understand.
     #[get = "pub"]
     #[serde(flatten)]
@@ -69,6 +74,23 @@ impl fmt::Display for Author {
             write!(f, "{}", self.name)
         }
     }
+}
+
+/// A custom metadata field for [`TestCase`](super::test_cases::TestCase)s.
+#[derive(Clone, Debug, Getters, MutGetters, Setters, Serialize, Deserialize, PartialEq, Eq)]
+#[getset(get = "pub", get_mut = "pub", set = "pub")]
+pub struct CustomMetadataField {
+    /// A user-friendly name for this custom property.
+    name: String,
+    /// A description for this custom property.
+    description: String,
+    /// Is this custom property the main one in this package?
+    primary: bool,
+
+    /// Extra fields that this implementation doesn't understand.
+    #[get = "pub"]
+    #[serde(flatten)]
+    extra_fields: HashMap<String, serde_json::Value>,
 }
 
 /// The manifest entry for a media file present in the package.

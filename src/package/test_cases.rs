@@ -11,9 +11,9 @@ use uuid::Uuid;
 
 /// The URL for $schema in the test case manifests
 const TESTCASE_SCHEMA_LOCATION: &str =
-    "https://evidenceangel-schemas.hpkns.uk/testcase.3.schema.json";
+    "https://evidenceangel-schemas.hpkns.uk/testcase.1.schema.json";
 /// The schema itself for test case manifests (version 2)
-pub(crate) const TESTCASE_SCHEMA_2: &str = include_str!("../../schemas/testcase.3.schema.json");
+pub(crate) const TESTCASE_SCHEMA: &str = include_str!("../../schemas/testcase.1.schema.json");
 
 /// A test case stored within an [`EvidencePackage`](super::EvidencePackage).
 #[derive(Clone, Debug, Serialize, Deserialize, Getters, MutGetters, Setters)]
@@ -50,6 +50,8 @@ impl TestCase {
             metadata: TestCaseMetadata {
                 title,
                 execution_datetime,
+                passed: None,
+                custom: None,
                 extra_fields: HashMap::new(),
             },
             evidence: vec![],
@@ -71,11 +73,27 @@ pub struct TestCaseMetadata {
     title: String,
     /// The time of execution of the associated [`TestCase`].
     execution_datetime: DateTime<FixedOffset>,
+    /// The state of the associated [`TestCase`].
+    passed: Option<TestCasePassStatus>,
+    /// Custom metadata parameters
+    #[serde(skip_serializing_if = "Option::is_none")]
+    custom: Option<HashMap<String, String>>,
 
     /// Extra fields that this implementation doesn't understand.
     #[get = "pub"]
     #[serde(flatten)]
     extra_fields: HashMap<String, serde_json::Value>,
+}
+
+/// Valid test case statuses.
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum TestCasePassStatus {
+    /// Passed
+    #[serde(rename = "pass")]
+    Pass,
+    /// Failed
+    #[serde(rename = "fail")]
+    Fail,
 }
 
 /// Evidence in a [`TestCase`].

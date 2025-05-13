@@ -17,6 +17,24 @@
           "type": "string",
           "format": "date-time",
           "description": "The date and time of the execution of this test case starting."
+        },
+        "passed": {
+          "type": ["string", "null"],
+          "description": "The state of the test case",
+          "enum": [
+            "pass",
+            "fail",
+            null
+          ]
+        },
+        "custom": {
+          "type": "object",
+          "description": "Custom metadata values",
+          "patternProperties": {
+            ".+": {
+              "type": "string"
+            }
+          }
         }
       },
       "required": ["title", "execution_datetime"]
@@ -30,7 +48,7 @@
           "kind": {
             "type": "string",
             "description": "The type of data stored. Note that where `Http` is used, a Record Separator character (0x1e) can be used to split the request and response portion.",
-            "enum": ["Text", "Image", "Http", "File"]
+            "enum": ["Text", "RichText", "Image", "Http", "File"]
           },
           "value": {
             "type": "string",

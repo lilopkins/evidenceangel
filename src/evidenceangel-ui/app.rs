@@ -5,7 +5,7 @@ use std::{
 
 use adw::prelude::*;
 use evidenceangel::{
-    Author, Evidence, EvidenceData, EvidenceKind, EvidencePackage, MediaFile,
+    Author, Evidence, EvidenceData, EvidenceKind, EvidencePackage, MediaFile, TestCasePassStatus,
     exporters::{
         Exporter, excel::ExcelExporter, html::HtmlExporter, zip_of_files::ZipOfFilesExporter,
     },
@@ -131,6 +131,7 @@ impl AppModel {
                 test_case_data.push_back(NavFactoryInit {
                     id: *case.id(),
                     name: case.metadata().title().clone(),
+                    status: *case.metadata().passed(),
                 });
             }
         }
@@ -199,6 +200,7 @@ pub enum AppInput {
     DeleteAuthor(Author),
 
     SetTestCaseTitle(String),
+    SetTestCaseStatus(u32),
     TrySetExecutionDateTime(String),
     ValidateExecutionDateTime(String),
     MoveSelectedCaseUp,
@@ -295,9 +297,13 @@ impl Component for AppModel {
 
                                 #[name = "nav_metadata"]
                                 gtk::Button {
-                                    set_label: &lang::lookup("nav-metadata"),
                                     add_css_class: "flat",
                                     connect_clicked => AppInput::NavigateTo(OpenCase::Metadata),
+
+                                    gtk::Label {
+                                        set_label: &lang::lookup("nav-metadata"),
+                                        set_halign: gtk::Align::Start,
+                                    }
                                 },
 
                                 #[local_ref]
@@ -576,6 +582,20 @@ impl Component for AppModel {
                                                         set_text: &lang::lookup("toast-name-too-long"),
                                                         add_css_class: "error",
                                                     }
+                                                },
+
+                                                #[name = "test_status"]
+                                                adw::ComboRow {
+                                                    set_title: &lang::lookup("test-status"),
+                                                    set_model: Some(&gtk::StringList::new(&[
+                                                        &lang::lookup("test-status-unset"),
+                                                        &lang::lookup("test-status-pass"),
+                                                        &lang::lookup("test-status-fail"),
+                                                    ])),
+
+                                                    connect_selected_notify[sender] => move |entry| {
+                                                        sender.input(AppInput::SetTestCaseStatus(entry.selected()));
+                                                    } @case_status_changed_handler
                                                 },
                                             },
 
@@ -1133,6 +1153,19 @@ impl Component for AppModel {
                                 widgets
                                     .test_execution
                                     .unblock_signal(&widgets.execution_time_changed_handler);
+                                widgets
+                                    .test_status
+                                    .block_signal(&widgets.case_status_changed_handler);
+                                widgets
+                                    .test_status
+                                    .set_selected(match tc.metadata().passed() {
+                                        None => 0,
+                                        Some(TestCasePassStatus::Pass) => 1,
+                                        Some(TestCasePassStatus::Fail) => 2,
+                                    });
+                                widgets
+                                    .test_status
+                                    .unblock_signal(&widgets.case_status_changed_handler);
 
                                 for ev in tc.evidence() {
                                     new_evidence.push(EvidenceFactoryInit {
@@ -1172,6 +1205,7 @@ impl Component for AppModel {
                     test_case_data.push_back(NavFactoryInit {
                         id: case_id,
                         name: case.metadata().title().clone(),
+                        status: *case.metadata().passed(),
                     });
                 }
                 self.needs_saving = true;
@@ -1208,6 +1242,7 @@ impl Component for AppModel {
                         test_case_data.push_back(NavFactoryInit {
                             id: new_case_id,
                             name: case.metadata().title().clone(),
+                            status: *case.metadata().passed(),
                         });
                     }
                     self.needs_saving = true;
@@ -1299,7 +1334,9 @@ impl Component for AppModel {
                     let pos = new_order.iter().position(|id| *id == case_to_move).unwrap();
                     new_order.remove(pos);
                     let mut test_case_guard = self.test_case_nav_factory.guard();
-                    let NavFactoryModel { id, name, .. } = test_case_guard.remove(pos).unwrap();
+                    let NavFactoryModel {
+                        id, name, status, ..
+                    } = test_case_guard.remove(pos).unwrap();
 
                     if let Some(other_case_id) = before {
                         let other_pos = new_order
@@ -1307,7 +1344,7 @@ impl Component for AppModel {
                             .position(|id| *id == other_case_id)
                             .unwrap();
                         new_order.insert(other_pos, case_to_move);
-                        test_case_guard.insert(other_pos, NavFactoryInit { id, name });
+                        test_case_guard.insert(other_pos, NavFactoryInit { id, name, status });
                     } else {
                         #[allow(clippy::cast_possible_wrap)]
                         if let Some(offset) = offset {
@@ -1315,11 +1352,11 @@ impl Component for AppModel {
                             let new_pos =
                                 (pos as i32 + offset).max(0).min(new_order.len() as i32) as usize;
                             new_order.insert(new_pos, case_to_move);
-                            test_case_guard.insert(new_pos, NavFactoryInit { id, name });
+                            test_case_guard.insert(new_pos, NavFactoryInit { id, name, status });
                         } else {
                             // add to end
                             new_order.push(case_to_move);
-                            test_case_guard.push_back(NavFactoryInit { id, name });
+                            test_case_guard.push_back(NavFactoryInit { id, name, status });
                         }
                     }
 
@@ -1399,6 +1436,25 @@ impl Component for AppModel {
                         .test_title_error_popover_label
                         .set_text(&lang::lookup("toast-name-too-long"));
                     widgets.test_title_error_popover.set_visible(true);
+                }
+            }
+            AppInput::SetTestCaseStatus(new_status) => {
+                if let OpenCase::Case { index, id, .. } = &self.open_case {
+                    if let Some(pkg) = self.get_package() {
+                        if let Some(tc) = pkg.write().unwrap().test_case_mut(*id).ok().flatten() {
+                            let status = match new_status {
+                                0 => None,
+                                1 => Some(TestCasePassStatus::Pass),
+                                2 => Some(TestCasePassStatus::Fail),
+                                // SAFETY: No other list items exist
+                                _ => unreachable!(),
+                            };
+                            tc.metadata_mut().set_passed(status);
+                            self.needs_saving = true;
+                            self.test_case_nav_factory
+                                .send(*index, NavFactoryInput::UpdateStatus(status));
+                        }
+                    }
                 }
             }
             AppInput::TrySetExecutionDateTime(new_exec_time) => {
