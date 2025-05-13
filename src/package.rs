@@ -24,7 +24,9 @@ pub use media::MediaFile;
 
 /// Test cases from packages
 mod test_cases;
-pub use test_cases::{Evidence, EvidenceData, EvidenceKind, TestCase, TestCaseMetadata};
+pub use test_cases::{
+    Evidence, EvidenceData, EvidenceKind, TestCase, TestCaseMetadata, TestCasePassStatus,
+};
 
 /// The URL for $schema for manifest.json
 const MANIFEST_SCHEMA_LOCATION: &str =
@@ -136,6 +138,7 @@ impl EvidencePackage {
                 title,
                 description,
                 authors,
+                custom_test_case_metadata: None,
                 extra_fields: HashMap::new(),
             },
             extra_fields: HashMap::new(),
@@ -214,8 +217,7 @@ impl EvidencePackage {
                 let data = serde_json::to_string(data)
                     .map_err(crate::result::Error::FailedToSaveTestCase)?;
                 if !jsonschema::is_valid(
-                    &serde_json::from_str(TESTCASE_SCHEMA)
-                        .expect("Schema is validated statically"),
+                    &serde_json::from_str(TESTCASE_SCHEMA).expect("Schema is validated statically"),
                     &serde_json::from_str(&data).expect("JSON just generated, shouldn't fail"),
                 ) {
                     let _ = self.zip.interrupt_write();

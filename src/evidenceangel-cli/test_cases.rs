@@ -10,7 +10,9 @@ use angelmark::{AngelmarkLine, AngelmarkTableAlignment, parse_angelmark};
 use chrono::FixedOffset;
 use clap::{Subcommand, ValueEnum};
 use colored::Colorize;
-use evidenceangel::{Evidence, EvidenceData, EvidenceKind, EvidencePackage, MediaFile};
+use evidenceangel::{
+    Evidence, EvidenceData, EvidenceKind, EvidencePackage, MediaFile, TestCasePassStatus,
+};
 use schemars::JsonSchema;
 use serde::Serialize;
 use uuid::Uuid;
@@ -28,6 +30,9 @@ pub enum TestCasesSubcommand {
         /// The execution time of the new test case.
         #[arg(short, long)]
         executed_at: Option<String>,
+        /// The new execution status, "pass", "fail" or "none".
+        #[arg(short, long)]
+        status: Option<String>,
     },
     /// View a test case.
     Read {
@@ -46,6 +51,9 @@ pub enum TestCasesSubcommand {
         /// The new execution time of the test case.
         #[arg(short, long)]
         executed_at: Option<String>,
+        /// The new execution status, "pass", "fail" or "none".
+        #[arg(short, long)]
+        status: Option<String>,
     },
     /// Delete a test case from a package.
     Delete {
@@ -167,6 +175,8 @@ pub struct CliTestCase {
     name: String,
     /// The time the test case was executed
     executed_at: chrono::DateTime<FixedOffset>,
+    /// The status of this test case
+    status: CliTestCasePassStatus,
     /// The evidence in the test case
     evidence: Vec<CliEvidence>,
 }
@@ -174,7 +184,13 @@ pub struct CliTestCase {
 impl fmt::Display for CliTestCase {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(f, "🧪 {}", self.name.bold())?;
-        writeln!(f, "  {}\n", self.executed_at.to_string().magenta())?;
+        writeln!(f, "  {}", self.executed_at.to_string().magenta())?;
+        match self.status {
+            CliTestCasePassStatus::None => (),
+            CliTestCasePassStatus::Pass => writeln!(f, "  ✅ {}", "Passed".green())?,
+            CliTestCasePassStatus::Fail => writeln!(f, "  ❌ {}", "Failed".red())?,
+        }
+        writeln!(f)?;
 
         for (idx, ev) in self.evidence.iter().enumerate() {
             writeln!(
@@ -279,6 +295,18 @@ impl fmt::Display for CliTestCase {
 
         Ok(())
     }
+}
+
+/// Possible statuses for a test case to adopt
+#[derive(Serialize, JsonSchema)]
+#[serde(tag = "type")]
+pub enum CliTestCasePassStatus {
+    /// The test case passed
+    Pass,
+    /// The test case failed
+    Fail,
+    /// The test case status isn't determined
+    None,
 }
 
 /// The data of a test case
@@ -432,24 +460,38 @@ fn evidence_from_evidence_value(
 /// Process the test-cases subcommand
 pub fn process(path: PathBuf, command: &TestCasesSubcommand) -> CliData {
     match command {
-        TestCasesSubcommand::Create { title, executed_at } => match EvidencePackage::open(path) {
+        TestCasesSubcommand::Create {
+            title,
+            executed_at,
+            status,
+        } => match EvidencePackage::open(path) {
             Ok(mut package) => {
-                let case_id = {
+                let case = {
                     if let Some(executed_at) = executed_at {
                         match parse_datetime::parse_datetime(executed_at) {
-                            Ok(dt) => {
-                                Ok(*package.create_test_case_at(title.clone(), dt).unwrap().id())
-                            }
+                            Ok(dt) => Ok(package.create_test_case_at(title.clone(), dt).unwrap()),
                             Err(_) => Err(CliError::InvalidExecutionDateTime),
                         }
                     } else {
-                        Ok(*package.create_test_case(title.clone()).unwrap().id())
+                        Ok(package.create_test_case(title.clone()).unwrap())
                     }
                 };
-                if let Err(e) = &case_id {
+                if let Err(e) = &case {
                     return e.clone().into();
                 }
-                let case_id = case_id.unwrap();
+                // SAFETY: checked line above
+                let case = case.unwrap();
+                if let Some(status) = status {
+                    let status = if status.eq_ignore_ascii_case("pass") {
+                        Some(TestCasePassStatus::Pass)
+                    } else if status.eq_ignore_ascii_case("fail") {
+                        Some(TestCasePassStatus::Fail)
+                    } else {
+                        None
+                    };
+                    case.metadata_mut().set_passed(status);
+                }
+                let case_id = *case.id();
 
                 if let Err(e) = package.save() {
                     return CliError::FailedToSavePackage(Rc::new(e)).into();
@@ -459,6 +501,11 @@ pub fn process(path: PathBuf, command: &TestCasesSubcommand) -> CliData {
                 CliData::TestCase(CliTestCase {
                     name: test_case.metadata().title().clone(),
                     executed_at: *test_case.metadata().execution_datetime(),
+                    status: match test_case.metadata().passed() {
+                        None => CliTestCasePassStatus::None,
+                        Some(TestCasePassStatus::Pass) => CliTestCasePassStatus::Pass,
+                        Some(TestCasePassStatus::Fail) => CliTestCasePassStatus::Fail,
+                    },
                     evidence: test_case
                         .evidence()
                         .iter()
@@ -493,6 +540,11 @@ pub fn process(path: PathBuf, command: &TestCasesSubcommand) -> CliData {
                 CliData::TestCase(CliTestCase {
                     name: test_case.metadata().title().clone(),
                     executed_at: *test_case.metadata().execution_datetime(),
+                    status: match test_case.metadata().passed() {
+                        None => CliTestCasePassStatus::None,
+                        Some(TestCasePassStatus::Pass) => CliTestCasePassStatus::Pass,
+                        Some(TestCasePassStatus::Fail) => CliTestCasePassStatus::Fail,
+                    },
                     evidence: test_case
                         .evidence()
                         .iter()
@@ -520,6 +572,7 @@ pub fn process(path: PathBuf, command: &TestCasesSubcommand) -> CliData {
             case,
             title,
             executed_at,
+            status,
         } => match EvidencePackage::open(path) {
             Ok(mut package) => {
                 let case_id = match_test_case(&mut package, case);
@@ -541,6 +594,16 @@ pub fn process(path: PathBuf, command: &TestCasesSubcommand) -> CliData {
                             Err(_) => return CliError::InvalidExecutionDateTime.into(),
                         }
                     }
+                    if let Some(status) = status {
+                        let status = if status.eq_ignore_ascii_case("pass") {
+                            Some(TestCasePassStatus::Pass)
+                        } else if status.eq_ignore_ascii_case("fail") {
+                            Some(TestCasePassStatus::Fail)
+                        } else {
+                            None
+                        };
+                        test_case.metadata_mut().set_passed(status);
+                    }
                 }
                 if let Err(e) = package.save() {
                     return CliError::FailedToSavePackage(Rc::new(e)).into();
@@ -550,6 +613,11 @@ pub fn process(path: PathBuf, command: &TestCasesSubcommand) -> CliData {
                 CliData::TestCase(CliTestCase {
                     name: test_case.metadata().title().clone(),
                     executed_at: *test_case.metadata().execution_datetime(),
+                    status: match test_case.metadata().passed() {
+                        None => CliTestCasePassStatus::None,
+                        Some(TestCasePassStatus::Pass) => CliTestCasePassStatus::Pass,
+                        Some(TestCasePassStatus::Fail) => CliTestCasePassStatus::Fail,
+                    },
                     evidence: test_case
                         .evidence()
                         .iter()
@@ -668,6 +736,11 @@ pub fn process(path: PathBuf, command: &TestCasesSubcommand) -> CliData {
                 CliData::TestCase(CliTestCase {
                     name: test_case.metadata().title().clone(),
                     executed_at: *test_case.metadata().execution_datetime(),
+                    status: match test_case.metadata().passed() {
+                        None => CliTestCasePassStatus::None,
+                        Some(TestCasePassStatus::Pass) => CliTestCasePassStatus::Pass,
+                        Some(TestCasePassStatus::Fail) => CliTestCasePassStatus::Fail,
+                    },
                     evidence: test_case
                         .evidence()
                         .iter()
@@ -754,6 +827,11 @@ pub fn process(path: PathBuf, command: &TestCasesSubcommand) -> CliData {
                 CliData::TestCase(CliTestCase {
                     name: test_case.metadata().title().clone(),
                     executed_at: *test_case.metadata().execution_datetime(),
+                    status: match test_case.metadata().passed() {
+                        None => CliTestCasePassStatus::None,
+                        Some(TestCasePassStatus::Pass) => CliTestCasePassStatus::Pass,
+                        Some(TestCasePassStatus::Fail) => CliTestCasePassStatus::Fail,
+                    },
                     evidence: test_case
                         .evidence()
                         .iter()
@@ -802,6 +880,11 @@ pub fn process(path: PathBuf, command: &TestCasesSubcommand) -> CliData {
                     CliData::TestCase(CliTestCase {
                         name: test_case.metadata().title().clone(),
                         executed_at: *test_case.metadata().execution_datetime(),
+                        status: match test_case.metadata().passed() {
+                            None => CliTestCasePassStatus::None,
+                            Some(TestCasePassStatus::Pass) => CliTestCasePassStatus::Pass,
+                            Some(TestCasePassStatus::Fail) => CliTestCasePassStatus::Fail,
+                        },
                         evidence: test_case
                             .evidence()
                             .iter()

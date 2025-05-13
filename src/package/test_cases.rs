@@ -50,6 +50,8 @@ impl TestCase {
             metadata: TestCaseMetadata {
                 title,
                 execution_datetime,
+                passed: None,
+                custom: None,
                 extra_fields: HashMap::new(),
             },
             evidence: vec![],
@@ -71,11 +73,27 @@ pub struct TestCaseMetadata {
     title: String,
     /// The time of execution of the associated [`TestCase`].
     execution_datetime: DateTime<FixedOffset>,
+    /// The state of the associated [`TestCase`].
+    passed: Option<TestCasePassStatus>,
+    /// Custom metadata parameters
+    #[serde(skip_serializing_if = "Option::is_none")]
+    custom: Option<HashMap<String, String>>,
 
     /// Extra fields that this implementation doesn't understand.
     #[get = "pub"]
     #[serde(flatten)]
     extra_fields: HashMap<String, serde_json::Value>,
+}
+
+/// Valid test case statuses.
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum TestCasePassStatus {
+    /// Passed
+    #[serde(rename = "pass")]
+    Pass,
+    /// Failed
+    #[serde(rename = "fail")]
+    Fail,
 }
 
 /// Evidence in a [`TestCase`].

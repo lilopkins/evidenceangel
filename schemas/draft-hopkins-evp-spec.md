@@ -384,4 +384,4 @@ example.evp
 
 # JSON Schema for Test Case Manifest
 
-<{{testcase.3.schema.json}}
+<{{testcase.1.schema.json}}
