@@ -59,6 +59,10 @@ pub enum CliError {
     /// couldn't add media to package
     #[error("couldn't add media to package")]
     CouldntAddMedia,
+
+    /// the custom metadata field you reference doesn't exist
+    #[error("the custom metadata field you reference doesn't exist")]
+    InvalidCustomField,
 }
 
 /// Get the name of the [`CliError`] variant, without any args, as a [`String`].
@@ -76,6 +80,7 @@ fn get_error_name(error: &CliError) -> &'static str {
         CliError::FailedToReadFile => "FailedToReadFile",
         CliError::InvalidImage => "InvalidImage",
         CliError::CouldntAddMedia => "CouldntAddMedia",
+        CliError::InvalidCustomField => "InvalidCustomField",
     }
 }
 

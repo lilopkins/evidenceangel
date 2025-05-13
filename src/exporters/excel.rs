@@ -2,7 +2,7 @@ use angelmark::{AngelmarkLine, AngelmarkTableAlignment, AngelmarkText, parse_ang
 use rust_xlsxwriter::{Format, FormatAlign, FormatBorder, Image, Workbook, Worksheet};
 use uuid::Uuid;
 
-use crate::{EvidenceKind, EvidencePackage, TestCase};
+use crate::{EvidenceKind, EvidencePackage, TestCase, TestCasePassStatus};
 
 use super::Exporter;
 
@@ -134,7 +134,34 @@ fn create_test_case_sheet(
         &test_case.metadata().execution_datetime().naive_local(),
         &Format::new().set_num_format("yyyy-mm-dd hh:mm"),
     )?;
-    row += 2;
+    row += 1;
+    match test_case.metadata().passed() {
+        None => (),
+        Some(s) => {
+            let s = match s {
+                TestCasePassStatus::Pass => "✅ Pass",
+                TestCasePassStatus::Fail => "❌ Fail",
+            };
+            worksheet.write(row, 1, s)?;
+            row += 1;
+        }
+    };
+    if let Some(fields) = test_case.metadata().custom() {
+        for (key, value) in fields {
+            let field = package
+                .metadata()
+                .custom_test_case_metadata()
+                .as_ref()
+                // SAFETY: guanteed by EVP spec
+                .unwrap()
+                .get(key)
+                // SAFETY: guanteed by EVP spec
+                .unwrap();
+            worksheet.write(row, 1, format!("{}: {}", field.name(), value))?;
+            row += 1;
+        }
+    }
+    row += 1;
 
     // Write evidence
     for evidence in test_case.evidence() {
@@ -164,15 +191,17 @@ fn create_test_case_sheet(
                     for line in rich_text {
                         match line {
                             AngelmarkLine::Newline(_span) => {
-                                worksheet.write_rich_string(
-                                    row,
-                                    1,
-                                    &line_buffer
-                                        .iter()
-                                        .map(|(f, s)| (f, s.as_str()))
-                                        .collect::<Vec<_>>(),
-                                )?;
-                                line_buffer.clear();
+                                if !line_buffer.is_empty() {
+                                    worksheet.write_rich_string(
+                                        row,
+                                        1,
+                                        &line_buffer
+                                            .iter()
+                                            .map(|(f, s)| (f, s.as_str()))
+                                            .collect::<Vec<_>>(),
+                                    )?;
+                                    line_buffer.clear();
+                                }
                                 row += 1;
                             }
                             AngelmarkLine::Heading1(angelmark, _span) => {
@@ -185,14 +214,13 @@ fn create_test_case_sheet(
                                         )
                                     })
                                     .collect::<Vec<_>>();
-                                worksheet.write_rich_string(
-                                    row,
-                                    1,
-                                    &fragments
-                                        .iter()
-                                        .map(|(f, s)| (f, s.as_str()))
-                                        .collect::<Vec<_>>(),
-                                )?;
+                                let fragments = fragments
+                                    .iter()
+                                    .map(|(f, s)| (f, s.as_str()))
+                                    .collect::<Vec<_>>();
+                                if !fragments.is_empty() {
+                                    worksheet.write_rich_string(row, 1, &fragments)?;
+                                }
                                 row += 1;
                             }
                             AngelmarkLine::Heading2(angelmark, _span) => {
@@ -205,14 +233,13 @@ fn create_test_case_sheet(
                                         )
                                     })
                                     .collect::<Vec<_>>();
-                                worksheet.write_rich_string(
-                                    row,
-                                    1,
-                                    &fragments
-                                        .iter()
-                                        .map(|(f, s)| (f, s.as_str()))
-                                        .collect::<Vec<_>>(),
-                                )?;
+                                let fragments = fragments
+                                    .iter()
+                                    .map(|(f, s)| (f, s.as_str()))
+                                    .collect::<Vec<_>>();
+                                if !fragments.is_empty() {
+                                    worksheet.write_rich_string(row, 1, &fragments)?;
+                                }
                                 row += 1;
                             }
                             AngelmarkLine::Heading3(angelmark, _span) => {
@@ -225,14 +252,13 @@ fn create_test_case_sheet(
                                         )
                                     })
                                     .collect::<Vec<_>>();
-                                worksheet.write_rich_string(
-                                    row,
-                                    1,
-                                    &fragments
-                                        .iter()
-                                        .map(|(f, s)| (f, s.as_str()))
-                                        .collect::<Vec<_>>(),
-                                )?;
+                                let fragments = fragments
+                                    .iter()
+                                    .map(|(f, s)| (f, s.as_str()))
+                                    .collect::<Vec<_>>();
+                                if !fragments.is_empty() {
+                                    worksheet.write_rich_string(row, 1, &fragments)?;
+                                }
                                 row += 1;
                             }
                             AngelmarkLine::Heading4(angelmark, _span) => {
@@ -245,14 +271,13 @@ fn create_test_case_sheet(
                                         )
                                     })
                                     .collect::<Vec<_>>();
-                                worksheet.write_rich_string(
-                                    row,
-                                    1,
-                                    &fragments
-                                        .iter()
-                                        .map(|(f, s)| (f, s.as_str()))
-                                        .collect::<Vec<_>>(),
-                                )?;
+                                let fragments = fragments
+                                    .iter()
+                                    .map(|(f, s)| (f, s.as_str()))
+                                    .collect::<Vec<_>>();
+                                if !fragments.is_empty() {
+                                    worksheet.write_rich_string(row, 1, &fragments)?;
+                                }
                                 row += 1;
                             }
                             AngelmarkLine::Heading5(angelmark, _span) => {
@@ -265,14 +290,13 @@ fn create_test_case_sheet(
                                         )
                                     })
                                     .collect::<Vec<_>>();
-                                worksheet.write_rich_string(
-                                    row,
-                                    1,
-                                    &fragments
-                                        .iter()
-                                        .map(|(f, s)| (f, s.as_str()))
-                                        .collect::<Vec<_>>(),
-                                )?;
+                                let fragments = fragments
+                                    .iter()
+                                    .map(|(f, s)| (f, s.as_str()))
+                                    .collect::<Vec<_>>();
+                                if !fragments.is_empty() {
+                                    worksheet.write_rich_string(row, 1, &fragments)?;
+                                }
                                 row += 1;
                             }
                             AngelmarkLine::Heading6(angelmark, _span) => {
@@ -285,14 +309,13 @@ fn create_test_case_sheet(
                                         )
                                     })
                                     .collect::<Vec<_>>();
-                                worksheet.write_rich_string(
-                                    row,
-                                    1,
-                                    &fragments
-                                        .iter()
-                                        .map(|(f, s)| (f, s.as_str()))
-                                        .collect::<Vec<_>>(),
-                                )?;
+                                let fragments = fragments
+                                    .iter()
+                                    .map(|(f, s)| (f, s.as_str()))
+                                    .collect::<Vec<_>>();
+                                if !fragments.is_empty() {
+                                    worksheet.write_rich_string(row, 1, &fragments)?;
+                                }
                                 row += 1;
                             }
                             AngelmarkLine::TextLine(angelmark, _span) => {

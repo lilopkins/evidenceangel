@@ -61,6 +61,18 @@ pub enum TestCasesSubcommand {
         #[arg(index = 1)]
         case: String,
     },
+    /// Update the value of a custom metadata field
+    UpdateCustomMetadataField {
+        /// The one-based index of the test case to delete, or enough of the title to uniquely match against one test case.
+        #[arg(index = 1)]
+        case: String,
+        /// The internal identifier of the custom metadata field to update
+        #[arg(index = 2)]
+        field: String,
+        /// The new value to adopt
+        #[arg(index = 3)]
+        value: String,
+    },
     /// Move a particular test case to a new position
     Move {
         /// The one-based index of the test case to move, or enough of the title to uniquely match against one test case.
@@ -177,6 +189,8 @@ pub struct CliTestCase {
     executed_at: chrono::DateTime<FixedOffset>,
     /// The status of this test case
     status: CliTestCasePassStatus,
+    /// Custom fields
+    custom_fields: Vec<CliCustomField>,
     /// The evidence in the test case
     evidence: Vec<CliEvidence>,
 }
@@ -189,6 +203,10 @@ impl fmt::Display for CliTestCase {
             CliTestCasePassStatus::None => (),
             CliTestCasePassStatus::Pass => writeln!(f, "  ✅ {}", "Passed".green())?,
             CliTestCasePassStatus::Fail => writeln!(f, "  ❌ {}", "Failed".red())?,
+        }
+        writeln!(f, "  {}:", "Custom fields".bold())?;
+        for field in &self.custom_fields {
+            writeln!(f, "  {field}")?;
         }
         writeln!(f)?;
 
@@ -307,6 +325,25 @@ pub enum CliTestCasePassStatus {
     Fail,
     /// The test case status isn't determined
     None,
+}
+
+/// A custom metadata field
+#[derive(Serialize, JsonSchema)]
+pub struct CliCustomField {
+    /// The internal ID of the field
+    id: String,
+    /// The name of the field
+    name: String,
+    /// The description of the field
+    description: String,
+    /// The value of the field
+    value: String,
+}
+
+impl fmt::Display for CliCustomField {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}: {}", self.name.italic(), self.value)
+    }
 }
 
 /// The data of a test case
@@ -506,6 +543,27 @@ pub fn process(path: PathBuf, command: &TestCasesSubcommand) -> CliData {
                         Some(TestCasePassStatus::Pass) => CliTestCasePassStatus::Pass,
                         Some(TestCasePassStatus::Fail) => CliTestCasePassStatus::Fail,
                     },
+                    custom_fields: test_case.metadata().custom().as_ref().map_or(vec![], |m| {
+                        m.iter()
+                            .map(|(key, val)| {
+                                let field = package
+                                    .metadata()
+                                    .custom_test_case_metadata()
+                                    .as_ref()
+                                    // SAFETY: this is guaranteed by the EVP specification
+                                    .unwrap()
+                                    .get(key)
+                                    // SAFETY: this is guaranteed by the EVP specification
+                                    .unwrap();
+                                CliCustomField {
+                                    id: key.clone(),
+                                    name: field.name().clone(),
+                                    description: field.description().clone(),
+                                    value: val.clone(),
+                                }
+                            })
+                            .collect::<Vec<_>>()
+                    }),
                     evidence: test_case
                         .evidence()
                         .iter()
@@ -545,6 +603,27 @@ pub fn process(path: PathBuf, command: &TestCasesSubcommand) -> CliData {
                         Some(TestCasePassStatus::Pass) => CliTestCasePassStatus::Pass,
                         Some(TestCasePassStatus::Fail) => CliTestCasePassStatus::Fail,
                     },
+                    custom_fields: test_case.metadata().custom().as_ref().map_or(vec![], |m| {
+                        m.iter()
+                            .map(|(key, val)| {
+                                let field = package
+                                    .metadata()
+                                    .custom_test_case_metadata()
+                                    .as_ref()
+                                    // SAFETY: this is guaranteed by the EVP specification
+                                    .unwrap()
+                                    .get(key)
+                                    // SAFETY: this is guaranteed by the EVP specification
+                                    .unwrap();
+                                CliCustomField {
+                                    id: key.clone(),
+                                    name: field.name().clone(),
+                                    description: field.description().clone(),
+                                    value: val.clone(),
+                                }
+                            })
+                            .collect::<Vec<_>>()
+                    }),
                     evidence: test_case
                         .evidence()
                         .iter()
@@ -618,6 +697,27 @@ pub fn process(path: PathBuf, command: &TestCasesSubcommand) -> CliData {
                         Some(TestCasePassStatus::Pass) => CliTestCasePassStatus::Pass,
                         Some(TestCasePassStatus::Fail) => CliTestCasePassStatus::Fail,
                     },
+                    custom_fields: test_case.metadata().custom().as_ref().map_or(vec![], |m| {
+                        m.iter()
+                            .map(|(key, val)| {
+                                let field = package
+                                    .metadata()
+                                    .custom_test_case_metadata()
+                                    .as_ref()
+                                    // SAFETY: this is guaranteed by the EVP specification
+                                    .unwrap()
+                                    .get(key)
+                                    // SAFETY: this is guaranteed by the EVP specification
+                                    .unwrap();
+                                CliCustomField {
+                                    id: key.clone(),
+                                    name: field.name().clone(),
+                                    description: field.description().clone(),
+                                    value: val.clone(),
+                                }
+                            })
+                            .collect::<Vec<_>>()
+                    }),
                     evidence: test_case
                         .evidence()
                         .iter()
@@ -657,6 +757,94 @@ pub fn process(path: PathBuf, command: &TestCasesSubcommand) -> CliData {
             }
             Err(e) => CliError::FailedToReadPackage(Rc::new(e)).into(),
         },
+        TestCasesSubcommand::UpdateCustomMetadataField { case, field, value } => {
+            match EvidencePackage::open(path) {
+                Ok(mut package) => {
+                    let case_id = match_test_case(&mut package, case);
+                    if case_id.is_none() {
+                        return CliError::CannotMatchTestCase(case.clone()).into();
+                    }
+                    let case_id = case_id.unwrap();
+
+                    // Check field is valid
+                    if !package
+                        .metadata()
+                        .custom_test_case_metadata()
+                        .as_ref()
+                        .is_some_and(|m| m.contains_key(field))
+                    {
+                        return CliData::Error(CliError::InvalidCustomField.into());
+                    }
+
+                    {
+                        let test_case = package.test_case_mut(case_id).unwrap().unwrap();
+                        test_case
+                            .metadata_mut()
+                            .custom_mut()
+                            .insert(field.clone(), value.clone());
+                    }
+                    if let Err(e) = package.save() {
+                        return CliError::FailedToSavePackage(Rc::new(e)).into();
+                    }
+
+                    let test_case = package.test_case(case_id).unwrap().unwrap().clone();
+                    CliData::TestCase(CliTestCase {
+                        name: test_case.metadata().title().clone(),
+                        executed_at: *test_case.metadata().execution_datetime(),
+                        status: match test_case.metadata().passed() {
+                            None => CliTestCasePassStatus::None,
+                            Some(TestCasePassStatus::Pass) => CliTestCasePassStatus::Pass,
+                            Some(TestCasePassStatus::Fail) => CliTestCasePassStatus::Fail,
+                        },
+                        custom_fields: test_case.metadata().custom().as_ref().map_or(vec![], |m| {
+                            m.iter()
+                                .map(|(key, val)| {
+                                    let field = package
+                                        .metadata()
+                                        .custom_test_case_metadata()
+                                        .as_ref()
+                                        // SAFETY: this is guaranteed by the EVP specification
+                                        .unwrap()
+                                        .get(key)
+                                        // SAFETY: this is guaranteed by the EVP specification
+                                        .unwrap();
+                                    CliCustomField {
+                                        id: key.clone(),
+                                        name: field.name().clone(),
+                                        description: field.description().clone(),
+                                        value: val.clone(),
+                                    }
+                                })
+                                .collect::<Vec<_>>()
+                        }),
+                        evidence: test_case
+                            .evidence()
+                            .iter()
+                            .map(|ev| match ev.kind() {
+                                EvidenceKind::Text => CliEvidence::Text {
+                                    data: String::from_utf8(
+                                        ev.value().get_data(&mut package).unwrap(),
+                                    )
+                                    .unwrap(),
+                                },
+                                EvidenceKind::RichText => CliEvidence::RichText {
+                                    data: String::from_utf8(
+                                        ev.value().get_data(&mut package).unwrap(),
+                                    )
+                                    .unwrap(),
+                                },
+                                EvidenceKind::Image => CliEvidence::Image,
+                                EvidenceKind::Http => CliEvidence::Http,
+                                EvidenceKind::File => CliEvidence::File {
+                                    original_filename: ev.original_filename().clone(),
+                                },
+                            })
+                            .collect(),
+                    })
+                }
+                Err(e) => CliError::FailedToReadPackage(Rc::new(e)).into(),
+            }
+        }
         TestCasesSubcommand::Move {
             case,
             before_or_after,
@@ -741,6 +929,27 @@ pub fn process(path: PathBuf, command: &TestCasesSubcommand) -> CliData {
                         Some(TestCasePassStatus::Pass) => CliTestCasePassStatus::Pass,
                         Some(TestCasePassStatus::Fail) => CliTestCasePassStatus::Fail,
                     },
+                    custom_fields: test_case.metadata().custom().as_ref().map_or(vec![], |m| {
+                        m.iter()
+                            .map(|(key, val)| {
+                                let field = package
+                                    .metadata()
+                                    .custom_test_case_metadata()
+                                    .as_ref()
+                                    // SAFETY: this is guaranteed by the EVP specification
+                                    .unwrap()
+                                    .get(key)
+                                    // SAFETY: this is guaranteed by the EVP specification
+                                    .unwrap();
+                                CliCustomField {
+                                    id: key.clone(),
+                                    name: field.name().clone(),
+                                    description: field.description().clone(),
+                                    value: val.clone(),
+                                }
+                            })
+                            .collect::<Vec<_>>()
+                    }),
                     evidence: test_case
                         .evidence()
                         .iter()
@@ -832,6 +1041,27 @@ pub fn process(path: PathBuf, command: &TestCasesSubcommand) -> CliData {
                         Some(TestCasePassStatus::Pass) => CliTestCasePassStatus::Pass,
                         Some(TestCasePassStatus::Fail) => CliTestCasePassStatus::Fail,
                     },
+                    custom_fields: test_case.metadata().custom().as_ref().map_or(vec![], |m| {
+                        m.iter()
+                            .map(|(key, val)| {
+                                let field = package
+                                    .metadata()
+                                    .custom_test_case_metadata()
+                                    .as_ref()
+                                    // SAFETY: this is guaranteed by the EVP specification
+                                    .unwrap()
+                                    .get(key)
+                                    // SAFETY: this is guaranteed by the EVP specification
+                                    .unwrap();
+                                CliCustomField {
+                                    id: key.clone(),
+                                    name: field.name().clone(),
+                                    description: field.description().clone(),
+                                    value: val.clone(),
+                                }
+                            })
+                            .collect::<Vec<_>>()
+                    }),
                     evidence: test_case
                         .evidence()
                         .iter()
@@ -885,6 +1115,27 @@ pub fn process(path: PathBuf, command: &TestCasesSubcommand) -> CliData {
                             Some(TestCasePassStatus::Pass) => CliTestCasePassStatus::Pass,
                             Some(TestCasePassStatus::Fail) => CliTestCasePassStatus::Fail,
                         },
+                        custom_fields: test_case.metadata().custom().as_ref().map_or(vec![], |m| {
+                            m.iter()
+                                .map(|(key, val)| {
+                                    let field = package
+                                        .metadata()
+                                        .custom_test_case_metadata()
+                                        .as_ref()
+                                        // SAFETY: this is guaranteed by the EVP specification
+                                        .unwrap()
+                                        .get(key)
+                                        // SAFETY: this is guaranteed by the EVP specification
+                                        .unwrap();
+                                    CliCustomField {
+                                        id: key.clone(),
+                                        name: field.name().clone(),
+                                        description: field.description().clone(),
+                                        value: val.clone(),
+                                    }
+                                })
+                                .collect::<Vec<_>>()
+                        }),
                         evidence: test_case
                             .evidence()
                             .iter()
