@@ -230,10 +230,11 @@ an additional media file.
 ## Locking
 
 When loading an evidence package, implemetors **MUST** use a lock file
-with the file name ".~" followed by the full name of the package it
-protects, for example for a package called "example.evp", the lock file
-**MUST** be called ".~example.evp". It **MUST** be located adjacent (in
-the same directory as) the evidence package.
+with the file name ".~lock." followed by the full name of the package it
+protects, followed by "#", for example for a package called
+"example.evp", the lock file **MUST** be called ".~lock.example.evp#".
+It **MUST** be located adjacent (in the same directory as) the evidence
+package.
 
 The lock file should be considered as locking the package if:
 

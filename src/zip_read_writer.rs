@@ -68,8 +68,13 @@ impl ZipReaderWriter {
             let mut lock_path = path.clone();
             // SAFETY: only a file can be specified here
             lock_path.set_file_name(format!(
-                ".~{}",
+                ".~lock.{}",
                 lock_path.file_name().unwrap().to_str().unwrap()
+            ));
+            // SAFETY: only a file can be specified here
+            lock_path.set_extension(format!(
+                "{}#",
+                lock_path.extension().unwrap().to_str().unwrap()
             ));
             let mut lock_file = LockFile::open(&lock_path).map_err(crate::Error::Locking)?;
             if !lock_file
