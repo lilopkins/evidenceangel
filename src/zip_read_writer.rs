@@ -4,18 +4,20 @@ use std::{
     path,
 };
 
-use getset::Setters;
+use fslock::LockFile;
 use zip::{ZipArchive, ZipWriter};
 
 /// A convenient type which can read and write to a ZIP file and cleanly switch between the two modes.
 ///
 /// Whilst writing, you can also read the previous file, as it writes to a new temporary file, until
 /// [`ZipReaderWriter::conclude_write`] is called.
-#[derive(Default, Setters)]
+#[derive(Default)]
 pub(crate) struct ZipReaderWriter {
     /// The path of this zip file, if set
-    #[getset(set = "pub")]
-    file: Option<path::PathBuf>,
+    path: Option<path::PathBuf>,
+    /// The locking file for this evidence package. If this is [`Some`],
+    /// you can be assured that the lock is obtained.
+    lock_file: Option<LockFile>,
     /// The reader, if in write mode, of this reader/writer
     reader: Option<ZipArchive<BufReader<fs::File>>>,
     /// The writer, if in write mode, of this reader/writer
@@ -25,7 +27,7 @@ pub(crate) struct ZipReaderWriter {
 impl Clone for ZipReaderWriter {
     fn clone(&self) -> Self {
         Self {
-            file: self.file.clone(),
+            path: self.path.clone(),
             ..Default::default()
         }
     }
@@ -41,19 +43,46 @@ impl fmt::Debug for ZipReaderWriter {
             "idle"
         };
         f.debug_struct("ZipReadWriter")
-            .field("file", &self.file)
+            .field("file", &self.path)
             .field("current_mode", &mode)
-            .finish()
+            .finish_non_exhaustive()
     }
 }
 
 impl ZipReaderWriter {
     /// Create a new [`ZipReaderWriter`] instance.
-    pub fn new(path: path::PathBuf) -> Self {
-        Self {
-            file: Some(path),
+    pub fn new(path: path::PathBuf) -> crate::Result<Self> {
+        let mut o = Self {
+            path: Some(path),
             ..Default::default()
+        };
+        o.update_lock_file()?;
+        Ok(o)
+    }
+
+    /// Update the locking file for this [`ZipReaderWriter`]. This will
+    /// either obtain it (if a path is set), drop it (if a path isn't
+    /// set), or will return a [`crate::Error::Locking`] error.
+    fn update_lock_file(&mut self) -> crate::Result<()> {
+        if let Some(path) = &self.path {
+            let mut lock_path = path.clone();
+            // SAFETY: only a file can be specified here
+            lock_path.set_file_name(format!(
+                ".~{}",
+                lock_path.file_name().unwrap().to_str().unwrap()
+            ));
+            let mut lock_file = LockFile::open(&lock_path).map_err(crate::Error::Locking)?;
+            if !lock_file
+                .try_lock_with_pid()
+                .map_err(crate::Error::Locking)?
+            {
+                return Err(crate::Error::LockNotObtained);
+            }
+            self.lock_file = Some(lock_file);
+        } else {
+            self.lock_file = None;
         }
+        Ok(())
     }
 
     /// Get this [`ZipReaderWriter`] instance in read mode.
@@ -66,7 +95,7 @@ impl ZipReaderWriter {
             // Open reader
             tracing::debug!("Opening reader");
             self.reader = Some(ZipArchive::new(BufReader::new(fs::File::open(
-                self.file
+                self.path
                     .as_ref()
                     .expect("zipreadwriter must not be called upon until file is set."),
             )?))?);
@@ -82,11 +111,14 @@ impl ZipReaderWriter {
         Option<&mut ZipArchive<BufReader<fs::File>>>,
         &mut ZipWriter<BufWriter<fs::File>>,
     )> {
+        if self.lock_file.is_none() {
+            return Err(crate::Error::LockNotObtained);
+        }
         if self.writer.is_none() {
             tracing::debug!("Opening writer");
             // Open writer
             self.writer = Some(ZipWriter::new(BufWriter::new(fs::File::create(
-                self.file
+                self.path
                     .as_ref()
                     .map(|p| {
                         let mut p = p.clone();
@@ -104,6 +136,9 @@ impl ZipReaderWriter {
 
     /// Conclude writing to the ZIP file and reset for reading or writing again.
     pub fn conclude_write(&mut self) -> crate::Result<()> {
+        if self.lock_file.is_none() {
+            return Err(crate::Error::LockNotObtained);
+        }
         if self.writer.is_some() {
             // Close write
             tracing::debug!("Closing writer");
@@ -116,7 +151,7 @@ impl ZipReaderWriter {
             // Move temp file
             tracing::debug!("Moving temp file to overwrite package");
             let tmp_path = self
-                .file
+                .path
                 .as_ref()
                 .map(|p| {
                     let mut p = p.clone();
@@ -126,7 +161,7 @@ impl ZipReaderWriter {
                 .expect("zipreadwriter must not be called upon until file is set.");
             fs::rename(
                 tmp_path,
-                self.file
+                self.path
                     .as_ref()
                     .expect("zipreadwriter must not be called upon until file is set."),
             )?;
@@ -136,6 +171,9 @@ impl ZipReaderWriter {
 
     /// Interrupt a write early, concluding the write and removing the temporary file.
     pub fn interrupt_write(&mut self) -> crate::Result<()> {
+        if self.lock_file.is_none() {
+            return Err(crate::Error::LockNotObtained);
+        }
         if self.writer.is_some() {
             // Close write
             tracing::debug!("Closing writer");
@@ -148,7 +186,7 @@ impl ZipReaderWriter {
             // Delete temp file
             tracing::debug!("Moving temp file to overwrite package");
             let tmp_path = self
-                .file
+                .path
                 .as_ref()
                 .map(|p| {
                     let mut p = p.clone();

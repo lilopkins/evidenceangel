@@ -180,7 +180,9 @@ See an example <uuid>.json file in (#example-test-case).
 
 The "custom" field is used to add custom metadata that has been
 specified in the package manifest's "custom_test_case_metadata" field.
-All values **MUST** be strings.
+If a value is specified in "custom", it **MUST** be present in the
+package manifest, but all values in the package manifest do not need to
+be present here. All values **MUST** be strings.
 
 #### "evidence" Array Element {#test-case-evidence}
 
@@ -224,6 +226,24 @@ number of files stored in an evidence package, however implementors
 an additional media file.
 
 # Handling an Evidence Package
+
+## Locking
+
+When loading an evidence package, implemetors **MUST** use a lock file
+with the file name ".~" followed by the full name of the package it
+protects, for example for a package called "example.evp", the lock file
+**MUST** be called ".~example.evp". It **MUST** be located adjacent (in
+the same directory as) the evidence package.
+
+The lock file should be considered as locking the package if:
+
+* the lock file is present, and;
+* the lock file contains a process ID.
+
+If either of these is not the case, it should be assumed that the there
+is no current lock over the package.
+
+## Media Loading
 
 Software implementing the evidence package format **MUST NOT** load
 files from the "media" directory into memory until it is needed for
