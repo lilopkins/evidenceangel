@@ -4,6 +4,7 @@ cancel = Cancel
 invalid-data = Invalid data
 select = Select
 undo = Undo
+documentation = Help Documentation
 
 header-new = New
 header-open = Open
@@ -96,6 +97,7 @@ add-evidence-image-label = Image Path
 add-evidence-image-caption-label = Image Caption (optional)
 add-evidence-image-failed = Failed to Add Image
 add-evidence-image-failed-message = Failed to add image to package: { $error }
+expand-image = View Image
 add-evidence-file-label = File Path
 add-evidence-file-caption-label = File Caption (optional)
 add-evidence-file-failed = Failed to Add File
