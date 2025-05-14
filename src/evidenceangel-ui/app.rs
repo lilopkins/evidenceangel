@@ -1779,6 +1779,10 @@ impl Component for AppModel {
                         .metadata_mut()
                         .custom_test_case_metadata_mut()
                         .remove(&key);
+                    // SAFETY: Doesn't fail internally
+                    for case in pkg.write().unwrap().test_case_iter_mut().unwrap() {
+                        case.metadata_mut().custom_mut().remove(&key);
+                    }
                     self.needs_saving = true;
                     // Remove from list
                     let mut custom_metadata = self.custom_metadata_editor_factory.guard();

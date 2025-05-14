@@ -544,6 +544,10 @@ pub fn process(path: PathBuf, command: &PackageSubcommand) -> CliData {
                         .metadata_mut()
                         .custom_test_case_metadata_mut()
                         .remove(field);
+                    // SAFETY: Doesn't fail internally
+                    for case in package.test_case_iter_mut().unwrap() {
+                        case.metadata_mut().custom_mut().remove(field);
+                    }
 
                     if let Err(e) = package.save() {
                         return CliError::FailedToSavePackage(Rc::new(e)).into();

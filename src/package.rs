@@ -413,7 +413,6 @@ impl EvidencePackage {
     /// # Errors
     ///
     /// Currently cannot fail.
-    #[deprecated = "Unused internally and doesn't return test cases sorted. Use `test_case_iter` instead, then for mutable access use `test_case_mut`."]
     pub fn test_case_iter_mut(&mut self) -> Result<impl Iterator<Item = &mut TestCase>> {
         Ok(self.test_case_data.values_mut())
     }
