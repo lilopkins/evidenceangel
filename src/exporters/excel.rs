@@ -1,5 +1,5 @@
 use angelmark::{AngelmarkLine, AngelmarkTableAlignment, AngelmarkText, parse_angelmark};
-use rust_xlsxwriter::{Format, FormatAlign, FormatBorder, Image, Workbook, Worksheet};
+use rust_xlsxwriter::{Format, FormatAlign, FormatBorder, Image, Note, Workbook, Worksheet};
 use uuid::Uuid;
 
 use crate::{EvidenceKind, EvidencePackage, TestCase, TestCasePassStatus};
@@ -27,8 +27,10 @@ impl Exporter for ExcelExporter {
         let mut workbook = Workbook::new();
         workbook.read_only_recommended();
 
-        // Create metadata sheet
         create_metadata_sheet(workbook.add_worksheet(), package)
+            .map_err(crate::Error::OtherExportError)?;
+
+        create_summary_sheet(workbook.add_worksheet(), package)
             .map_err(crate::Error::OtherExportError)?;
 
         let test_cases: Vec<&TestCase> = package.test_case_iter()?.collect();
@@ -97,6 +99,79 @@ fn create_metadata_sheet(
     row += 2;
     if let Some(description) = package.metadata().description() {
         worksheet.write_string(row, 1, description)?;
+    }
+
+    Ok(())
+}
+
+/// Create the worksheet for the test case summary
+fn create_summary_sheet(
+    worksheet: &mut Worksheet,
+    package: &EvidencePackage,
+) -> Result<(), Box<dyn std::error::Error>> {
+    tracing::debug!("Creating excel sheet for summary");
+    worksheet.set_name("Summary")?;
+    worksheet.set_screen_gridlines(false);
+    worksheet.set_column_width(0, 3)?; // To appear tidy
+
+    let mut row = 1;
+
+    let title = Format::new().set_bold().set_font_size(14);
+    let bold_bordered = Format::new().set_bold().set_border(FormatBorder::Thin);
+    let bordered = Format::new().set_border(FormatBorder::Thin);
+
+    // Write title and execution timestamp
+    worksheet.write_string_with_format(row, 1, "Summary", &title)?;
+    row += 2;
+
+    // Write header row
+    worksheet.write_string_with_format(row, 1, "Test Case", &bold_bordered)?;
+    worksheet.write_string_with_format(row, 2, "Executed At", &bold_bordered)?;
+    worksheet.write_string_with_format(row, 3, "Status", &bold_bordered)?;
+    let mut custom_keys = vec![];
+    if let Some(fields) = package.metadata().custom_test_case_metadata() {
+        let mut fields = fields.iter().collect::<Vec<_>>();
+        fields.sort_by(|(a, _), (b, _)| a.cmp(b));
+        for (idx, (key, field)) in fields.iter().enumerate() {
+            let col = u16::try_from(4 + idx)?;
+            custom_keys.push((*key).clone());
+            worksheet.write_string_with_format(row, col, field.name(), &bold_bordered)?;
+            if !field.description().is_empty() {
+                worksheet.insert_note(row, col, &Note::new(field.description()))?;
+            }
+        }
+    }
+    row += 1;
+
+    // Write data rows
+    for test_case in package.test_case_iter()? {
+        worksheet.write_string_with_format(row, 1, test_case.metadata().title(), &bordered)?;
+        worksheet.write_string_with_format(
+            row,
+            2,
+            test_case.metadata().execution_datetime().to_rfc3339(),
+            &bordered,
+        )?;
+        worksheet.write_string_with_format(
+            row,
+            3,
+            match test_case.metadata().passed() {
+                None => "",
+                Some(TestCasePassStatus::Pass) => "Pass",
+                Some(TestCasePassStatus::Fail) => "Fail",
+            },
+            &bordered,
+        )?;
+        for (idx, key) in custom_keys.iter().enumerate() {
+            let col = u16::try_from(4 + idx)?;
+            worksheet.write_string_with_format(row, col, "", &bordered)?;
+            if let Some(custom) = test_case.metadata().custom() {
+                if let Some(data) = custom.get(key) {
+                    worksheet.write_string_with_format(row, col, data, &bordered)?;
+                }
+            }
+        }
+        row += 1;
     }
 
     Ok(())

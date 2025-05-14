@@ -169,6 +169,15 @@
                     KeyPath='yes' />
             </Component>
 
+            <Component Id='binary2' Guid='7EA7E21E-6E16-443A-9AD6-4752A2CC6FFB'>
+                <File
+                    Id='ExeUiConsole'
+                    Name='evidenceangel-ui-console.exe'
+                    DiskId='1'
+                    Source='$(var.CargoTargetBinDir)\evidenceangel-ui-console.exe'
+                    KeyPath='yes' />
+            </Component>
+
             <Component Id='FileAssociationsPerMachine' Guid='119429FD-9F07-4D6A-9426-90FC8B519E50'>
                 <Condition>ALLUSERS=1</Condition>
                 <RegistryKey Root='HKLM' Key='Software\AngelSuite\EvidenceAngel'>
@@ -270,6 +279,7 @@
             <ComponentRef Id='License' />
             <ComponentRef Id='binary0' />
             <ComponentRef Id='binary1' />
+            <ComponentRef Id='binary2' />
             <ComponentRef Id='ApplicationShortcutStartMenu' />
             <!-- GTK_COMPONENT_REFS_HERE -->
 

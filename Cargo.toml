@@ -1,7 +1,7 @@
 [package]
 name = "evidenceangel"
 description = "Library and executables to work with EvidenceAngel evidence packages (*.evp)."
-version = "1.5.0-rc.1"
+version = "1.5.0-rc.2"
 edition = "2024"
 license = "GPL-3.0-or-later"
 authors = [
@@ -49,7 +49,9 @@ ui = [
     "dep:relm4",
     "dep:relm4-icons",
     "dep:sys-locale",
+    "dep:tempfile",
     "dep:tracing-subscriber-multi",
+    "dep:tracing-panic",
     "exporter-html",
     "exporter-excel",
     "exporter-zip-of-files",
@@ -86,8 +88,10 @@ serde = { version = "1.0.200", features = ["derive"] }
 serde_json = "1.0.116"
 sha256 = "1.5.0"
 sys-locale = { version = "0.3.1", optional = true }
+tempfile = { version = "3.20.0", optional = true }
 thiserror = "2.0.4"
 tracing = "0.1.41"
+tracing-panic = { version = "0.1.2", optional = true }
 tracing-subscriber = { version = "0.3.19", optional = true }
 tracing-subscriber-multi = { version = "0.1.0", optional = true }
 uuid = { version = "1.8.0", features = ["v4", "fast-rng", "serde"] }

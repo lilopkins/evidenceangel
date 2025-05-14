@@ -1,5 +1,6 @@
 use std::{
     cmp::Ordering,
+    fs,
     sync::{Arc, Mutex, RwLock},
 };
 
@@ -18,6 +19,7 @@ use relm4::{
     gtk,
     prelude::{DynamicIndex, FactoryComponent},
 };
+use tempfile::NamedTempFile;
 
 use crate::util::BoxedEvidenceJson;
 use crate::{lang, lang_args};
@@ -33,6 +35,7 @@ pub struct EvidenceFactoryModel {
     index: DynamicIndex,
     evidence: Arc<RwLock<Evidence>>,
     package: Arc<RwLock<EvidencePackage>>,
+    temp_files: Vec<NamedTempFile>,
 }
 
 impl EvidenceFactoryModel {
@@ -82,6 +85,8 @@ pub enum EvidenceFactoryInput {
     HttpSetResponse(String),
     /// Set the caption for this evidence.
     SetCaption(String),
+    /// Enlarge this image
+    ImageEnlarge,
     MoveUp,
     MoveDown,
     Delete,
@@ -214,6 +219,7 @@ impl FactoryComponent for EvidenceFactoryModel {
             index: index.clone(),
             evidence: Arc::new(RwLock::new(evidence)),
             package,
+            temp_files: vec![],
         }
     }
 
@@ -469,6 +475,20 @@ impl FactoryComponent for EvidenceFactoryModel {
                 img.set_hexpand(true);
                 img.set_height_request(EVIDENCE_HEIGHT_REQUEST);
                 widgets.evidence_child.append(&img);
+
+                let expand = gtk::Button::new();
+                expand.set_label(&lang::lookup("expand-image"));
+                expand.add_css_class("flat");
+                expand.set_halign(gtk::Align::Center);
+                expand.set_margin_top(4);
+                let sender = sender.clone();
+                expand.connect_clicked(move |_btn| {
+                    sender.input(EvidenceFactoryInput::ImageEnlarge);
+                });
+                widgets.evidence_child.append(&expand);
+                widgets
+                    .evidence_child
+                    .set_orientation(gtk::Orientation::Vertical);
             }
             EvidenceKind::Http => {
                 let data = self.get_data_as_string();
@@ -552,6 +572,28 @@ impl FactoryComponent for EvidenceFactoryModel {
 
     fn update(&mut self, message: Self::Input, sender: FactorySender<Self>) {
         match message {
+            EvidenceFactoryInput::ImageEnlarge => {
+                let data = self.get_data();
+                // Create temporary file for image
+                let maybe_extension = infer::get(&data).map(|ty| ty.extension());
+                let maybe_tempfile = if let Some(ext) = maybe_extension {
+                    NamedTempFile::with_suffix(format!(".{ext}"))
+                } else {
+                    NamedTempFile::new()
+                };
+                tracing::debug!("Temp file: {maybe_tempfile:?}");
+                if let Ok(file) = maybe_tempfile {
+                    if let Err(e) = fs::write(&file, data.clone()) {
+                        tracing::error!("Failed to write image data to temp file! ({e})");
+                        return;
+                    }
+
+                    // Trigger OS to open
+                    open::that_in_background(file.path());
+
+                    self.temp_files.push(file);
+                }
+            }
             EvidenceFactoryInput::SetCaption(new_caption) => {
                 self.evidence
                     .write()

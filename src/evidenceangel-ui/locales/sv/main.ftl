@@ -4,6 +4,7 @@ cancel = Avbryt
 invalid-data = Ogiltiga data
 select = Välj
 undo = Ångra
+documentation = Hjälpdokumentation
 
 header-new = Ny
 header-open = Öppna
@@ -96,6 +97,7 @@ add-evidence-image-label = Bildsökväg
 add-evidence-image-caption-label = Bildrubrik (valfritt)
 add-evidence-image-failed = Misslyckades att Lägg till Bild
 add-evidence-image-failed-message = Misslyckades att lägga till bild i paketet: { $error }
+expand-image = Förstora bild
 add-evidence-file-label = Filsökväg
 add-evidence-file-caption-label = Filrubrik (valfritt)
 add-evidence-file-failed = Misslyckades att Lägg till fil

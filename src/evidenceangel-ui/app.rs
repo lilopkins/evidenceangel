@@ -983,7 +983,10 @@ impl Component for AppModel {
         let evidence_list = model.test_evidence_factory.widget();
         let widgets = view_output!();
         if cfg!(debug_assertions) {
-            root.add_css_class("devel");
+            // Allow this to make documentation writing easier
+            if !std::env::var("EA_HIDE_DEBUG_BANNER").is_ok_and(|v| !v.is_empty()) {
+                root.add_css_class("devel");
+            }
         }
 
         if let Some(file) = init {
@@ -2221,7 +2224,7 @@ impl Component for AppModel {
                         toast.set_timeout(5);
                         toast.set_button_label(Some(&lang::lookup("header-open")));
                         toast.connect_button_clicked(move |_| {
-                            let _ = open::that(path.clone());
+                            open::that_in_background(path.clone());
                         });
                         widgets.toast_target.add_toast(toast);
                     }
@@ -2274,7 +2277,7 @@ impl Component for AppModel {
                             toast.set_timeout(5);
                             toast.set_button_label(Some(&lang::lookup("header-open")));
                             toast.connect_button_clicked(move |_| {
-                                let _ = open::that(path.clone());
+                                open::that_in_background(path.clone());
                             });
                             widgets.toast_target.add_toast(toast);
                         }

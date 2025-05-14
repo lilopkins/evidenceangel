@@ -807,7 +807,7 @@ dependencies = [
 
 [[package]]
 name = "evidenceangel"
-version = "1.5.0-rc.1"
+version = "1.5.0-rc.2"
 dependencies = [
  "angelmark",
  "base64",
@@ -838,8 +838,10 @@ dependencies = [
  "serde_json",
  "sha256",
  "sys-locale",
+ "tempfile",
  "thiserror 2.0.12",
  "tracing",
+ "tracing-panic",
  "tracing-subscriber",
  "tracing-subscriber-multi",
  "uuid",
@@ -3331,9 +3333,9 @@ checksum = "61c41af27dd6d1e27b1b16b489db798443478cef1f06a660c96db617ba5de3b1"
 
 [[package]]
 name = "tempfile"
-version = "3.19.1"
+version = "3.20.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7437ac7763b9b123ccf33c338a5cc1bac6f69b45a136c19bdd8a65e3916435bf"
+checksum = "e8a64e3985349f2441a1a9ef0b853f869006c3855f2cda6862a94d26ebb9d6a1"
 dependencies = [
  "fastrand",
  "getrandom 0.3.2",
@@ -3581,6 +3583,16 @@ dependencies = [
  "log",
  "once_cell",
  "tracing-core",
+]
+
+[[package]]
+name = "tracing-panic"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7bf1298a179837099f9309243af3b554e840f7f67f65e9f55294913299bd4cc5"
+dependencies = [
+ "tracing",
+ "tracing-subscriber",
 ]
 
 [[package]]
