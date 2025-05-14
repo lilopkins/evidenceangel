@@ -74,6 +74,12 @@ fn main() {
     tracing::subscriber::set_global_default(subscriber).expect("failed to initialise logger");
     tracing::info!("Log path: {log_path:?}");
 
+    let prev_hook = std::panic::take_hook();
+    std::panic::set_hook(Box::new(move |panic_info| {
+        tracing_panic::panic_hook(panic_info);
+        prev_hook(panic_info);
+    }));
+
     let cli = Args::parse();
 
     let app = RelmApp::new("uk.hpkns.EvidenceAngel");
