@@ -251,8 +251,8 @@ pub enum AppInput {
         key: String,
     },
     MakeFieldPrimary {
-        index: DynamicIndex,
-        key: String,
+        index: Option<DynamicIndex>,
+        key: Option<String>,
     },
     TrySetExecutionDateTime(String),
     ValidateExecutionDateTime(String),
@@ -1723,6 +1723,21 @@ impl Component for AppModel {
                 description,
             } => {
                 if let Some(pkg) = self.get_package() {
+                    if let Some(k) = &key {
+                        if pkg
+                            .read()
+                            .unwrap()
+                            .metadata()
+                            .custom_test_case_metadata()
+                            .as_ref()
+                            .is_some_and(|m| m.contains_key(k))
+                        {
+                            tracing::warn!("Key already exists!");
+                            // ? Do we need to do something to show in the UI here?
+                            return;
+                        }
+                    }
+
                     let (key, field) = pkg
                         .write()
                         .unwrap()
@@ -1764,6 +1779,10 @@ impl Component for AppModel {
                         .metadata_mut()
                         .custom_test_case_metadata_mut()
                         .remove(&key);
+                    // SAFETY: Doesn't fail internally
+                    for case in pkg.write().unwrap().test_case_iter_mut().unwrap() {
+                        case.metadata_mut().custom_mut().remove(&key);
+                    }
                     self.needs_saving = true;
                     // Remove from list
                     let mut custom_metadata = self.custom_metadata_editor_factory.guard();
@@ -1780,17 +1799,19 @@ impl Component for AppModel {
                         .custom_test_case_metadata_mut()
                         .iter_mut()
                         .for_each(|(k, f)| {
-                            f.set_primary(**k == key);
+                            f.set_primary(key.as_ref().is_some_and(|k2| k2 == k));
                         });
                     self.needs_saving = true;
                     // Update list
                     let custom_metadata = self.custom_metadata_editor_factory.guard();
                     custom_metadata
                         .broadcast(CustomMetadataEditorFactoryInput::UpdatePrimary(false));
-                    custom_metadata.send(
-                        index.current_index(),
-                        CustomMetadataEditorFactoryInput::UpdatePrimary(true),
-                    );
+                    if let Some(index) = index {
+                        custom_metadata.send(
+                            index.current_index(),
+                            CustomMetadataEditorFactoryInput::UpdatePrimary(true),
+                        );
+                    }
                 }
                 // Update nav menu values
                 self.update_nav_menu().unwrap();
