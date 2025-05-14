@@ -10,7 +10,7 @@
 #![allow(clippy::cast_sign_loss)]
 #![allow(clippy::wildcard_imports)]
 
-use std::{env, path::PathBuf, sync::Mutex};
+use std::{env, fs, path::PathBuf, sync::Mutex};
 
 use clap::Parser;
 use directories::ProjectDirs;
@@ -47,7 +47,11 @@ struct Args {
 fn main() {
     let dirs = ProjectDirs::from("uk.hpkns", "AngelSuite", "EvidenceAngel")
         .expect("Failed to get directories");
+    if let Err(e) = fs::create_dir_all(dirs.cache_dir()) {
+        tracing::warn!("Failed to create cache dir (for logs)! {e}");
+    }
 
+    let log_path = dirs.cache_dir().join("evidenceangel.log");
     let subscriber = FmtSubscriber::builder()
         .with_max_level(
             if cfg!(debug_assertions) || env::var("EA_DEBUG").is_ok_and(|v| !v.is_empty()) {
@@ -60,7 +64,7 @@ fn main() {
         .with_writer(Mutex::new(DualWriter::new(
             std::io::stderr(),
             AnsiStripper::new(RotatingFile::new(
-                dirs.cache_dir().join("evidenceangel.log"),
+                &log_path,
                 AppendCount::new(3),
                 ContentLimit::Lines(1000),
                 Compression::OnRotate(0),
@@ -68,6 +72,7 @@ fn main() {
         )))
         .finish();
     tracing::subscriber::set_global_default(subscriber).expect("failed to initialise logger");
+    tracing::info!("Log path: {log_path:?}");
 
     let cli = Args::parse();
 
