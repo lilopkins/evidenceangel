@@ -1,5 +1,7 @@
 use std::{
-    cmp::Ordering, fs, sync::{Arc, Mutex, RwLock}
+    cmp::Ordering,
+    fs,
+    sync::{Arc, Mutex, RwLock},
 };
 
 use adw::prelude::*;
@@ -484,7 +486,9 @@ impl FactoryComponent for EvidenceFactoryModel {
                     sender.input(EvidenceFactoryInput::ImageEnlarge);
                 });
                 widgets.evidence_child.append(&expand);
-                widgets.evidence_child.set_orientation(gtk::Orientation::Vertical);
+                widgets
+                    .evidence_child
+                    .set_orientation(gtk::Orientation::Vertical);
             }
             EvidenceKind::Http => {
                 let data = self.get_data_as_string();

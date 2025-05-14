@@ -146,8 +146,22 @@ fn create_summary_sheet(
     // Write data rows
     for test_case in package.test_case_iter()? {
         worksheet.write_string_with_format(row, 1, test_case.metadata().title(), &bordered)?;
-        worksheet.write_string_with_format(row, 2, test_case.metadata().execution_datetime().to_rfc3339(), &bordered)?;
-        worksheet.write_string_with_format(row, 3, match test_case.metadata().passed() { None => "", Some(TestCasePassStatus::Pass) => "Pass", Some(TestCasePassStatus::Fail) => "Fail", }, &bordered)?;
+        worksheet.write_string_with_format(
+            row,
+            2,
+            test_case.metadata().execution_datetime().to_rfc3339(),
+            &bordered,
+        )?;
+        worksheet.write_string_with_format(
+            row,
+            3,
+            match test_case.metadata().passed() {
+                None => "",
+                Some(TestCasePassStatus::Pass) => "Pass",
+                Some(TestCasePassStatus::Fail) => "Fail",
+            },
+            &bordered,
+        )?;
         for (idx, key) in custom_keys.iter().enumerate() {
             let col = u16::try_from(4 + idx)?;
             worksheet.write_string_with_format(row, col, "", &bordered)?;
