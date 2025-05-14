@@ -207,9 +207,11 @@ jobs:
           LIB="${{ steps.wingtk-install.outputs.BASE_DIR }}/lib:$LIB"
           INCLUDE="${{ steps.wingtk-install.outputs.BASE_DIR }}/include:${{ steps.wingtk-install.outputs.BASE_DIR }}/include/cairo:${{ steps.wingtk-install.outputs.BASE_DIR }}/include/glib-2.0:${{ steps.wingtk-install.outputs.BASE_DIR }}/include/gobject-introspection-1.0:${{ steps.wingtk-install.outputs.BASE_DIR }}/lib/glib-2.0/include:$INCLUDE"
           PKG_CONFIG_PATH="${{ steps.wingtk-install.outputs.BASE_DIR }}/lib/pkgconfig:$PKG_CONFIG_PATH"
-          echo Building executables...
+          echo Rearranging executables...
+          cp bundle/bin/${{ env.EXECUTABLE_NAME }}-${{ matrix.platform.file_suffix }}.exe target/release/evidenceangel-ui.exe
+          cp bundle/bin/${{ env.EXECUTABLE_NAME }}-console-${{ matrix.platform.file_suffix }}.exe target/release/evidenceangel-ui-console.exe
+          echo Building CLI executable...
           cargo build --release -F cli --bin evidenceangel-cli
-          cargo build --release -F ui --bin evidenceangel-ui
 
           echo Generating Wix script...
           rm -rf ${{ steps.wingtk-install.outputs.BASE_DIR }}/include
