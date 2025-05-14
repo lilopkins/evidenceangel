@@ -1723,6 +1723,21 @@ impl Component for AppModel {
                 description,
             } => {
                 if let Some(pkg) = self.get_package() {
+                    if let Some(k) = &key {
+                        if pkg
+                            .read()
+                            .unwrap()
+                            .metadata()
+                            .custom_test_case_metadata()
+                            .as_ref()
+                            .is_some_and(|m| m.contains_key(k))
+                        {
+                            tracing::warn!("Key already exists!");
+                            // ? Do we need to do something to show in the UI here?
+                            return;
+                        }
+                    }
+
                     let (key, field) = pkg
                         .write()
                         .unwrap()

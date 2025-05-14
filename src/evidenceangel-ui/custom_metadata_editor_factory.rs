@@ -170,8 +170,16 @@ impl FactoryComponent for CustomMetadataEditorFactoryModel {
             }
             CustomMetadataEditorFactoryInput::MakeSelfPrimary => {
                 let _ = sender.output(CustomMetadataEditorFactoryOutput::MakeFieldPrimary {
-                    index: if self.primary { None } else { Some(self.index.clone()) },
-                    key: if self.primary { None } else { Some(self.key.clone()) },
+                    index: if self.primary {
+                        None
+                    } else {
+                        Some(self.index.clone())
+                    },
+                    key: if self.primary {
+                        None
+                    } else {
+                        Some(self.key.clone())
+                    },
                 });
             }
             CustomMetadataEditorFactoryInput::DeleteSelf => {
