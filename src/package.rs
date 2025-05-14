@@ -95,30 +95,30 @@ impl fmt::Debug for EvidencePackage {
 impl EvidencePackage {
     /// Create a new evidence package.
     ///
-    /// # Panics
-    ///
-    /// All the potential panics are checked statically ahead of time, so should never trigger at runtime.
-    ///
     /// # Errors
     ///
     /// - [`Error::Io`] if the evp couldn't be written at all.
     /// - [`Error::Zip`] if the evp file couldn't be written correctly.
     /// - [`Error::ManifestSchemaValidationFailed`] if the manifest is invalid.
+    #[allow(
+        clippy::missing_panics_doc,
+        reason = "panics have been statically validated to never occur"
+    )]
     pub fn new(path: PathBuf, title: String, authors: Vec<Author>) -> Result<Self> {
         Self::new_with_description(path, title, None, authors)
     }
 
     /// Create a new evidence package with a specified description.
     ///
-    /// # Panics
-    ///
-    /// All the potential panics are checked statically ahead of time, so should never trigger at runtime.
-    ///
     /// # Errors
     ///
     /// - [`Error::Io`] if the evp couldn't be written at all.
     /// - [`Error::Zip`] if the evp file couldn't be written correctly.
     /// - [`Error::ManifestSchemaValidationFailed`] if the manifest is invalid.
+    #[allow(
+        clippy::missing_panics_doc,
+        reason = "panics have been statically validated to never occur"
+    )]
     pub fn new_with_description(
         path: PathBuf,
         title: String,
@@ -127,7 +127,7 @@ impl EvidencePackage {
     ) -> Result<Self> {
         // Create manifest data.
         let mut manifest = Self {
-            zip: ZipReaderWriter::new(path),
+            zip: ZipReaderWriter::new(path)?,
             media_data: HashMap::new(),
             test_case_data: HashMap::new(),
 
@@ -307,7 +307,7 @@ impl EvidencePackage {
     /// - [`Error::TestCaseSchemaValidationFailed`] if one of the test case manifests fails schema validation.
     pub fn open(path: PathBuf) -> Result<Self> {
         // Open ZIP file
-        let mut zip_rw = ZipReaderWriter::new(path);
+        let mut zip_rw = ZipReaderWriter::new(path)?;
         let zip = zip_rw.as_reader()?;
 
         // Read manifest
@@ -382,7 +382,7 @@ impl EvidencePackage {
     /// Clone fields that will be serialized by serde
     fn clone_serde(&self) -> Self {
         Self {
-            zip: ZipReaderWriter::new(PathBuf::new()),
+            zip: ZipReaderWriter::default(),
             media_data: HashMap::new(),
             test_case_data: HashMap::new(),
 

@@ -38,6 +38,7 @@ impl SimpleComponent for AppAbout {
             add_legal_section: ("directories",              None, gtk::License::MitX11,    None),
             add_legal_section: ("fluent",                   None, gtk::License::MitX11,    None),
             add_legal_section: ("fluent-templates",         None, gtk::License::MitX11,    None),
+            add_legal_section: ("fslock",                   None, gtk::License::MitX11,    None),
             add_legal_section: ("getset",                   None, gtk::License::MitX11,    None),
             add_legal_section: ("html-escape",              None, gtk::License::MitX11,    None),
             add_legal_section: ("infer",                    None, gtk::License::MitX11,    None),

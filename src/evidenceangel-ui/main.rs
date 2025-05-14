@@ -83,7 +83,8 @@ fn main() {
     let cli = Args::parse();
 
     let app = RelmApp::new("uk.hpkns.EvidenceAngel");
-    relm4::main_application().set_flags(ApplicationFlags::HANDLES_OPEN);
+    relm4::main_application()
+        .set_flags(ApplicationFlags::HANDLES_OPEN | ApplicationFlags::NON_UNIQUE);
     relm4::main_application().connect_open(|_app, _files, _hint| {
         // nothing to do, this is handled by clap...
     });
