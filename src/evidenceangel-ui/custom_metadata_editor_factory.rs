@@ -51,8 +51,10 @@ pub enum CustomMetadataEditorFactoryOutput {
         key: String,
     },
     MakeFieldPrimary {
-        index: DynamicIndex,
-        key: String,
+        /// None to unset primary
+        index: Option<DynamicIndex>,
+        /// None to unset primary
+        key: Option<String>,
     },
 }
 
@@ -95,8 +97,6 @@ impl FactoryComponent for CustomMetadataEditorFactoryModel {
                     } else {
                         relm4_icons::icon_names::CHECKMARK_STARBURST_REGULAR
                     },
-                    #[watch]
-                    set_sensitive: !self.primary,
                     set_tooltip: &lang::lookup("custom-metadata-promote"),
                     add_css_class: "flat",
 
@@ -170,8 +170,8 @@ impl FactoryComponent for CustomMetadataEditorFactoryModel {
             }
             CustomMetadataEditorFactoryInput::MakeSelfPrimary => {
                 let _ = sender.output(CustomMetadataEditorFactoryOutput::MakeFieldPrimary {
-                    index: self.index.clone(),
-                    key: self.key.clone(),
+                    index: if self.primary { None } else { Some(self.index.clone()) },
+                    key: if self.primary { None } else { Some(self.key.clone()) },
                 });
             }
             CustomMetadataEditorFactoryInput::DeleteSelf => {

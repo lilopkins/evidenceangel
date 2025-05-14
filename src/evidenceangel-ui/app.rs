@@ -251,8 +251,8 @@ pub enum AppInput {
         key: String,
     },
     MakeFieldPrimary {
-        index: DynamicIndex,
-        key: String,
+        index: Option<DynamicIndex>,
+        key: Option<String>,
     },
     TrySetExecutionDateTime(String),
     ValidateExecutionDateTime(String),
@@ -1780,17 +1780,19 @@ impl Component for AppModel {
                         .custom_test_case_metadata_mut()
                         .iter_mut()
                         .for_each(|(k, f)| {
-                            f.set_primary(**k == key);
+                            f.set_primary(key.as_ref().is_some_and(|k2| k2 == k));
                         });
                     self.needs_saving = true;
                     // Update list
                     let custom_metadata = self.custom_metadata_editor_factory.guard();
                     custom_metadata
                         .broadcast(CustomMetadataEditorFactoryInput::UpdatePrimary(false));
-                    custom_metadata.send(
-                        index.current_index(),
-                        CustomMetadataEditorFactoryInput::UpdatePrimary(true),
-                    );
+                    if let Some(index) = index {
+                        custom_metadata.send(
+                            index.current_index(),
+                            CustomMetadataEditorFactoryInput::UpdatePrimary(true),
+                        );
+                    }
                 }
                 // Update nav menu values
                 self.update_nav_menu().unwrap();
