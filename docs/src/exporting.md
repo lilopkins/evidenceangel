@@ -3,8 +3,8 @@
 One of the key benefits to using EvidenceAngel is that [_evidence
 packages_](./glossary.md#evidence-package) and [_test
 cases_](./glossary.md#test-case) can be exported to common formats for
-other people to view the data. This means that not everyone who might
-need to review the evidence needs to have EvidenceAngel.
+other people to view the data. This means that reviewers don't
+necessarily need to have EvidenceAngel.
 
 To export data:
 
@@ -28,5 +28,5 @@ if needed!
 1. Press "Export" (note that this might say "Save and Export" if the
    package needs saving, or "Overwrite" if the export target file
    already exists).
-1. A confirmation appears. If you wish, you can open the exported file
-   by clicking "Open".
+1. A confirmation message appears. If you wish, you can open the
+   exported file by clicking "Open".

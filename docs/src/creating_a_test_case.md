@@ -10,7 +10,7 @@ case_](./glossary.html#test-case):
 1. A new _test case_ is created and opened.
 
    ![The new test case open on screen](./images/creating_a_test_case/2_new_test_case.png)
-1. You can rename the _test case_ and change it's execution time in the
+1. You can rename the _test case_ and change its execution time in the
    text boxes at the top. You can also set if it has passed/failed, and,
    if you have [set up custom metadata
    fields](./creating_a_package.md#custom-metadata-fields), you can
@@ -33,3 +33,9 @@ To delete a _test case_:
 
    ![the test case actions menu](./images/creating_a_test_case/5_test_case_actions.png)
 1. Select "Delete Test Case".
+
+## Manipulating Test Cases
+
+You can also reorder test cases by drag-and-drop, or by clicking the
+arrow in the top right of the test case and selecting "Move Up" or "Move
+Down". You can also duplicate test cases from this menu.
