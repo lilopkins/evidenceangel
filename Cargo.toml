@@ -97,6 +97,9 @@ tracing-subscriber-multi = { version = "0.1.0", optional = true }
 uuid = { version = "1.8.0", features = ["v4", "fast-rng", "serde"] }
 zip = "2.4.1"
 
+[target.'cfg(windows)'.dependencies]
+winapi = "0.3.9"
+
 [target.'cfg(windows)'.build-dependencies]
 winresource = "0.1"
 ico-builder = "0.1"

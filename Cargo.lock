@@ -845,6 +845,7 @@ dependencies = [
  "tracing-subscriber",
  "tracing-subscriber-multi",
  "uuid",
+ "winapi",
  "winresource",
  "zip",
 ]

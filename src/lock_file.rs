@@ -27,6 +27,17 @@ impl LockFile {
         file.write_all(process::id().to_string().as_bytes())?;
         file.flush()?;
 
+        #[cfg(windows)]
+        {
+            use std::os::windows::ffi::OsStrExt;
+            use winapi::um::fileapi::SetFileAttributesW;
+            use winapi::um::winnt::FILE_ATTRIBUTE_HIDDEN;
+
+            let path = path.as_ref();
+            let wide_path: Vec<u16> = path.as_os_str().encode_wide().chain(std::iter::once(0)).collect();
+            let _res = unsafe { SetFileAttributesW(wide_path.as_ptr(), FILE_ATTRIBUTE_HIDDEN) };
+        }
+
         Ok(LockFile {
             path: path.as_ref().to_path_buf(),
             _file: file,
