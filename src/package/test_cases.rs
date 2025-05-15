@@ -148,6 +148,28 @@ impl Evidence {
             extra_fields: HashMap::new(),
         }
     }
+
+    /// Get the data internal to this evidence as a byte array.
+    ///
+    /// # Panics
+    ///
+    /// In most cases, this can be seen as infallible.
+    ///
+    /// However, this will panic if the internal structure of the
+    /// evidence package is invalid, in this case if the data refers to
+    /// a media item that doesn't exist.
+    pub fn data(&self, pkg: &mut super::EvidencePackage) -> Vec<u8> {
+        match self.value() {
+            EvidenceData::Text { content } => content.as_bytes().to_vec(),
+            EvidenceData::Base64 { data } => data.clone(),
+            EvidenceData::Media { hash } => {
+                tracing::debug!("Fetching media with hash {hash}");
+                let media = pkg.get_media(hash).ok().flatten();
+                tracing::debug!("Got media {media:?}");
+                media.unwrap().data().clone()
+            }
+        }
+    }
 }
 
 /// Kinds of [`Evidence`].

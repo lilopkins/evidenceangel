@@ -98,6 +98,7 @@ add-evidence-image-caption-label = Image Caption (optional)
 add-evidence-image-failed = Failed to Add Image
 add-evidence-image-failed-message = Failed to add image to package: { $error }
 expand-image = View Image
+expand-file = View File
 add-evidence-file-label = File Path
 add-evidence-file-caption-label = File Caption (optional)
 add-evidence-file-failed = Failed to Add File

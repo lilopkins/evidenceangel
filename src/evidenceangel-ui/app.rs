@@ -1,7 +1,4 @@
-use std::{
-    path::PathBuf,
-    sync::Arc,
-};
+use std::{path::PathBuf, sync::Arc};
 
 use adw::prelude::*;
 use evidenceangel::{
@@ -1228,12 +1225,7 @@ impl Component for AppModel {
                         let pkg_fields = self
                             .open_package
                             .as_ref()
-                            .map(|pkg| {
-                                pkg.read()
-                                    .metadata()
-                                    .custom_test_case_metadata()
-                                    .clone()
-                            })
+                            .map(|pkg| pkg.read().metadata().custom_test_case_metadata().clone())
                             .expect("Cannot navigate to metadata when no package is open");
                         if let Some(fields) = &pkg_fields {
                             let mut fields: Vec<_> = fields.iter().collect();
@@ -1472,13 +1464,13 @@ impl Component for AppModel {
             }
             AppInput::SetMetadataDescription(new_desc) => {
                 if let Some(pkg) = self.get_package() {
-                    pkg.write().metadata_mut().set_description(
-                        if new_desc.trim().is_empty() {
+                    pkg.write()
+                        .metadata_mut()
+                        .set_description(if new_desc.trim().is_empty() {
                             None
                         } else {
                             Some(new_desc)
-                        },
-                    );
+                        });
                     self.needs_saving = true;
                 }
             }
@@ -1608,10 +1600,7 @@ impl Component for AppModel {
                         .iter()
                         .position(|a| *a == author)
                         .unwrap();
-                    pkg.write()
-                        .metadata_mut()
-                        .authors_mut()
-                        .remove(idx);
+                    pkg.write().metadata_mut().authors_mut().remove(idx);
                     self.needs_saving = true;
                     // refresh author list
                     let mut authors = self.authors_factory.guard();
@@ -1630,8 +1619,7 @@ impl Component for AppModel {
                     widgets.test_title_error_popover.set_visible(false);
                     if let OpenCase::Case { index, id, .. } = &self.open_case {
                         if let Some(pkg) = self.get_package() {
-                            if let Some(tc) = pkg.write().test_case_mut(*id).ok().flatten()
-                            {
+                            if let Some(tc) = pkg.write().test_case_mut(*id).ok().flatten() {
                                 tc.metadata_mut().set_title(new_title.clone());
                                 self.needs_saving = true;
                                 self.test_case_nav_factory
@@ -1736,10 +1724,12 @@ impl Component for AppModel {
                         }
                     }
 
-                    let (key, field) = pkg
-                        .write()
-                        .metadata_mut()
-                        .insert_custom_metadata_field(key, name, description, false);
+                    let (key, field) = pkg.write().metadata_mut().insert_custom_metadata_field(
+                        key,
+                        name,
+                        description,
+                        false,
+                    );
                     self.needs_saving = true;
                     // Add to list
                     let mut custom_metadata = self.custom_metadata_editor_factory.guard();
@@ -1817,9 +1807,7 @@ impl Component for AppModel {
 
                         if let OpenCase::Case { id, .. } = &self.open_case {
                             if let Some(pkg) = self.get_package() {
-                                if let Some(tc) =
-                                    pkg.write().test_case_mut(*id).ok().flatten()
-                                {
+                                if let Some(tc) = pkg.write().test_case_mut(*id).ok().flatten() {
                                     tc.metadata_mut().set_execution_datetime(dt);
                                     self.needs_saving = true;
                                 }
