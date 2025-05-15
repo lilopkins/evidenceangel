@@ -70,7 +70,7 @@ impl ZipReaderWriter {
                 crate::Error::LockNotObtained
             })
         } else {
-            return Err(crate::Error::LockNotObtained);
+            Err(crate::Error::LockNotObtained)
         }
     }
 

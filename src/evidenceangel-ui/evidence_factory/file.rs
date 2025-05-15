@@ -2,20 +2,19 @@ use std::{fs, sync::Arc};
 
 use evidenceangel::{Evidence, EvidencePackage};
 use gtk::prelude::*;
-use infer::MatcherType;
 use parking_lot::RwLock;
 use relm4::{
     Component, ComponentParts, ComponentSender,
     gtk::{self, prelude::OrientableExt},
 };
-use tempfile::NamedTempFile;
+use tempfile::TempDir;
 
 use crate::{lang, lang_args};
 
 pub struct ComponentModel {
     package: Arc<RwLock<EvidencePackage>>,
     evidence: Evidence,
-    temp_files: Vec<NamedTempFile>,
+    temp_files: Vec<TempDir>,
 }
 
 #[derive(Debug)]
@@ -102,29 +101,33 @@ impl Component for ComponentModel {
         match message {
             ComponentInput::Internal(ComponentInputInternal::Preview) => {
                 let mut pkg = self.package.write();
-                // Create temporary file
-                let maybe_type = infer::get(&self.evidence.data(&mut pkg));
-                if maybe_type.is_some_and(|ty| ty.matcher_type() == MatcherType::App) {
-                    tracing::warn!("Not running file as seems to be executable!");
-                    return;
-                }
-                let maybe_extension = maybe_type.map(|ty| ty.extension());
-                let maybe_tempfile = if let Some(ext) = maybe_extension {
-                    NamedTempFile::with_suffix(format!(".{ext}"))
-                } else {
-                    NamedTempFile::new()
-                };
-                tracing::debug!("Temp file: {maybe_tempfile:?}");
-                if let Ok(file) = maybe_tempfile {
-                    if let Err(e) = fs::write(&file, self.evidence.data(&mut pkg).clone()) {
+                // Create temporary directory
+                if let Ok(target_dir) = tempfile::tempdir() {
+                    let target_file = target_dir.path().join(
+                        self.evidence
+                            .original_filename()
+                            .clone()
+                            .unwrap_or_else(|| {
+                                let maybe_extension = infer::get(&self.evidence.data(&mut pkg))
+                                    .map(|ty| ty.extension());
+                                format!(
+                                    "file{}{}",
+                                    if maybe_extension.is_some() { "." } else { "" },
+                                    maybe_extension.unwrap_or_default()
+                                )
+                            }),
+                    );
+
+                    if let Err(e) = fs::write(&target_file, self.evidence.data(&mut pkg).clone()) {
                         tracing::error!("Failed to write image data to temp file! ({e})");
                         return;
                     }
 
                     // Trigger OS to open
-                    open::that_in_background(file.path());
+                    // SAFETY: file MUST be present in a directory
+                    open::that_in_background(target_dir.path());
 
-                    self.temp_files.push(file);
+                    self.temp_files.push(target_dir);
                 }
             }
         }

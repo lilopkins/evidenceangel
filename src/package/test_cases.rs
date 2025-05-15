@@ -170,6 +170,20 @@ impl Evidence {
             }
         }
     }
+
+    /// Gets the associated media file media type, if one is present.
+    pub fn media_mime(&self, pkg: &mut super::EvidencePackage) -> Option<String> {
+        match self.value() {
+            EvidenceData::Media { hash } => {
+                tracing::debug!("Fetching media with hash {hash}");
+                pkg.media
+                    .iter()
+                    .find(|mfme| mfme.sha256_checksum() == hash)
+                    .map(|mfme| mfme.mime_type().clone())
+            }
+            _ => None,
+        }
+    }
 }
 
 /// Kinds of [`Evidence`].

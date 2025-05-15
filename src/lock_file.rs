@@ -9,7 +9,7 @@ pub struct LockFile {
     /// The path of this lockfile
     path: path::PathBuf,
     /// The file handle.
-    _file: fs::File,
+    file: fs::File,
 }
 
 impl LockFile {
@@ -25,7 +25,7 @@ impl LockFile {
     {
         Ok(LockFile {
             path: path.as_ref().to_path_buf(),
-            _file: Self::create_file_handle(path)?,
+            file: Self::create_file_handle(path)?,
         })
     }
 
@@ -70,7 +70,7 @@ impl LockFile {
             Ok(())
         } else {
             // Need to reobtain file lock
-            self._file = Self::create_file_handle(&self.path)?;
+            self.file = Self::create_file_handle(&self.path)?;
             Ok(())
         }
     }
