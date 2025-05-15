@@ -27,6 +27,7 @@ impl LockFile {
         file.write_all(process::id().to_string().as_bytes())?;
         file.flush()?;
 
+        #[allow(unsafe_code)]
         #[cfg(windows)]
         {
             use std::os::windows::ffi::OsStrExt;
