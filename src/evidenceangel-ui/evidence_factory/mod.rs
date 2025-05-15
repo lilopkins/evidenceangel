@@ -287,7 +287,9 @@ impl FactoryComponent for EvidenceFactoryModel {
                     .unwrap();
             }
             EvidenceFactoryInput::TextSetText(new_text) => {
-                if ![EvidenceKind::Text, EvidenceKind::RichText].contains(self.evidence.read().kind()) {
+                if ![EvidenceKind::Text, EvidenceKind::RichText]
+                    .contains(self.evidence.read().kind())
+                {
                     return;
                 }
                 match self.evidence.write().value_mut() {
