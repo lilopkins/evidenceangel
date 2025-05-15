@@ -1,7 +1,7 @@
 [package]
 name = "evidenceangel"
 description = "Library and executables to work with EvidenceAngel evidence packages (*.evp)."
-version = "1.5.0-rc.6"
+version = "1.5.0-rc.7"
 edition = "2024"
 license = "GPL-3.0-or-later"
 authors = [
@@ -46,6 +46,7 @@ ui = [
     "dep:once_cell",
     "dep:open",
     "dep:parse_datetime",
+    "dep:parking_lot",
     "dep:relm4",
     "dep:relm4-icons",
     "dep:sys-locale",
@@ -76,6 +77,7 @@ infer = "0.19.0"
 jsonschema = "0.30.0"
 once_cell = { version = "1.19.0", optional = true }
 open = { version = "5.3.0", optional = true }
+parking_lot = { version = "0.12.3", optional = true }
 parse_datetime = { version = "0.9.0", optional = true }
 relm4 = { version = "0.9.0", features = [
     "libadwaita",

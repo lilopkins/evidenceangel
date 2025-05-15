@@ -63,11 +63,15 @@ impl ZipReaderWriter {
 
     /// Validate that the currently held lock is still locking the
     /// package.
-    fn validate_lock(&self) -> crate::Result<()> {
-        if self.lock_file.is_none() {
-            return Err(crate::Error::LockNotObtained);
+    fn validate_lock(&mut self) -> crate::Result<()> {
+        if let Some(lock_file) = self.lock_file.as_mut() {
+            lock_file.ensure_still_locked().map_err(|e| {
+                tracing::error!("The lock was lost! {e}");
+                crate::Error::LockNotObtained
+            })
+        } else {
+            Err(crate::Error::LockNotObtained)
         }
-        Ok(())
     }
 
     /// Update the locking file for this [`ZipReaderWriter`]. This will

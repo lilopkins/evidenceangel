@@ -9,7 +9,7 @@ pub struct LockFile {
     /// The path of this lockfile
     path: path::PathBuf,
     /// The file handle.
-    _file: fs::File,
+    file: fs::File,
 }
 
 impl LockFile {
@@ -20,6 +20,17 @@ impl LockFile {
     /// If this returns an error of any kind, it should be assumed that
     /// a lock could not be obtained.
     pub fn new<P>(path: P) -> io::Result<Self>
+    where
+        P: AsRef<path::Path>,
+    {
+        Ok(LockFile {
+            path: path.as_ref().to_path_buf(),
+            file: Self::create_file_handle(path)?,
+        })
+    }
+
+    /// Actually create the file handle
+    fn create_file_handle<P>(path: P) -> io::Result<fs::File>
     where
         P: AsRef<path::Path>,
     {
@@ -43,10 +54,25 @@ impl LockFile {
             let _res = unsafe { SetFileAttributesW(wide_path.as_ptr(), FILE_ATTRIBUTE_HIDDEN) };
         }
 
-        Ok(LockFile {
-            path: path.as_ref().to_path_buf(),
-            _file: file,
-        })
+        Ok(file)
+    }
+
+    /// Check that the lock is still in place, recreating it if needed.
+    ///
+    /// # Errors
+    ///
+    /// A failure here indicates that the lock is no longer in place,
+    /// and cannot be replaced. This might be as a result of another
+    /// user deleting the lock file and obtaining their own. You should
+    /// handle this with caution.
+    pub fn ensure_still_locked(&mut self) -> io::Result<()> {
+        if fs::exists(&self.path)? {
+            Ok(())
+        } else {
+            // Need to reobtain file lock
+            self.file = Self::create_file_handle(&self.path)?;
+            Ok(())
+        }
     }
 }
 

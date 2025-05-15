@@ -1,7 +1,4 @@
-use std::{
-    path::PathBuf,
-    sync::{Arc, RwLock},
-};
+use std::{path::PathBuf, sync::Arc};
 
 use adw::prelude::*;
 use evidenceangel::{
@@ -12,6 +9,7 @@ use evidenceangel::{
 };
 #[allow(unused)]
 use gtk::prelude::*;
+use parking_lot::RwLock;
 use relm4::{
     Component, ComponentParts, ComponentSender,
     actions::{AccelsPlus, RelmAction, RelmActionGroup},
@@ -144,7 +142,7 @@ impl AppModel {
         let mut test_case_data = self.test_case_nav_factory.guard();
         test_case_data.clear();
         if let Some(pkg) = self.open_package.as_ref() {
-            let pkg = pkg.read().unwrap();
+            let pkg = pkg.read();
             let primary_field = pkg
                 .metadata()
                 .custom_test_case_metadata()
@@ -393,7 +391,7 @@ impl Component for AppModel {
                 set_content = &adw::NavigationPage {
                     #[watch]
                     set_title: &format!("{} · {}", if let Some(pkg) = model.open_package.as_ref() {
-                        pkg.read().unwrap().metadata().title().clone()
+                        pkg.read().metadata().title().clone()
                     } else {
                         lang::lookup("title-no-package")
                     }, match model.open_case {
@@ -401,7 +399,7 @@ impl Component for AppModel {
                         OpenCase::Metadata => lang::lookup("nav-metadata"),
                         OpenCase::Case { id, .. } => {
                             if let Some(pkg) = model.open_package.as_ref() {
-                                if let Some(case) = pkg.read().unwrap().test_case(id).ok().flatten() {
+                                if let Some(case) = pkg.read().test_case(id).ok().flatten() {
                                     case.metadata().title().clone()
                                 } else {
                                     // This is very briefly hit as a case is deleted
@@ -424,7 +422,7 @@ impl Component for AppModel {
                                 } else {
                                     String::new()
                                 }, if let Some(pkg) = model.open_package.as_ref() {
-                                    pkg.read().unwrap().metadata().title().clone()
+                                    pkg.read().metadata().title().clone()
                                 } else {
                                     lang::lookup("title-no-package")
                                 }),
@@ -434,7 +432,7 @@ impl Component for AppModel {
                                     OpenCase::Metadata => lang::lookup("nav-metadata"),
                                     OpenCase::Case { id, .. } => {
                                         if let Some(pkg) = model.open_package.as_ref() {
-                                            if let Some(case) = pkg.read().unwrap().test_case(id).ok().flatten() {
+                                            if let Some(case) = pkg.read().test_case(id).ok().flatten() {
                                                 case.metadata().title().clone()
                                             } else {
                                                 // This is very briefly hit as a case is deleted
@@ -1099,7 +1097,7 @@ impl Component for AppModel {
                     self.latest_delete_toasts
                         .iter()
                         .for_each(adw::Toast::dismiss);
-                    if let Err(e) = package.write().unwrap().save() {
+                    if let Err(e) = package.write().save() {
                         // Show error dialog
                         let error_dlg = ErrorDialogModel::builder()
                             .launch(ErrorDialogInit {
@@ -1189,7 +1187,7 @@ impl Component for AppModel {
                             &self
                                 .open_package
                                 .as_ref()
-                                .map(|pkg| pkg.read().unwrap().metadata().title().clone())
+                                .map(|pkg| pkg.read().metadata().title().clone())
                                 .expect("Cannot navigate to metadata when no package is open"),
                         );
                         widgets
@@ -1203,7 +1201,7 @@ impl Component for AppModel {
                             &self
                                 .open_package
                                 .as_ref()
-                                .map(|pkg| pkg.read().unwrap().metadata().description().clone())
+                                .map(|pkg| pkg.read().metadata().description().clone())
                                 .expect("Cannot navigate to metadata when no package is open")
                                 .unwrap_or_default(),
                         );
@@ -1216,7 +1214,7 @@ impl Component for AppModel {
                         let pkg_authors = self
                             .open_package
                             .as_ref()
-                            .map(|pkg| pkg.read().unwrap().metadata().authors().clone())
+                            .map(|pkg| pkg.read().metadata().authors().clone())
                             .expect("Cannot navigate to metadata when no package is open");
                         for author in pkg_authors {
                             authors.push_back(author);
@@ -1227,13 +1225,7 @@ impl Component for AppModel {
                         let pkg_fields = self
                             .open_package
                             .as_ref()
-                            .map(|pkg| {
-                                pkg.read()
-                                    .unwrap()
-                                    .metadata()
-                                    .custom_test_case_metadata()
-                                    .clone()
-                            })
+                            .map(|pkg| pkg.read().metadata().custom_test_case_metadata().clone())
                             .expect("Cannot navigate to metadata when no package is open");
                         if let Some(fields) = &pkg_fields {
                             let mut fields: Vec<_> = fields.iter().collect();
@@ -1254,7 +1246,7 @@ impl Component for AppModel {
                         let mut ordered_cases = vec![];
                         let index = {
                             let pkg = self.open_package.as_ref().unwrap();
-                            let pkg = pkg.read().unwrap();
+                            let pkg = pkg.read();
                             for case in pkg.test_case_iter().unwrap() {
                                 ordered_cases
                                     .push((case.metadata().execution_datetime(), *case.id()));
@@ -1273,7 +1265,7 @@ impl Component for AppModel {
 
                         let mut new_evidence = vec![];
                         if let Some(pkg) = self.get_package() {
-                            if let Some(tc) = pkg.read().unwrap().test_case(id).ok().flatten() {
+                            if let Some(tc) = pkg.read().test_case(id).ok().flatten() {
                                 // Update test case metadata on screen
                                 widgets
                                     .test_title
@@ -1311,7 +1303,7 @@ impl Component for AppModel {
                                 let mut custom_metadata = self.custom_metadata_factory.guard();
                                 custom_metadata.clear();
                                 if let Some(fields) =
-                                    pkg.read().unwrap().metadata().custom_test_case_metadata()
+                                    pkg.read().metadata().custom_test_case_metadata()
                                 {
                                     let mut fields: Vec<_> = fields.iter().collect();
                                     fields.sort_by(|(a, _), (b, _)| a.cmp(b));
@@ -1358,13 +1350,13 @@ impl Component for AppModel {
                 let mut case_id = Uuid::default();
                 if let Some(pkg) = self.get_package() {
                     let primary_field = {
-                        let pkg = pkg.read().unwrap();
+                        let pkg = pkg.read();
                         pkg.metadata()
                             .custom_test_case_metadata()
                             .clone()
                             .and_then(|m| m.into_iter().find(|(_k, v)| *v.primary()).clone())
                     };
-                    let mut pkg = pkg.write().unwrap();
+                    let mut pkg = pkg.write();
                     let case = pkg
                         .create_test_case(lang::lookup("default-case-title"))
                         .unwrap(); // doesn't fail
@@ -1402,13 +1394,13 @@ impl Component for AppModel {
                     let mut new_case_id = Uuid::default();
                     if let Some(pkg) = self.get_package() {
                         let primary_field = {
-                            let pkg = pkg.read().unwrap();
+                            let pkg = pkg.read();
                             pkg.metadata()
                                 .custom_test_case_metadata()
                                 .clone()
                                 .and_then(|m| m.into_iter().find(|(_k, v)| *v.primary()).clone())
                         };
-                        let mut pkg = pkg.write().unwrap();
+                        let mut pkg = pkg.write();
                         let case = pkg.duplicate_test_case(*id).unwrap(); // doesn't fail
                         new_case_id = *case.id();
                         let old_title = case.metadata().title();
@@ -1459,7 +1451,7 @@ impl Component for AppModel {
                     widgets.metadata_title.remove_css_class("error");
                     widgets.metadata_title_error_popover.set_visible(false);
                     if let Some(pkg) = self.get_package() {
-                        pkg.write().unwrap().metadata_mut().set_title(new_title);
+                        pkg.write().metadata_mut().set_title(new_title);
                         self.needs_saving = true;
                     }
                 } else {
@@ -1472,19 +1464,19 @@ impl Component for AppModel {
             }
             AppInput::SetMetadataDescription(new_desc) => {
                 if let Some(pkg) = self.get_package() {
-                    pkg.write().unwrap().metadata_mut().set_description(
-                        if new_desc.trim().is_empty() {
+                    pkg.write()
+                        .metadata_mut()
+                        .set_description(if new_desc.trim().is_empty() {
                             None
                         } else {
                             Some(new_desc)
-                        },
-                    );
+                        });
                     self.needs_saving = true;
                 }
             }
             AppInput::DeleteCase(id) => {
                 if let Some(pkg) = self.get_package() {
-                    if let Err(e) = pkg.write().unwrap().delete_test_case(id) {
+                    if let Err(e) = pkg.write().delete_test_case(id) {
                         let error_dlg = ErrorDialogModel::builder()
                             .launch(ErrorDialogInit {
                                 title: Box::new(lang::lookup("error-failed-delete-case-title")),
@@ -1514,7 +1506,6 @@ impl Component for AppModel {
                 if let Some(pkg) = self.get_package() {
                     let mut new_order = pkg
                         .read()
-                        .unwrap()
                         .test_case_iter()
                         .unwrap()
                         .map(|tc| *tc.id())
@@ -1574,7 +1565,7 @@ impl Component for AppModel {
                     }
 
                     sender.input(AppInput::NavigateTo(self.open_case));
-                    pkg.write().unwrap().set_test_case_order(new_order).unwrap();
+                    pkg.write().set_test_case_order(new_order).unwrap();
                     self.needs_saving = true;
                 }
             }
@@ -1591,7 +1582,6 @@ impl Component for AppModel {
             AppInput::_CreateAuthor(author) => {
                 if let Some(pkg) = self.get_package() {
                     pkg.write()
-                        .unwrap()
                         .metadata_mut()
                         .authors_mut()
                         .push(author.clone());
@@ -1605,17 +1595,12 @@ impl Component for AppModel {
                 if let Some(pkg) = self.get_package() {
                     let idx = pkg
                         .read()
-                        .unwrap()
                         .metadata()
                         .authors()
                         .iter()
                         .position(|a| *a == author)
                         .unwrap();
-                    pkg.write()
-                        .unwrap()
-                        .metadata_mut()
-                        .authors_mut()
-                        .remove(idx);
+                    pkg.write().metadata_mut().authors_mut().remove(idx);
                     self.needs_saving = true;
                     // refresh author list
                     let mut authors = self.authors_factory.guard();
@@ -1634,8 +1619,7 @@ impl Component for AppModel {
                     widgets.test_title_error_popover.set_visible(false);
                     if let OpenCase::Case { index, id, .. } = &self.open_case {
                         if let Some(pkg) = self.get_package() {
-                            if let Some(tc) = pkg.write().unwrap().test_case_mut(*id).ok().flatten()
-                            {
+                            if let Some(tc) = pkg.write().test_case_mut(*id).ok().flatten() {
                                 tc.metadata_mut().set_title(new_title.clone());
                                 self.needs_saving = true;
                                 self.test_case_nav_factory
@@ -1654,7 +1638,7 @@ impl Component for AppModel {
             AppInput::SetTestCaseStatus(new_status) => {
                 if let OpenCase::Case { index, id, .. } = &self.open_case {
                     if let Some(pkg) = self.get_package() {
-                        if let Some(tc) = pkg.write().unwrap().test_case_mut(*id).ok().flatten() {
+                        if let Some(tc) = pkg.write().test_case_mut(*id).ok().flatten() {
                             let status = match new_status {
                                 0 => None,
                                 1 => Some(TestCasePassStatus::Pass),
@@ -1674,14 +1658,14 @@ impl Component for AppModel {
                 if let OpenCase::Case { index, id, .. } = &self.open_case {
                     if let Some(pkg) = self.get_package() {
                         let primary_field = {
-                            let pkg = pkg.read().unwrap();
+                            let pkg = pkg.read();
                             pkg.metadata()
                                 .custom_test_case_metadata()
                                 .clone()
                                 .and_then(|m| m.into_iter().find(|(_k, v)| *v.primary()).clone())
                         };
 
-                        if let Some(tc) = pkg.write().unwrap().test_case_mut(*id).ok().flatten() {
+                        if let Some(tc) = pkg.write().test_case_mut(*id).ok().flatten() {
                             tc.metadata_mut()
                                 .custom_mut()
                                 .insert(key.clone(), new_value.clone());
@@ -1729,7 +1713,6 @@ impl Component for AppModel {
                     if let Some(k) = &key {
                         if pkg
                             .read()
-                            .unwrap()
                             .metadata()
                             .custom_test_case_metadata()
                             .as_ref()
@@ -1741,11 +1724,12 @@ impl Component for AppModel {
                         }
                     }
 
-                    let (key, field) = pkg
-                        .write()
-                        .unwrap()
-                        .metadata_mut()
-                        .insert_custom_metadata_field(key, name, description, false);
+                    let (key, field) = pkg.write().metadata_mut().insert_custom_metadata_field(
+                        key,
+                        name,
+                        description,
+                        false,
+                    );
                     self.needs_saving = true;
                     // Add to list
                     let mut custom_metadata = self.custom_metadata_editor_factory.guard();
@@ -1764,7 +1748,6 @@ impl Component for AppModel {
                 if let Some(pkg) = self.get_package() {
                     if let Some(field) = pkg
                         .write()
-                        .unwrap()
                         .metadata_mut()
                         .custom_test_case_metadata_mut()
                         .get_mut(&key)
@@ -1778,12 +1761,11 @@ impl Component for AppModel {
             AppInput::DeleteCustomField { index, key } => {
                 if let Some(pkg) = self.get_package() {
                     pkg.write()
-                        .unwrap()
                         .metadata_mut()
                         .custom_test_case_metadata_mut()
                         .remove(&key);
                     // SAFETY: Doesn't fail internally
-                    for case in pkg.write().unwrap().test_case_iter_mut().unwrap() {
+                    for case in pkg.write().test_case_iter_mut().unwrap() {
                         case.metadata_mut().custom_mut().remove(&key);
                     }
                     self.needs_saving = true;
@@ -1797,7 +1779,6 @@ impl Component for AppModel {
             AppInput::MakeFieldPrimary { index, key } => {
                 if let Some(pkg) = self.get_package() {
                     pkg.write()
-                        .unwrap()
                         .metadata_mut()
                         .custom_test_case_metadata_mut()
                         .iter_mut()
@@ -1826,9 +1807,7 @@ impl Component for AppModel {
 
                         if let OpenCase::Case { id, .. } = &self.open_case {
                             if let Some(pkg) = self.get_package() {
-                                if let Some(tc) =
-                                    pkg.write().unwrap().test_case_mut(*id).ok().flatten()
-                                {
+                                if let Some(tc) = pkg.write().test_case_mut(*id).ok().flatten() {
                                     tc.metadata_mut().set_execution_datetime(dt);
                                     self.needs_saving = true;
                                 }
@@ -1857,7 +1836,7 @@ impl Component for AppModel {
             }
             AppInput::DeleteSelectedCase => {
                 if let Some(pkg) = &self.open_package {
-                    let pkg = pkg.read().unwrap();
+                    let pkg = pkg.read();
 
                     if let OpenCase::Case { id, .. } = &self.open_case {
                         let case = pkg
@@ -1988,7 +1967,7 @@ impl Component for AppModel {
                 if let Some(pkg) = self.get_package() {
                     if let OpenCase::Case { id, .. } = &self.open_case {
                         {
-                            let mut pkg_guard = pkg.write().unwrap();
+                            let mut pkg_guard = pkg.write();
                             let evidence = pkg_guard
                                 .test_case_mut(*id)
                                 .ok()
@@ -2031,7 +2010,7 @@ impl Component for AppModel {
                     if let OpenCase::Case { id, .. } = &self.open_case {
                         let at = {
                             // This block prevents a panic when only one item is present
-                            let mut pkg_w = pkg.write().unwrap();
+                            let mut pkg_w = pkg.write();
                             let evidence = pkg_w
                                 .test_case_mut(*id)
                                 .ok()
@@ -2058,7 +2037,7 @@ impl Component for AppModel {
             AppInput::ReplaceEvidenceAt(at, new_ev) => {
                 if let Some(pkg) = self.get_package() {
                     if let OpenCase::Case { id, .. } = &self.open_case {
-                        let mut pkg = pkg.write().unwrap();
+                        let mut pkg = pkg.write();
                         let evidence = pkg
                             .test_case_mut(*id)
                             .ok()
@@ -2076,7 +2055,7 @@ impl Component for AppModel {
             AppInput::DeleteEvidenceAt(at, user_triggered) => {
                 if let Some(pkg) = self.get_package() {
                     if let OpenCase::Case { id, .. } = &self.open_case {
-                        let mut pkg = pkg.write().unwrap();
+                        let mut pkg = pkg.write();
                         let evidence = pkg
                             .test_case_mut(*id)
                             .ok()
@@ -2111,7 +2090,7 @@ impl Component for AppModel {
             AppInput::_AddMedia(media) => {
                 if let Some(pkg) = self.get_package() {
                     // unwraps here cannot fail
-                    pkg.write().unwrap().add_media(media).unwrap();
+                    pkg.write().add_media(media).unwrap();
                 }
             }
             AppInput::ShowError { title, message } => {
@@ -2136,7 +2115,6 @@ impl Component for AppModel {
                             .as_ref()
                             .unwrap()
                             .read()
-                            .unwrap()
                             .metadata()
                             .title()
                             .clone(),
@@ -2163,7 +2141,7 @@ impl Component for AppModel {
                     return;
                 }
                 if let OpenCase::Case { id, .. } = &self.open_case {
-                    let pkg = self.open_package.as_ref().unwrap().read().unwrap();
+                    let pkg = self.open_package.as_ref().unwrap().read();
                     let case_name = pkg
                         .test_case(*id)
                         .map(|r| r.map(|c| c.metadata().title().clone()))
@@ -2195,7 +2173,7 @@ impl Component for AppModel {
             }
             AppInput::_ExportPackage(format, path) => {
                 if let Some(pkg) = &self.open_package {
-                    let mut pkg = pkg.write().unwrap();
+                    let mut pkg = pkg.write();
                     if let Err(e) = match format.as_str() {
                         "html document" => HtmlExporter.export_package(&mut pkg, path.clone()),
                         "excel workbook" => ExcelExporter.export_package(&mut pkg, path.clone()),
@@ -2242,7 +2220,7 @@ impl Component for AppModel {
             }
             AppInput::_ExportTestCase(format, path) => {
                 if let Some(pkg) = &self.open_package {
-                    let mut pkg = pkg.write().unwrap();
+                    let mut pkg = pkg.write();
 
                     if let OpenCase::Case { id, .. } = &self.open_case {
                         if let Err(e) = match format.as_str() {

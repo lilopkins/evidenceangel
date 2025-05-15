@@ -1,11 +1,12 @@
 use std::{
     io::{BufReader, Read},
     path::PathBuf,
-    sync::{Arc, RwLock},
+    sync::Arc,
 };
 
 use adw::prelude::*;
 use evidenceangel::{Evidence, EvidenceData, EvidenceKind, EvidencePackage, MediaFile};
+use parking_lot::RwLock;
 use relm4::{
     Component, ComponentParts, ComponentSender, RelmWidgetExt,
     adw::{self, ApplicationWindow},
@@ -142,7 +143,7 @@ impl Component for AddImageEvidenceDialogModel {
                 let data = data.unwrap();
 
                 // Add media to package
-                let mut pkg = self.package.write().unwrap();
+                let mut pkg = self.package.write();
                 let media = MediaFile::from(data);
                 let hash = media.hash();
                 if let Err(e) = pkg.add_media(media) {
@@ -310,7 +311,7 @@ impl Component for AddFileEvidenceDialogModel {
                 let data = data.unwrap();
 
                 // Add media to package
-                let mut pkg = self.package.write().unwrap();
+                let mut pkg = self.package.write();
                 let media = MediaFile::from(data);
                 let hash = media.hash();
                 if let Err(e) = pkg.add_media(media) {

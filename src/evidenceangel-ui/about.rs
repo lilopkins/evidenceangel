@@ -44,6 +44,7 @@ impl SimpleComponent for AppAbout {
             add_legal_section: ("jsonschema",               None, gtk::License::MitX11,    None),
             add_legal_section: ("once_cell",                None, gtk::License::MitX11,    None),
             add_legal_section: ("parse_datetime",           None, gtk::License::MitX11,    None),
+            add_legal_section: ("parking_lot",              None, gtk::License::MitX11,    None),
             add_legal_section: ("relm4",                    None, gtk::License::MitX11,    None),
             add_legal_section: ("relm4-icons",              None, gtk::License::MitX11,    None),
             add_legal_section: ("rust_xlsxwriter",          None, gtk::License::MitX11,    None),
