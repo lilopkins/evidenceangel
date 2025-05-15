@@ -102,7 +102,11 @@ impl FactoryComponent for NavFactoryModel {
                             Some(TestCasePassStatus::Pass) => lang::lookup("test-status-pass-display"),
                             Some(TestCasePassStatus::Fail) => lang::lookup("test-status-fail-display"),
                         }, if let Some(value) = &self.primary_custom_value {
-                            format!(" • {value}")
+                            if value.is_empty() {
+                                String::new()
+                            } else {
+                                format!(" • {value}")
+                            }
                         } else {
                             String::new()
                         }),
