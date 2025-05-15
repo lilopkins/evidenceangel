@@ -829,6 +829,7 @@ dependencies = [
  "mdbook",
  "once_cell",
  "open",
+ "parking_lot",
  "parse_datetime",
  "relm4",
  "relm4-icons",

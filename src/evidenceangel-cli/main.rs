@@ -12,7 +12,7 @@
 //!
 //! To get usage information, please execute the binary with `--help`.
 
-use std::{io, sync::Mutex};
+use std::io;
 
 use arg_parser::{Args, Command};
 use clap::{CommandFactory, Parser};
@@ -37,7 +37,7 @@ fn main() {
     let subscriber = tracing_subscriber::FmtSubscriber::builder()
         .with_ansi(true)
         .with_max_level(*args.verbose())
-        .with_writer(Mutex::new(io::stderr()))
+        .with_writer(std::sync::Mutex::new(io::stderr()))
         .finish();
     tracing::subscriber::set_global_default(subscriber).expect("couldn't start logging");
 

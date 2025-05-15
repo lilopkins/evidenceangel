@@ -1,7 +1,7 @@
 use std::{
     cmp::Ordering,
     fs,
-    sync::{Arc, Mutex, RwLock},
+    sync::{Arc},
 };
 
 use adw::prelude::*;
@@ -11,6 +11,7 @@ use angelmark::{
 use evidenceangel::{Evidence, EvidenceData, EvidenceKind, EvidencePackage};
 #[allow(unused_imports)]
 use gtk::prelude::*;
+use parking_lot::{Mutex, RwLock};
 use relm4::{
     FactorySender, RelmWidgetExt,
     actions::{RelmAction, RelmActionGroup},
@@ -40,13 +41,13 @@ pub struct EvidenceFactoryModel {
 
 impl EvidenceFactoryModel {
     fn get_data(&self) -> Vec<u8> {
-        tracing::debug!("Got some {:?} data", self.evidence.read().unwrap().kind());
-        match self.evidence.read().unwrap().value() {
+        tracing::debug!("Got some {:?} data", self.evidence.read().kind());
+        match self.evidence.read().value() {
             EvidenceData::Text { content } => content.as_bytes().to_vec(),
             EvidenceData::Base64 { data } => data.clone(),
             EvidenceData::Media { hash } => {
                 tracing::debug!("Fetching media with hash {hash}");
-                let mut pkg = self.package.write().unwrap();
+                let mut pkg = self.package.write();
                 tracing::debug!("Got package instance!");
                 let media = pkg.get_media(hash).ok().flatten();
                 tracing::debug!("Got media {media:?}");
@@ -124,7 +125,7 @@ impl FactoryComponent for EvidenceFactoryModel {
                 set_actions: gtk::gdk::DragAction::MOVE,
 
                 connect_prepare => move |_slf, _x, _y| {
-                    let dnd_data = BoxedEvidenceJson::new((*ev.read().unwrap()).clone());
+                    let dnd_data = BoxedEvidenceJson::new((*ev.read()).clone());
                     tracing::debug!("Drag data started: {dnd_data:?}");
                     Some(gtk::gdk::ContentProvider::for_value(&dnd_data.to_value()))
                 },
@@ -169,7 +170,7 @@ impl FactoryComponent for EvidenceFactoryModel {
                     gtk::Entry {
                         set_placeholder_text: Some(&lang::lookup("test-evidence-caption")),
                         set_hexpand: true,
-                        set_text: &self.evidence.read().unwrap().caption().as_ref().unwrap_or(&String::new()),
+                        set_text: &self.evidence.read().caption().as_ref().unwrap_or(&String::new()),
 
                         connect_changed[sender] => move |entry| {
                             sender.input(EvidenceFactoryInput::SetCaption(entry.text().to_string()));
@@ -234,7 +235,7 @@ impl FactoryComponent for EvidenceFactoryModel {
         let widgets = view_output!();
         self.index = index.clone();
 
-        match self.evidence.read().unwrap().kind() {
+        match self.evidence.read().kind() {
             EvidenceKind::Text => {
                 let scroll_window = gtk::ScrolledWindow::default();
                 scroll_window.set_height_request(100);
@@ -324,7 +325,7 @@ impl FactoryComponent for EvidenceFactoryModel {
                     let error_message = error_message.clone();
                     let frame = frame.clone();
                     text_view.buffer().connect_changed(move |buf| {
-                        if *processing.lock().unwrap() {
+                        if *processing.lock() {
                             return;
                         }
 
@@ -333,7 +334,7 @@ impl FactoryComponent for EvidenceFactoryModel {
                             .to_string();
 
                         // Update preview
-                        *processing.lock().unwrap() = true;
+                        *processing.lock() = true;
                         if let Ok(lines) = parse_angelmark(&text) {
                             let cursor_pos = buf.cursor_position();
 
@@ -363,7 +364,7 @@ impl FactoryComponent for EvidenceFactoryModel {
                             frame.add_css_class("warning");
                             error_message.set_visible(true);
                         }
-                        *processing.lock().unwrap() = false;
+                        *processing.lock() = false;
                     });
                 }
                 text_view.buffer().set_text(&self.get_data_as_string());
@@ -372,7 +373,7 @@ impl FactoryComponent for EvidenceFactoryModel {
                     let sender = sender.clone();
                     let processing = processing.clone();
                     text_view.buffer().connect_changed(move |buf| {
-                        if *processing.lock().unwrap() {
+                        if *processing.lock() {
                             return;
                         }
 
@@ -554,7 +555,7 @@ impl FactoryComponent for EvidenceFactoryModel {
             EvidenceKind::File => {
                 let label = gtk::Label::default();
                 label.set_ellipsize(gtk::pango::EllipsizeMode::Middle);
-                if let Some(filename) = self.evidence.read().unwrap().original_filename() {
+                if let Some(filename) = self.evidence.read().original_filename() {
                     label.set_markup(&lang::lookup_with_args(
                         "test-evidence-file-named",
                         &lang_args!("filename", filename),
@@ -597,21 +598,20 @@ impl FactoryComponent for EvidenceFactoryModel {
             EvidenceFactoryInput::SetCaption(new_caption) => {
                 self.evidence
                     .write()
-                    .unwrap()
                     .caption_mut()
                     .replace(new_caption);
                 sender
                     .output(EvidenceFactoryOutput::UpdateEvidence(
                         self.index.clone(),
-                        self.evidence.read().unwrap().clone(),
+                        self.evidence.read().clone(),
                     ))
                     .unwrap();
             }
             EvidenceFactoryInput::TextSetText(new_text) => {
-                if *self.evidence.read().unwrap().kind() != EvidenceKind::Text {
+                if *self.evidence.read().kind() != EvidenceKind::Text {
                     return;
                 }
-                match self.evidence.write().unwrap().value_mut() {
+                match self.evidence.write().value_mut() {
                     EvidenceData::Text { content } => {
                         *content = new_text;
                     }
@@ -623,15 +623,15 @@ impl FactoryComponent for EvidenceFactoryModel {
                 sender
                     .output(EvidenceFactoryOutput::UpdateEvidence(
                         self.index.clone(),
-                        self.evidence.read().unwrap().clone(),
+                        self.evidence.read().clone(),
                     ))
                     .unwrap();
             }
             EvidenceFactoryInput::RichTextSetText(new_text) => {
-                if *self.evidence.read().unwrap().kind() != EvidenceKind::RichText {
+                if *self.evidence.read().kind() != EvidenceKind::RichText {
                     return;
                 }
-                match self.evidence.write().unwrap().value_mut() {
+                match self.evidence.write().value_mut() {
                     EvidenceData::Text { content } => {
                         *content = new_text;
                     }
@@ -643,15 +643,15 @@ impl FactoryComponent for EvidenceFactoryModel {
                 sender
                     .output(EvidenceFactoryOutput::UpdateEvidence(
                         self.index.clone(),
-                        self.evidence.read().unwrap().clone(),
+                        self.evidence.read().clone(),
                     ))
                     .unwrap();
             }
             EvidenceFactoryInput::HttpSetRequest(mut new_req) => {
-                if *self.evidence.read().unwrap().kind() != EvidenceKind::Http {
+                if *self.evidence.read().kind() != EvidenceKind::Http {
                     return;
                 }
-                match self.evidence.write().unwrap().value_mut() {
+                match self.evidence.write().value_mut() {
                     EvidenceData::Text { content } => {
                         let data_parts = content
                             .split(HTTP_SEPARATOR)
@@ -679,15 +679,15 @@ impl FactoryComponent for EvidenceFactoryModel {
                 sender
                     .output(EvidenceFactoryOutput::UpdateEvidence(
                         self.index.clone(),
-                        self.evidence.read().unwrap().clone(),
+                        self.evidence.read().clone(),
                     ))
                     .unwrap();
             }
             EvidenceFactoryInput::HttpSetResponse(new_res) => {
-                if *self.evidence.read().unwrap().kind() != EvidenceKind::Http {
+                if *self.evidence.read().kind() != EvidenceKind::Http {
                     return;
                 }
-                match self.evidence.write().unwrap().value_mut() {
+                match self.evidence.write().value_mut() {
                     EvidenceData::Text { content } => {
                         let data_parts = content
                             .split(HTTP_SEPARATOR)
@@ -715,7 +715,7 @@ impl FactoryComponent for EvidenceFactoryModel {
                 sender
                     .output(EvidenceFactoryOutput::UpdateEvidence(
                         self.index.clone(),
-                        self.evidence.read().unwrap().clone(),
+                        self.evidence.read().clone(),
                     ))
                     .unwrap();
             }
@@ -732,7 +732,7 @@ impl FactoryComponent for EvidenceFactoryModel {
                     .output(EvidenceFactoryOutput::InsertEvidenceAt(
                         self.index.clone(),
                         -1,
-                        self.evidence.read().unwrap().clone(),
+                        self.evidence.read().clone(),
                     ))
                     .unwrap();
                 sender
@@ -747,7 +747,7 @@ impl FactoryComponent for EvidenceFactoryModel {
                     .output(EvidenceFactoryOutput::InsertEvidenceAt(
                         self.index.clone(),
                         2, // insert after self, which hasn't yet been deleted
-                        self.evidence.read().unwrap().clone(),
+                        self.evidence.read().clone(),
                     ))
                     .unwrap();
                 sender

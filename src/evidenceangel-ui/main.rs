@@ -10,7 +10,7 @@
 #![allow(clippy::cast_sign_loss)]
 #![allow(clippy::wildcard_imports)]
 
-use std::{env, fs, path::PathBuf, sync::Mutex};
+use std::{env, fs, path::PathBuf};
 
 use clap::Parser;
 use directories::ProjectDirs;
@@ -61,7 +61,7 @@ fn main() {
             },
         )
         .with_ansi(true)
-        .with_writer(Mutex::new(DualWriter::new(
+        .with_writer(std::sync::Mutex::new(DualWriter::new(
             std::io::stderr(),
             AnsiStripper::new(RotatingFile::new(
                 &log_path,
