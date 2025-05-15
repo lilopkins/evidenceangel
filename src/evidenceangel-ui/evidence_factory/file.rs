@@ -2,6 +2,7 @@ use std::{fs, sync::Arc};
 
 use evidenceangel::{Evidence, EvidencePackage};
 use gtk::prelude::*;
+use infer::MatcherType;
 use parking_lot::RwLock;
 use relm4::{
     Component, ComponentParts, ComponentSender,
@@ -102,8 +103,12 @@ impl Component for ComponentModel {
             ComponentInput::Internal(ComponentInputInternal::Preview) => {
                 let mut pkg = self.package.write();
                 // Create temporary file
-                let maybe_extension =
-                    infer::get(&self.evidence.data(&mut pkg)).map(|ty| ty.extension());
+                let maybe_type = infer::get(&self.evidence.data(&mut pkg));
+                if maybe_type.is_some_and(|ty| ty.matcher_type() == MatcherType::App) {
+                    tracing::warn!("Not running file as seems to be executable!");
+                    return;
+                }
+                let maybe_extension = maybe_type.map(|ty| ty.extension());
                 let maybe_tempfile = if let Some(ext) = maybe_extension {
                     NamedTempFile::with_suffix(format!(".{ext}"))
                 } else {
