@@ -234,12 +234,11 @@ with the file name ".~lock." followed by the full name of the package it
 protects, followed by "#", for example for a package called
 "example.evp", the lock file **MUST** be called ".~lock.example.evp#".
 It **MUST** be located adjacent (in the same directory as) the evidence
-package.
+package. The file **MUST** contain the process ID of the process holding
+the lock.
 
-The lock file should be considered as locking the package if:
-
-* the lock file is present, and;
-* the lock file contains a process ID.
+The lock file should be considered as locking the package if it is
+present, regardless of contents.
 
 If either of these is not the case, it should be assumed that the there
 is no current lock over the package.

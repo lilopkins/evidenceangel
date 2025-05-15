@@ -4,8 +4,9 @@ use std::{
     path,
 };
 
-use fslock::LockFile;
 use zip::{ZipArchive, ZipWriter};
+
+use crate::lock_file::LockFile;
 
 /// A convenient type which can read and write to a ZIP file and cleanly switch between the two modes.
 ///
@@ -60,6 +61,15 @@ impl ZipReaderWriter {
         Ok(o)
     }
 
+    /// Validate that the currently held lock is still locking the
+    /// package.
+    fn validate_lock(&self) -> crate::Result<()> {
+        if self.lock_file.is_none() {
+            return Err(crate::Error::LockNotObtained);
+        }
+        Ok(())
+    }
+
     /// Update the locking file for this [`ZipReaderWriter`]. This will
     /// either obtain it (if a path is set), drop it (if a path isn't
     /// set), or will return a [`crate::Error::Locking`] error.
@@ -76,14 +86,10 @@ impl ZipReaderWriter {
                 "{}#",
                 lock_path.extension().unwrap().to_str().unwrap()
             ));
-            let mut lock_file = LockFile::open(&lock_path).map_err(crate::Error::Locking)?;
-            if !lock_file
-                .try_lock_with_pid()
-                .map_err(crate::Error::Locking)?
-            {
-                return Err(crate::Error::LockNotObtained);
-            }
-            self.lock_file = Some(lock_file);
+            self.lock_file = Some(LockFile::new(lock_path).map_err(|e| {
+                tracing::error!("Locking error: {e}");
+                crate::Error::LockNotObtained
+            })?);
         } else {
             self.lock_file = None;
         }
@@ -116,9 +122,7 @@ impl ZipReaderWriter {
         Option<&mut ZipArchive<BufReader<fs::File>>>,
         &mut ZipWriter<BufWriter<fs::File>>,
     )> {
-        if self.lock_file.is_none() {
-            return Err(crate::Error::LockNotObtained);
-        }
+        self.validate_lock()?;
         if self.writer.is_none() {
             tracing::debug!("Opening writer");
             // Open writer
@@ -141,9 +145,7 @@ impl ZipReaderWriter {
 
     /// Conclude writing to the ZIP file and reset for reading or writing again.
     pub fn conclude_write(&mut self) -> crate::Result<()> {
-        if self.lock_file.is_none() {
-            return Err(crate::Error::LockNotObtained);
-        }
+        self.validate_lock()?;
         if self.writer.is_some() {
             // Close write
             tracing::debug!("Closing writer");
@@ -176,9 +178,7 @@ impl ZipReaderWriter {
 
     /// Interrupt a write early, concluding the write and removing the temporary file.
     pub fn interrupt_write(&mut self) -> crate::Result<()> {
-        if self.lock_file.is_none() {
-            return Err(crate::Error::LockNotObtained);
-        }
+        self.validate_lock()?;
         if self.writer.is_some() {
             // Close write
             tracing::debug!("Closing writer");
