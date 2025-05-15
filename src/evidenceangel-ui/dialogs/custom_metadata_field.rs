@@ -116,10 +116,15 @@ impl Component for CustomMetadataDialogModel {
                 let id = widgets.id.text().to_string();
                 let name = widgets.name.text().to_string();
                 let description = widgets.description.text().to_string();
-                if !(id.trim().is_empty() && name.trim().is_empty()) {
+                if !name.trim().is_empty() {
+                    let key = if id.trim().is_empty() {
+                        Some(name.to_ascii_lowercase().replace(' ', "_"))
+                    } else {
+                        Some(id)
+                    };
                     sender
                         .output(CustomMetadataDialogOutput::SaveField {
-                            key: Some(id),
+                            key,
                             name,
                             description,
                         })
