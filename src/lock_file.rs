@@ -34,7 +34,11 @@ impl LockFile {
             use winapi::um::winnt::FILE_ATTRIBUTE_HIDDEN;
 
             let path = path.as_ref();
-            let wide_path: Vec<u16> = path.as_os_str().encode_wide().chain(std::iter::once(0)).collect();
+            let wide_path: Vec<u16> = path
+                .as_os_str()
+                .encode_wide()
+                .chain(std::iter::once(0))
+                .collect();
             let _res = unsafe { SetFileAttributesW(wide_path.as_ptr(), FILE_ATTRIBUTE_HIDDEN) };
         }
 
