@@ -4,10 +4,6 @@ use uuid::Uuid;
 /// An error raised by `EvidenceAngel`.
 #[derive(Debug, Error)]
 pub enum Error {
-    /// A file lock couldn't be obtained over the package.
-    #[error("Failed to obtain a lock over the package: {0}")]
-    Locking(std::io::Error),
-
     /// You are trying to perform an operation without a lock on the package.
     #[error("The file you are working with is already open. Please close it and try again.")]
     LockNotObtained,

@@ -66,7 +66,7 @@ magick -background none \
 
 # Exporting
 magick -background none \
-    sources/nothing_open.png \
+    sources/test_case.png \
     sources/overlays/menu_button.png \
     -layers flatten \
     exporting/0_menu_button.png

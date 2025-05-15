@@ -15,7 +15,7 @@ either press <kbd>Ctrl+Shift+V</kbd>, or follow these steps:
 
    ![paste evidence](./images/taking_evidence/1_menu_paste_evidence.png)
 
-## Inserting Evidence
+## Appending Evidence
 
 1. Select the "+ Add Evidence" button.
 

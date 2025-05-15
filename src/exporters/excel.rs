@@ -173,6 +173,7 @@ fn create_summary_sheet(
         }
         row += 1;
     }
+    worksheet.autofit();
 
     Ok(())
 }
@@ -295,6 +296,7 @@ fn create_test_case_sheet(
                                     .collect::<Vec<_>>();
                                 if !fragments.is_empty() {
                                     worksheet.write_rich_string(row, 1, &fragments)?;
+                                    worksheet.set_row_height(row, 36)?;
                                 }
                                 row += 1;
                             }
@@ -314,6 +316,7 @@ fn create_test_case_sheet(
                                     .collect::<Vec<_>>();
                                 if !fragments.is_empty() {
                                     worksheet.write_rich_string(row, 1, &fragments)?;
+                                    worksheet.set_row_height(row, 32)?;
                                 }
                                 row += 1;
                             }
@@ -333,6 +336,7 @@ fn create_test_case_sheet(
                                     .collect::<Vec<_>>();
                                 if !fragments.is_empty() {
                                     worksheet.write_rich_string(row, 1, &fragments)?;
+                                    worksheet.set_row_height(row, 28)?;
                                 }
                                 row += 1;
                             }
@@ -352,6 +356,7 @@ fn create_test_case_sheet(
                                     .collect::<Vec<_>>();
                                 if !fragments.is_empty() {
                                     worksheet.write_rich_string(row, 1, &fragments)?;
+                                    worksheet.set_row_height(row, 22)?;
                                 }
                                 row += 1;
                             }
@@ -371,6 +376,7 @@ fn create_test_case_sheet(
                                     .collect::<Vec<_>>();
                                 if !fragments.is_empty() {
                                     worksheet.write_rich_string(row, 1, &fragments)?;
+                                    worksheet.set_row_height(row, 20)?;
                                 }
                                 row += 1;
                             }
@@ -390,6 +396,7 @@ fn create_test_case_sheet(
                                     .collect::<Vec<_>>();
                                 if !fragments.is_empty() {
                                     worksheet.write_rich_string(row, 1, &fragments)?;
+                                    worksheet.set_row_height(row, 18)?;
                                 }
                                 row += 1;
                             }

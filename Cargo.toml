@@ -1,7 +1,7 @@
 [package]
 name = "evidenceangel"
 description = "Library and executables to work with EvidenceAngel evidence packages (*.evp)."
-version = "1.5.0-rc.4"
+version = "1.5.0-rc.5"
 edition = "2024"
 license = "GPL-3.0-or-later"
 authors = [
@@ -70,7 +70,6 @@ colored = { version = "3.0.0", optional = true }
 directories = { version = "6.0.0", optional = true }
 fluent = { version = "0.16.1", optional = true }
 fluent-templates = { version = "0.13.0", optional = true }
-fslock = "0.2.1"
 getset = "0.1.2"
 html-escape = { version = "0.2.13", optional = true }
 infer = "0.19.0"
@@ -97,6 +96,9 @@ tracing-subscriber = { version = "0.3.19", optional = true }
 tracing-subscriber-multi = { version = "0.1.0", optional = true }
 uuid = { version = "1.8.0", features = ["v4", "fast-rng", "serde"] }
 zip = "2.4.1"
+
+[target.'cfg(windows)'.dependencies]
+winapi = "0.3.9"
 
 [target.'cfg(windows)'.build-dependencies]
 winresource = "0.1"

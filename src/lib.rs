@@ -11,6 +11,8 @@
 //! `EvidenceAngel` is a new tool in the Angel-suite to collect test evidence
 //! from both manual and automated testing.
 
+/// Locking file
+mod lock_file;
 /// The types of data in a package
 mod package;
 pub use package::{
