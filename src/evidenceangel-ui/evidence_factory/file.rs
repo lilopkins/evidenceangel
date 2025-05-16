@@ -100,7 +100,7 @@ impl Component for ComponentModel {
     ) {
         match message {
             ComponentInput::Internal(ComponentInputInternal::Preview) => {
-                let mut pkg = self.package.write();
+                let data = self.evidence.data(&mut self.package.write());
                 // Create temporary directory
                 if let Ok(target_dir) = tempfile::tempdir() {
                     let target_file = target_dir.path().join(
@@ -108,8 +108,7 @@ impl Component for ComponentModel {
                             .original_filename()
                             .clone()
                             .unwrap_or_else(|| {
-                                let maybe_extension = infer::get(&self.evidence.data(&mut pkg))
-                                    .map(|ty| ty.extension());
+                                let maybe_extension = infer::get(&data).map(|ty| ty.extension());
                                 format!(
                                     "file{}{}",
                                     if maybe_extension.is_some() { "." } else { "" },
@@ -118,8 +117,8 @@ impl Component for ComponentModel {
                             }),
                     );
 
-                    if let Err(e) = fs::write(&target_file, self.evidence.data(&mut pkg).clone()) {
-                        tracing::error!("Failed to write image data to temp file! ({e})");
+                    if let Err(e) = fs::write(&target_file, data) {
+                        tracing::error!("Failed to write data to temp file! ({e})");
                         return;
                     }
 

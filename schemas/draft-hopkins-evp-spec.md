@@ -9,7 +9,7 @@ submissionType = "independent"
 
 [seriesInfo]
 name = "Internet-Draft"
-value = "draft-hopkins-evp-spec-00"
+value = "draft-hopkins-evp-spec-01"
 stream = "independent"
 status = "informational"
 
@@ -191,7 +191,7 @@ be present here. All values **MUST** be strings.
 | kind              | Mandatory | String | (#evidence-kind) | The type of data stored. |
 | value             | Mandatory | String | (#evidence-value) | The data stored within this piece of evidence. |
 | caption           | Optional  | String/Null | | An optional caption for this piece of evidence. |
-| original_filename | Optional  | String/Null | | The original filename for File evidence. |
+| original_filename | Optional  | String/Null | | The original filename. **MAY** be provided for Image and File evidence, **MUST NOT** be provided otherwise. |
 
 ##### "kind" {#evidence-kind}
 
