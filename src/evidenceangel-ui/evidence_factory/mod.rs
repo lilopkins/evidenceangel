@@ -231,7 +231,8 @@ impl FactoryComponent for EvidenceFactoryModel {
             EvidenceKind::Image => {
                 let component = image::ComponentModel::builder()
                     .launch(image::ComponentInit {
-                        data: self.get_data(),
+                        evidence: self.evidence.read().clone(),
+                        package: self.package.clone(),
                     })
                     .forward(sender.input_sender(), |msg| match msg {});
                 widgets.evidence_child.set_child(Some(component.widget()));

@@ -133,7 +133,7 @@ impl Component for ComponentModel {
                         #[wrap(Some)]
                         set_buffer = &gtk::TextBuffer {
                             set_text: &init.text,
-                            connect_changed => ComponentInput::Internal(ComponentInputInternal::TextChanged),
+                            connect_changed => ComponentInput::Internal(ComponentInputInternal::TextChanged) @signal_text_changed,
                         },
 
                         add_controller = gtk::ShortcutController {
@@ -161,10 +161,25 @@ impl Component for ComponentModel {
         root: Self::Root,
         sender: ComponentSender<Self>,
     ) -> ComponentParts<Self> {
-        let model = ComponentModel {
+        let mut model = ComponentModel {
             parse_warning: false,
         };
         let widgets = view_output!();
+
+        // Initial previewing
+        model.update_preview(
+            &widgets
+                .text_buffer
+                .text(
+                    &widgets.text_buffer.start_iter(),
+                    &widgets.text_buffer.end_iter(),
+                    false,
+                )
+                .to_string(),
+            &widgets.text_buffer,
+            &widgets.signal_text_changed,
+            &widgets.frame,
+        );
 
         // Register accelerators
         let mut group = RelmActionGroup::<RichTextEditorActionGroup>::new();
@@ -202,37 +217,12 @@ impl Component for ComponentModel {
                 let new_text = buf
                     .text(&buf.start_iter(), &buf.end_iter(), false)
                     .to_string();
-
-                if let Ok(lines) = parse_angelmark(&new_text) {
-                    let cursor_pos = buf.cursor_position();
-
-                    for line in lines {
-                        let (start, end) = *line.span().span();
-                        // Remove plain text
-                        #[allow(clippy::cast_possible_wrap)]
-                        buf.delete(
-                            &mut buf.iter_at_offset(start as i32),
-                            &mut buf.iter_at_offset(end as i32),
-                        );
-
-                        // Determine formatting
-                        let markup = angelmark_to_pango(&line);
-                        tracing::trace!("line: {line:?}");
-                        tracing::trace!("pango: {markup:?}");
-
-                        // Reinsert marked up text
-                        #[allow(clippy::cast_possible_wrap)]
-                        buf.insert_markup(&mut buf.iter_at_offset(start as i32), &markup);
-                    }
-
-                    buf.place_cursor(&buf.iter_at_offset(cursor_pos));
-                    widgets.frame.remove_css_class("warning");
-                    self.parse_warning = true;
-                } else {
-                    widgets.frame.add_css_class("warning");
-                    self.parse_warning = false;
-                }
-
+                self.update_preview(
+                    &new_text,
+                    &widgets.text_buffer,
+                    &widgets.signal_text_changed,
+                    &widgets.frame,
+                );
                 let _ = sender.output(ComponentOutput::TextChanged { new_text });
             }
             ComponentInput::Internal(ComponentInputInternal::AddTokens(token)) => {
@@ -242,6 +232,49 @@ impl Component for ComponentModel {
                 set_angelmark_heading_level(&widgets.text_view, &widgets.text_buffer, level);
             }
         }
+    }
+}
+
+impl ComponentModel {
+    fn update_preview(
+        &mut self,
+        text: &String,
+        buffer: &gtk::TextBuffer,
+        signal: &gtk::glib::signal::SignalHandlerId,
+        frame: &gtk::Frame,
+    ) {
+        buffer.block_signal(signal);
+        if let Ok(lines) = parse_angelmark(text) {
+            let cursor_pos = buffer.cursor_position();
+
+            for line in lines {
+                let (start, end) = *line.span().span();
+                // Remove plain text
+                #[allow(clippy::cast_possible_wrap)]
+                buffer.delete(
+                    &mut buffer.iter_at_offset(start as i32),
+                    &mut buffer.iter_at_offset(end as i32),
+                );
+
+                // Determine formatting
+                let markup = angelmark_to_pango(&line);
+                tracing::trace!("line: {line:?}");
+                tracing::trace!("pango: {markup:?}");
+
+                // Reinsert marked up text
+                #[allow(clippy::cast_possible_wrap)]
+                buffer.insert_markup(&mut buffer.iter_at_offset(start as i32), &markup);
+            }
+
+            buffer.place_cursor(&buffer.iter_at_offset(cursor_pos));
+            frame.remove_css_class("warning");
+            self.parse_warning = true;
+        } else {
+            frame.add_css_class("warning");
+            self.parse_warning = false;
+        }
+
+        buffer.unblock_signal(signal);
     }
 }
 
