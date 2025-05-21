@@ -1,24 +1,26 @@
+use std::collections::HashMap;
+
 use base64::Engine;
 use chrono::{DateTime, FixedOffset};
 use getset::{Getters, MutGetters, Setters};
 use serde::{
-    de::{self, Visitor},
     Deserialize, Serialize,
+    de::{self, Visitor},
 };
 use uuid::Uuid;
 
 /// The URL for $schema in the test case manifests
 const TESTCASE_SCHEMA_LOCATION: &str =
-    "https://evidenceangel-schemas.hpkns.uk/testcase.2.schema.json";
+    "https://evidenceangel-schemas.hpkns.uk/testcase.1.schema.json";
 /// The schema itself for test case manifests (version 2)
-pub(crate) const TESTCASE_SCHEMA_2: &str = include_str!("../../schemas/testcase.2.schema.json");
+pub(crate) const TESTCASE_SCHEMA: &str = include_str!("../../schemas/testcase.1.schema.json");
 
 /// A test case stored within an [`EvidencePackage`](super::EvidencePackage).
 #[derive(Clone, Debug, Serialize, Deserialize, Getters, MutGetters, Setters)]
 pub struct TestCase {
     /// The $schema from this test case
     #[serde(rename = "$schema")]
-    schema: String,
+    schema: Option<String>,
 
     /// The internal ID of this test case.
     #[serde(skip)]
@@ -32,25 +34,34 @@ pub struct TestCase {
     /// The evidence in this test case.
     #[getset(get = "pub", get_mut = "pub")]
     evidence: Vec<Evidence>,
+
+    /// Extra fields that this implementation doesn't understand.
+    #[get = "pub"]
+    #[serde(flatten)]
+    extra_fields: HashMap<String, serde_json::Value>,
 }
 
 impl TestCase {
     /// Create a new test case
     pub(super) fn new(id: Uuid, title: String, execution_datetime: DateTime<FixedOffset>) -> Self {
         Self {
-            schema: TESTCASE_SCHEMA_LOCATION.to_string(),
+            schema: Some(TESTCASE_SCHEMA_LOCATION.to_string()),
             id,
             metadata: TestCaseMetadata {
                 title,
                 execution_datetime,
+                passed: None,
+                custom: None,
+                extra_fields: HashMap::new(),
             },
             evidence: vec![],
+            extra_fields: HashMap::new(),
         }
     }
 
     /// Update the JSON schema tag to the latest schema
     pub(super) fn update_schema(&mut self) {
-        self.schema = TESTCASE_SCHEMA_LOCATION.to_string();
+        self.schema = Some(TESTCASE_SCHEMA_LOCATION.to_string());
     }
 }
 
@@ -62,6 +73,39 @@ pub struct TestCaseMetadata {
     title: String,
     /// The time of execution of the associated [`TestCase`].
     execution_datetime: DateTime<FixedOffset>,
+    /// The state of the associated [`TestCase`].
+    passed: Option<TestCasePassStatus>,
+    /// Custom metadata parameters
+    #[serde(skip_serializing_if = "Option::is_none")]
+    custom: Option<HashMap<String, String>>,
+
+    /// Extra fields that this implementation doesn't understand.
+    #[get = "pub"]
+    #[serde(flatten)]
+    extra_fields: HashMap<String, serde_json::Value>,
+}
+
+impl TestCaseMetadata {
+    /// Get a mutable reference to custom metadata parameters
+    #[allow(clippy::missing_panics_doc, reason = "safety is explained inline")]
+    pub fn custom_mut(&mut self) -> &mut HashMap<String, String> {
+        if self.custom.is_none() {
+            self.custom = Some(HashMap::new());
+        }
+        // SAFETY: just initialised if wasn't previously
+        self.custom.as_mut().unwrap()
+    }
+}
+
+/// Valid test case statuses.
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum TestCasePassStatus {
+    /// Passed
+    #[serde(rename = "pass")]
+    Pass,
+    /// Failed
+    #[serde(rename = "fail")]
+    Fail,
 }
 
 /// Evidence in a [`TestCase`].
@@ -85,6 +129,11 @@ pub struct Evidence {
     #[serde(skip_serializing_if = "Option::is_none")]
     #[getset(get_mut = "pub", set = "pub")]
     original_filename: Option<String>,
+
+    /// Extra fields that this implementation doesn't understand.
+    #[get = "pub"]
+    #[serde(flatten)]
+    extra_fields: HashMap<String, serde_json::Value>,
 }
 
 impl Evidence {
@@ -96,6 +145,43 @@ impl Evidence {
             value,
             caption: None,
             original_filename: None,
+            extra_fields: HashMap::new(),
+        }
+    }
+
+    /// Get the data internal to this evidence as a byte array.
+    ///
+    /// # Panics
+    ///
+    /// In most cases, this can be seen as infallible.
+    ///
+    /// However, this will panic if the internal structure of the
+    /// evidence package is invalid, in this case if the data refers to
+    /// a media item that doesn't exist.
+    pub fn data(&self, pkg: &mut super::EvidencePackage) -> Vec<u8> {
+        match self.value() {
+            EvidenceData::Text { content } => content.as_bytes().to_vec(),
+            EvidenceData::Base64 { data } => data.clone(),
+            EvidenceData::Media { hash } => {
+                tracing::debug!("Fetching media with hash {hash}");
+                let media = pkg.get_media(hash).ok().flatten();
+                tracing::debug!("Got media {media:?}");
+                media.unwrap().data().clone()
+            }
+        }
+    }
+
+    /// Gets the associated media file media type, if one is present.
+    pub fn media_mime(&self, pkg: &mut super::EvidencePackage) -> Option<String> {
+        match self.value() {
+            EvidenceData::Media { hash } => {
+                tracing::debug!("Fetching media with hash {hash}");
+                pkg.media
+                    .iter()
+                    .find(|mfme| mfme.sha256_checksum() == hash)
+                    .map(|mfme| mfme.mime_type().clone())
+            }
+            _ => None,
         }
     }
 }

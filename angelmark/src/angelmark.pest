@@ -5,7 +5,6 @@ MarkupFile = {
 }
 
 MarkupLine = _{
-	Comment |
 	Heading6 |
     Heading5 |
     Heading4 |
@@ -15,10 +14,6 @@ MarkupLine = _{
     Table |
     Paragraph |
     Newline
-}
-
-Comment = {
-	"//" ~ (!NEWLINE ~ ANY)* ~ NEWLINE
 }
 
 Newline = {

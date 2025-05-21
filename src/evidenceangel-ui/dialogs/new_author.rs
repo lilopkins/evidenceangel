@@ -1,8 +1,9 @@
 use adw::prelude::*;
 use evidenceangel::Author;
 use relm4::{
+    Component, ComponentParts, ComponentSender, RelmWidgetExt,
     adw::{self, ApplicationWindow},
-    gtk, Component, ComponentParts, ComponentSender, RelmWidgetExt,
+    gtk,
 };
 
 use crate::lang;
@@ -30,6 +31,8 @@ impl Component for NewAuthorDialogModel {
     view! {
         #[root]
         adw::Dialog {
+            set_width_request: 400,
+
             #[wrap(Some)]
             set_child = &adw::ToolbarView {
                 add_top_bar = &adw::HeaderBar {

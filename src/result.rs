@@ -4,6 +4,10 @@ use uuid::Uuid;
 /// An error raised by `EvidenceAngel`.
 #[derive(Debug, Error)]
 pub enum Error {
+    /// You are trying to perform an operation without a lock on the package.
+    #[error("The file you are working with is already open. Please close it and try again.")]
+    LockNotObtained,
+
     /// An I/O error from the system.
     #[error("I/O Error: {0}")]
     Io(#[from] std::io::Error),
@@ -37,12 +41,20 @@ pub enum Error {
     MediaMissing(String),
 
     /// Validation against the manifest schema failed.
-    #[error("Manifest schema validation failed. Perhaps this package is from a newer version of EvidenceAngel.")]
+    #[error(
+        "Manifest schema validation failed. Perhaps this package is from a newer version of EvidenceAngel."
+    )]
     ManifestSchemaValidationFailed,
 
     /// Validation against the test case schema failed.
-    #[error("Test case schema validation failed. Perhaps this package is from a newer version of EvidenceAngel.")]
+    #[error(
+        "Test case schema validation failed. Perhaps this package is from a newer version of EvidenceAngel."
+    )]
     TestCaseSchemaValidationFailed,
+
+    /// The specified test case doesn't exist
+    #[error("The specified test case doesn't exist")]
+    DoesntExist(Uuid),
 
     /// An otherwise unhandled error occured during export.
     #[error("Export failed: {0}")]

@@ -8,11 +8,11 @@ use std::{
 use chrono::{DateTime, FixedOffset, Local};
 use getset::{Getters, MutGetters};
 use serde::{Deserialize, Serialize};
-use test_cases::TESTCASE_SCHEMA_2;
+use test_cases::TESTCASE_SCHEMA;
 use uuid::Uuid;
 use zip::{result::ZipError, write::SimpleFileOptions};
 
-use crate::{result::Error, zip_read_writer::ZipReaderWriter, Result};
+use crate::{Result, result::Error, zip_read_writer::ZipReaderWriter};
 
 /// Package manifests
 mod manifest;
@@ -24,13 +24,17 @@ pub use media::MediaFile;
 
 /// Test cases from packages
 mod test_cases;
-pub use test_cases::{Evidence, EvidenceData, EvidenceKind, TestCase, TestCaseMetadata};
+pub use test_cases::{
+    Evidence, EvidenceData, EvidenceKind, TestCase, TestCaseMetadata, TestCasePassStatus,
+};
 
 /// The URL for $schema for manifest.json
 const MANIFEST_SCHEMA_LOCATION: &str =
-    "https://evidenceangel-schemas.hpkns.uk/manifest.1.schema.json";
+    "https://evidenceangel-schemas.hpkns.uk/manifest.2.schema.json";
 /// The schema to validate manifest.json against
-const MANIFEST_SCHEMA: &str = include_str!("../schemas/manifest.1.schema.json");
+const MANIFEST_SCHEMA: &str = include_str!("../schemas/manifest.2.schema.json");
+/// The version 1 schema to validate manifest.json against
+const MANIFEST_SCHEMA_V1: &str = include_str!("../schemas/manifest.1.schema.json");
 
 /// An Evidence Package.
 #[derive(Serialize, Deserialize, Getters, MutGetters)]
@@ -47,7 +51,7 @@ pub struct EvidencePackage {
 
     /// The JSON schema for for this package
     #[serde(rename = "$schema")]
-    schema: String,
+    schema: Option<String>,
     /// The metadata for the package.
     #[getset(get = "pub", get_mut = "pub")]
     metadata: Metadata,
@@ -55,6 +59,10 @@ pub struct EvidencePackage {
     media: Vec<MediaFileManifestEntry>,
     /// The manifest entries for the test cases in this package
     test_cases: Vec<TestCaseManifestEntry>,
+    /// Extra fields that this implementation doesn't understand.
+    #[get = "pub"]
+    #[serde(flatten)]
+    extra_fields: HashMap<String, serde_json::Value>,
 }
 
 impl Clone for EvidencePackage {
@@ -63,8 +71,9 @@ impl Clone for EvidencePackage {
             zip: self.zip.clone(),
             media_data: HashMap::new(),
             test_case_data: self.test_case_data.clone(),
+            extra_fields: HashMap::new(),
 
-            schema: MANIFEST_SCHEMA_LOCATION.to_string(),
+            schema: Some(MANIFEST_SCHEMA_LOCATION.to_string()),
             metadata: self.metadata.clone(),
             media: self.media.clone(),
             test_cases: self.test_cases.clone(),
@@ -78,6 +87,7 @@ impl fmt::Debug for EvidencePackage {
             .field("metadata", &self.metadata)
             .field("media", &self.media)
             .field("test_cases", &self.test_cases)
+            .field("extra_fields", &self.extra_fields)
             .finish_non_exhaustive()
     }
 }
@@ -85,30 +95,30 @@ impl fmt::Debug for EvidencePackage {
 impl EvidencePackage {
     /// Create a new evidence package.
     ///
-    /// # Panics
-    ///
-    /// All the potential panics are checked statically ahead of time, so should never trigger at runtime.
-    ///
     /// # Errors
     ///
     /// - [`Error::Io`] if the evp couldn't be written at all.
     /// - [`Error::Zip`] if the evp file couldn't be written correctly.
     /// - [`Error::ManifestSchemaValidationFailed`] if the manifest is invalid.
+    #[allow(
+        clippy::missing_panics_doc,
+        reason = "panics have been statically validated to never occur"
+    )]
     pub fn new(path: PathBuf, title: String, authors: Vec<Author>) -> Result<Self> {
         Self::new_with_description(path, title, None, authors)
     }
 
     /// Create a new evidence package with a specified description.
     ///
-    /// # Panics
-    ///
-    /// All the potential panics are checked statically ahead of time, so should never trigger at runtime.
-    ///
     /// # Errors
     ///
     /// - [`Error::Io`] if the evp couldn't be written at all.
     /// - [`Error::Zip`] if the evp file couldn't be written correctly.
     /// - [`Error::ManifestSchemaValidationFailed`] if the manifest is invalid.
+    #[allow(
+        clippy::missing_panics_doc,
+        reason = "panics have been statically validated to never occur"
+    )]
     pub fn new_with_description(
         path: PathBuf,
         title: String,
@@ -117,18 +127,21 @@ impl EvidencePackage {
     ) -> Result<Self> {
         // Create manifest data.
         let mut manifest = Self {
-            zip: ZipReaderWriter::new(path),
+            zip: ZipReaderWriter::new(path)?,
             media_data: HashMap::new(),
             test_case_data: HashMap::new(),
 
-            schema: MANIFEST_SCHEMA_LOCATION.to_string(),
+            schema: Some(MANIFEST_SCHEMA_LOCATION.to_string()),
             media: vec![],
             test_cases: vec![],
             metadata: Metadata {
                 title,
                 description,
                 authors,
+                custom_test_case_metadata: None,
+                extra_fields: HashMap::new(),
             },
+            extra_fields: HashMap::new(),
         };
         let manifest_clone = manifest.clone_serde();
 
@@ -192,7 +205,7 @@ impl EvidencePackage {
 
         // Write any files as needed
         for test_case in &self.test_cases {
-            let id = test_case.name();
+            let id = test_case.id();
             if let Some(data) = self.test_case_data.get(id) {
                 // Whilst we are here, let's figure out what media we use.
                 for evidence in data.evidence() {
@@ -204,8 +217,7 @@ impl EvidencePackage {
                 let data = serde_json::to_string(data)
                     .map_err(crate::result::Error::FailedToSaveTestCase)?;
                 if !jsonschema::is_valid(
-                    &serde_json::from_str(TESTCASE_SCHEMA_2)
-                        .expect("Schema is validated statically"),
+                    &serde_json::from_str(TESTCASE_SCHEMA).expect("Schema is validated statically"),
                     &serde_json::from_str(&data).expect("JSON just generated, shouldn't fail"),
                 ) {
                     let _ = self.zip.interrupt_write();
@@ -248,7 +260,7 @@ impl EvidencePackage {
                     let res = old_archive.by_name(&format!("media/{hash}"));
                     match res {
                         Err(ZipError::FileNotFound) => {
-                            return Err(Error::MediaMissing(hash.clone()))
+                            return Err(Error::MediaMissing(hash.clone()));
                         }
                         Err(e) => {
                             tracing::error!("Error migrating from old package: {e}");
@@ -295,7 +307,7 @@ impl EvidencePackage {
     /// - [`Error::TestCaseSchemaValidationFailed`] if one of the test case manifests fails schema validation.
     pub fn open(path: PathBuf) -> Result<Self> {
         // Open ZIP file
-        let mut zip_rw = ZipReaderWriter::new(path);
+        let mut zip_rw = ZipReaderWriter::new(path)?;
         let zip = zip_rw.as_reader()?;
 
         // Read manifest
@@ -315,7 +327,17 @@ impl EvidencePackage {
             &serde_json::from_str(&manifest_data)
                 .map_err(|_| Error::ManifestSchemaValidationFailed)?,
         ) {
-            return Err(Error::ManifestSchemaValidationFailed);
+            // Check if v1 matches
+            if jsonschema::is_valid(
+                &serde_json::from_str(MANIFEST_SCHEMA_V1).expect("Schema is validated statically"),
+                &serde_json::from_str(&manifest_data)
+                    .map_err(|_| Error::ManifestSchemaValidationFailed)?,
+            ) {
+                // Upgrade to v2 by changing "name" to "id" will be performed by serde
+                tracing::debug!("Upgrade will happen for manifest to version 2");
+            } else {
+                return Err(Error::ManifestSchemaValidationFailed);
+            }
         }
 
         // Parse manifest
@@ -324,7 +346,7 @@ impl EvidencePackage {
 
         // Read test cases
         for test_case in &evidence_package.test_cases {
-            let id = test_case.name();
+            let id = test_case.id();
             let data = zip
                 .by_name(&format!("testcases/{id}.json"))
                 .map_err(|_| Error::CorruptEvidencePackage(format!("missing test case {id}")))?;
@@ -337,13 +359,12 @@ impl EvidencePackage {
 
             // Validate test case against schema
             if jsonschema::is_valid(
-                &serde_json::from_str(TESTCASE_SCHEMA_2).expect("Schema is validated statically"),
+                &serde_json::from_str(TESTCASE_SCHEMA).expect("Schema is validated statically"),
                 &serde_json::from_str(&test_case_data)
                     .map_err(|_| Error::TestCaseSchemaValidationFailed)?,
             ) {
-                // Read as version 2/1
-                // The version 2 schema can read version 1 (fully backwards compatible)
-                tracing::debug!("Test case {id} opened as version 2");
+                // Read as version 1
+                tracing::debug!("Test case {id} opened as version 1");
                 let mut test_case: TestCase = serde_json::from_str(&test_case_data)
                     .map_err(|e| Error::InvalidTestCase(e, *id))?;
                 test_case.set_id(*id);
@@ -361,14 +382,15 @@ impl EvidencePackage {
     /// Clone fields that will be serialized by serde
     fn clone_serde(&self) -> Self {
         Self {
-            zip: ZipReaderWriter::new(PathBuf::new()),
+            zip: ZipReaderWriter::default(),
             media_data: HashMap::new(),
             test_case_data: HashMap::new(),
 
-            schema: MANIFEST_SCHEMA_LOCATION.to_string(),
+            schema: Some(MANIFEST_SCHEMA_LOCATION.to_string()),
             metadata: self.metadata.clone(),
             media: self.media.clone(),
             test_cases: self.test_cases.clone(),
+            extra_fields: HashMap::new(),
         }
     }
 
@@ -382,7 +404,7 @@ impl EvidencePackage {
         Ok(self
             .test_cases
             .iter()
-            .map(|tcme| self.test_case(*tcme.name()).unwrap().unwrap()))
+            .map(|tcme| self.test_case(*tcme.id()).unwrap().unwrap()))
     }
 
     /// Obtain an iterator over test cases.
@@ -391,7 +413,6 @@ impl EvidencePackage {
     /// # Errors
     ///
     /// Currently cannot fail.
-    #[deprecated = "Unused internally and doesn't return test cases sorted. Use `test_case_iter` instead, then for mutable access use `test_case_mut`."]
     pub fn test_case_iter_mut(&mut self) -> Result<impl Iterator<Item = &mut TestCase>> {
         Ok(self.test_case_data.values_mut())
     }
@@ -409,7 +430,7 @@ impl EvidencePackage {
         let required_uuids = self
             .test_cases
             .iter()
-            .map(|tcme| *tcme.name())
+            .map(|tcme| *tcme.id())
             .collect::<Vec<_>>();
         for uuid in required_uuids {
             assert!(
@@ -466,6 +487,30 @@ impl EvidencePackage {
         Ok(self.test_case_data.get_mut(&new_id).unwrap())
     }
 
+    /// Create a new test case as a duplicate of another.
+    ///
+    /// # Errors
+    ///
+    /// - [`Error::DoesntExist`] the test case to duplicate doesn't exist.
+    #[allow(clippy::missing_panics_doc)]
+    pub fn duplicate_test_case(&mut self, case_id_to_duplicate: Uuid) -> Result<&mut TestCase> {
+        let case = self
+            .test_case(case_id_to_duplicate)?
+            .cloned()
+            .ok_or(Error::DoesntExist(case_id_to_duplicate))?;
+        let mut new_case = case.clone();
+        let new_id = Uuid::new_v4();
+        new_case.set_id(new_id);
+
+        // Create new manifest entry
+        self.test_cases.push(TestCaseManifestEntry::new(new_id));
+
+        // Create test case
+        self.test_case_data.insert(new_id, new_case);
+
+        Ok(self.test_case_data.get_mut(&new_id).unwrap())
+    }
+
     /// Delete a test case.
     /// Returns true if a case was deleted.
     ///
@@ -480,7 +525,7 @@ impl EvidencePackage {
         let id = id.into();
 
         // Search for matching case
-        let index = self.test_cases.iter().position(|tc| *tc.name() == id);
+        let index = self.test_cases.iter().position(|tc| *tc.id() == id);
 
         // Check a case was found
         if index.is_none() {
@@ -489,7 +534,7 @@ impl EvidencePackage {
 
         // Remove case and data object
         let case = self.test_cases.remove(index.unwrap());
-        self.test_case_data.remove(case.name());
+        self.test_case_data.remove(case.id());
         Ok(true)
     }
 
@@ -505,10 +550,10 @@ impl EvidencePackage {
         let id = id.into();
 
         // Search for matching case
-        let case = self.test_cases.iter().find(|tc| *tc.name() == id);
+        let case = self.test_cases.iter().find(|tc| *tc.id() == id);
 
         // Return case
-        Ok(case.and_then(|tcme| self.test_case_data.get(tcme.name())))
+        Ok(case.and_then(|tcme| self.test_case_data.get(tcme.id())))
     }
 
     /// Mutably get a test case
@@ -523,10 +568,10 @@ impl EvidencePackage {
         let id = id.into();
 
         // Search for matching case
-        let case = self.test_cases.iter().find(|tc| *tc.name() == id);
+        let case = self.test_cases.iter().find(|tc| *tc.id() == id);
 
         // Return case
-        Ok(case.and_then(|tcme| self.test_case_data.get_mut(tcme.name())))
+        Ok(case.and_then(|tcme| self.test_case_data.get_mut(tcme.id())))
     }
 
     /// Add media to this package.

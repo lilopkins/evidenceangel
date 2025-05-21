@@ -1,4 +1,4 @@
-use relm4::{adw, gtk, SimpleComponent};
+use relm4::{SimpleComponent, adw, gtk};
 
 use crate::lang;
 
@@ -14,7 +14,7 @@ impl SimpleComponent for AppAbout {
         #[root]
         #[name = "about"]
         adw::AboutWindow {
-            // set_application_icon: "evidenceangel",
+            set_application_icon: "evidenceangel",
             set_application_name: &lang::lookup("app-name"),
             set_version: env!("CARGO_PKG_VERSION"),
             set_copyright: "© 2024 Lily Hopkins",
@@ -22,6 +22,7 @@ impl SimpleComponent for AppAbout {
             set_issue_url: &support_url,
             set_developer_name: "Lily Hopkins",
             set_debug_info: &log_data,
+            add_link: (&lang::lookup("documentation"), &format!("https://evidenceangel.hpkns.uk/{}/", env!("CARGO_PKG_VERSION"))),
 
             add_acknowledgement_section: (Some(&lang::lookup("acknowledgements-code-title")), &["Lily Hopkins", "Eden Turner"]),
             add_acknowledgement_section: (Some(&lang::lookup("acknowledgements-testing-title")), &["John Chander", "Eden Turner"]),
@@ -34,6 +35,7 @@ impl SimpleComponent for AppAbout {
             add_legal_section: ("clap",                     None, gtk::License::MitX11,    None),
             add_legal_section: ("clap_complete",            None, gtk::License::MitX11,    None),
             add_legal_section: ("clap-verbosity-flag",      None, gtk::License::MitX11,    None),
+            add_legal_section: ("directories",              None, gtk::License::MitX11,    None),
             add_legal_section: ("fluent",                   None, gtk::License::MitX11,    None),
             add_legal_section: ("fluent-templates",         None, gtk::License::MitX11,    None),
             add_legal_section: ("getset",                   None, gtk::License::MitX11,    None),
@@ -42,6 +44,7 @@ impl SimpleComponent for AppAbout {
             add_legal_section: ("jsonschema",               None, gtk::License::MitX11,    None),
             add_legal_section: ("once_cell",                None, gtk::License::MitX11,    None),
             add_legal_section: ("parse_datetime",           None, gtk::License::MitX11,    None),
+            add_legal_section: ("parking_lot",              None, gtk::License::MitX11,    None),
             add_legal_section: ("relm4",                    None, gtk::License::MitX11,    None),
             add_legal_section: ("relm4-icons",              None, gtk::License::MitX11,    None),
             add_legal_section: ("rust_xlsxwriter",          None, gtk::License::MitX11,    None),
@@ -49,10 +52,12 @@ impl SimpleComponent for AppAbout {
             add_legal_section: ("serde_json",               None, gtk::License::MitX11,    None),
             add_legal_section: ("sha256",                   None, gtk::License::MitX11,    None),
             add_legal_section: ("sys-locale",               None, gtk::License::MitX11,    None),
+            add_legal_section: ("tempfile",                 None, gtk::License::MitX11,    None),
             add_legal_section: ("thiserror",                None, gtk::License::MitX11,    None),
             add_legal_section: ("tracing",                  None, gtk::License::MitX11,    None),
             add_legal_section: ("tracing-subscriber",       None, gtk::License::MitX11,    None),
             add_legal_section: ("tracing-subscriber-multi", None, gtk::License::MitX11,    None),
+            add_legal_section: ("tracing-panic",            None, gtk::License::MitX11,    None),
             add_legal_section: ("uuid",                     None, gtk::License::MitX11,    None),
             add_legal_section: ("zip",                      None, gtk::License::MitX11,    None),
         }

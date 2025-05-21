@@ -6,7 +6,7 @@ use std::{
 
 use thiserror::Error;
 use uuid::Uuid;
-use zip::{write::SimpleFileOptions, ZipWriter};
+use zip::{ZipWriter, write::SimpleFileOptions};
 
 use crate::{EvidenceKind, EvidencePackage, TestCase};
 

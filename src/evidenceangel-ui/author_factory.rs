@@ -1,11 +1,10 @@
 use adw::prelude::*;
 use evidenceangel::Author;
 use relm4::{
-    adw,
+    FactorySender, RelmWidgetExt, adw,
     factory::FactoryView,
     gtk,
     prelude::{DynamicIndex, FactoryComponent},
-    FactorySender, RelmWidgetExt,
 };
 
 use crate::lang;

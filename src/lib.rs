@@ -11,11 +11,13 @@
 //! `EvidenceAngel` is a new tool in the Angel-suite to collect test evidence
 //! from both manual and automated testing.
 
+/// Locking file
+mod lock_file;
 /// The types of data in a package
 mod package;
 pub use package::{
-    Author, Evidence, EvidenceData, EvidenceKind, EvidencePackage, MediaFile, Metadata, TestCase,
-    TestCaseMetadata,
+    Author, CustomMetadataField, Evidence, EvidenceData, EvidenceKind, EvidencePackage, MediaFile,
+    Metadata, TestCase, TestCaseMetadata, TestCasePassStatus,
 };
 /// The results of this crate
 mod result;

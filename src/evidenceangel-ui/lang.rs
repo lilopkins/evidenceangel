@@ -1,8 +1,9 @@
-use std::{borrow::Cow, collections::HashMap, fmt::Display, sync::Mutex};
+use std::{borrow::Cow, collections::HashMap, fmt::Display};
 
 use fluent::FluentValue;
 use fluent_templates::{LanguageIdentifier, Loader};
 use once_cell::sync::Lazy;
+use parking_lot::Mutex;
 
 fluent_templates::static_loader! {
     static LOCALES = {
@@ -24,13 +25,13 @@ pub fn initialise_i18n() -> LanguageIdentifier {
             for possible_locale in &avail_locales {
                 if possible_locale == &&lang_id {
                     tracing::info!("This locale is available! Using: {locale}");
-                    let mut use_locale = USE_LOCALE.lock().unwrap();
+                    let mut use_locale = USE_LOCALE.lock();
                     use_locale.replace((*possible_locale).clone());
                     locale_is_default = false;
                     break;
                 } else if possible_locale.language == lang_id.language {
                     tracing::info!("This language is available! Using: {}", lang_id.language);
-                    let mut use_locale = USE_LOCALE.lock().unwrap();
+                    let mut use_locale = USE_LOCALE.lock();
                     use_locale.replace((*possible_locale).clone());
                     locale_is_default = false;
                     break;
@@ -40,17 +41,17 @@ pub fn initialise_i18n() -> LanguageIdentifier {
     }
     if locale_is_default {
         tracing::info!("No suitable locale found, using default.");
-        let mut use_locale = USE_LOCALE.lock().unwrap();
+        let mut use_locale = USE_LOCALE.lock();
         use_locale.replace("en".parse().unwrap()); // en fallback
     }
 
-    let use_locale = USE_LOCALE.lock().unwrap();
+    let use_locale = USE_LOCALE.lock();
     use_locale.clone().unwrap()
 }
 
 /// Get the current locale identifier
 pub(crate) fn current_locale() -> LanguageIdentifier {
-    let use_locale = USE_LOCALE.lock().unwrap();
+    let use_locale = USE_LOCALE.lock();
     use_locale.clone().unwrap()
 }
 

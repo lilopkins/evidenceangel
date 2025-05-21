@@ -1,24 +1,29 @@
+use evidenceangel::TestCasePassStatus;
 use gtk::prelude::*;
 use relm4::{
+    FactorySender,
     factory::FactoryView,
     gtk,
     prelude::{DynamicIndex, FactoryComponent},
-    FactorySender,
 };
 use uuid::Uuid;
 
-use crate::util::BoxedTestCaseById;
+use crate::{lang, util::BoxedTestCaseById};
 
 pub struct NavFactoryModel {
     selected: bool,
     pub name: String,
+    pub status: Option<TestCasePassStatus>,
     pub id: Uuid,
+    pub primary_custom_value: Option<String>,
 }
 
 #[derive(Clone, Debug)]
 pub enum NavFactoryInput {
     ShowAsSelected(bool),
     UpdateTitle(String),
+    UpdateStatus(Option<TestCasePassStatus>),
+    UpdatePrimaryCustomValue(Option<String>),
 }
 
 #[derive(Debug)]
@@ -30,6 +35,8 @@ pub enum NavFactoryOutput {
 pub struct NavFactoryInit {
     pub id: Uuid,
     pub name: String,
+    pub status: Option<TestCasePassStatus>,
+    pub primary_custom_value: Option<String>,
 }
 
 #[relm4::factory(pub)]
@@ -44,8 +51,6 @@ impl FactoryComponent for NavFactoryModel {
         #[root]
         gtk::Box {
             gtk::Button {
-                #[watch]
-                set_label: &self.name,
                 add_css_class: "flat",
                 set_hexpand: true,
                 #[watch]
@@ -79,15 +84,56 @@ impl FactoryComponent for NavFactoryModel {
                 connect_clicked[sender, index, id] => move |_| {
                     let _ = sender.output(NavFactoryOutput::NavigateTo(index.current_index(), id));
                 },
+
+                gtk::Box {
+                    set_orientation: gtk::Orientation::Vertical,
+                    set_spacing: 2,
+
+                    gtk::Label {
+                        #[watch]
+                        set_text: &self.name,
+                        set_ellipsize: gtk::pango::EllipsizeMode::End,
+                        set_halign: gtk::Align::Start,
+                    },
+                    gtk::Label {
+                        #[watch]
+                        set_text: &format!("{}{}", match &self.status {
+                            None => lang::lookup("test-status-unset-display"),
+                            Some(TestCasePassStatus::Pass) => lang::lookup("test-status-pass-display"),
+                            Some(TestCasePassStatus::Fail) => lang::lookup("test-status-fail-display"),
+                        }, if let Some(value) = &self.primary_custom_value {
+                            if value.is_empty() {
+                                String::new()
+                            } else {
+                                format!(" • {value}")
+                            }
+                        } else {
+                            String::new()
+                        }),
+                        set_halign: gtk::Align::Start,
+                        set_ellipsize: gtk::pango::EllipsizeMode::End,
+                        add_css_class: "caption",
+                        add_css_class: "dimmed",
+                    },
+                }
             },
         }
     }
 
     fn init_model(init: Self::Init, _index: &DynamicIndex, _sender: FactorySender<Self>) -> Self {
+        let Self::Init {
+            name,
+            id,
+            status,
+            primary_custom_value,
+            ..
+        } = init;
         Self {
             selected: false,
-            name: init.name,
-            id: init.id,
+            name,
+            id,
+            status,
+            primary_custom_value,
         }
     }
 
@@ -110,6 +156,12 @@ impl FactoryComponent for NavFactoryModel {
             }
             NavFactoryInput::UpdateTitle(new_title) => {
                 self.name = new_title;
+            }
+            NavFactoryInput::UpdateStatus(new_status) => {
+                self.status = new_status;
+            }
+            NavFactoryInput::UpdatePrimaryCustomValue(new_value) => {
+                self.primary_custom_value = new_value;
             }
         }
     }

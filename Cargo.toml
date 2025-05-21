@@ -1,8 +1,8 @@
 [package]
 name = "evidenceangel"
 description = "Library and executables to work with EvidenceAngel evidence packages (*.evp)."
-version = "1.4.0"
-edition = "2021"
+version = "1.5.0"
+edition = "2024"
 license = "GPL-3.0-or-later"
 authors = [
     "Lily Hopkins <lily@hpkns.uk>",
@@ -39,15 +39,20 @@ exporter-html = ["dep:build_html", "dep:html-escape"]
 exporter-zip-of-files = []
 ui = [
     "dep:clap",
+    "dep:directories",
     "dep:fluent",
     "dep:fluent-templates",
+    "dep:glib-build-tools",
     "dep:once_cell",
     "dep:open",
     "dep:parse_datetime",
+    "dep:parking_lot",
     "dep:relm4",
     "dep:relm4-icons",
     "dep:sys-locale",
+    "dep:tempfile",
     "dep:tracing-subscriber-multi",
+    "dep:tracing-panic",
     "exporter-html",
     "exporter-excel",
     "exporter-zip-of-files",
@@ -63,33 +68,44 @@ clap = { version = "4.5.4", features = ["derive"], optional = true }
 clap-verbosity-flag = { version = "3.0.2", default-features = false, features = ["tracing"], optional = true }
 clap_complete = { version = "4.5.2", optional = true }
 colored = { version = "3.0.0", optional = true }
+directories = { version = "6.0.0", optional = true }
 fluent = { version = "0.16.1", optional = true }
 fluent-templates = { version = "0.13.0", optional = true }
 getset = "0.1.2"
 html-escape = { version = "0.2.13", optional = true }
 infer = "0.19.0"
-jsonschema = "0.29.0"
+jsonschema = "0.30.0"
 once_cell = { version = "1.19.0", optional = true }
 open = { version = "5.3.0", optional = true }
-parse_datetime = { version = "0.8.0", optional = true }
+parking_lot = { version = "0.12.3", optional = true }
+parse_datetime = { version = "0.9.0", optional = true }
 relm4 = { version = "0.9.0", features = [
     "libadwaita",
     "gnome_46",
 ], optional = true }
 relm4-icons = { version = "0.9.0", optional = true }
-rust_xlsxwriter = { version = "0.84.0", features = ["chrono"], optional = true }
+rust_xlsxwriter = { version = "0.86.1", features = ["chrono"], optional = true }
 schemars = { version = "0.8.21", features = ["chrono"], optional = true }
 serde = { version = "1.0.200", features = ["derive"] }
 serde_json = "1.0.116"
 sha256 = "1.5.0"
 sys-locale = { version = "0.3.1", optional = true }
+tempfile = { version = "3.20.0", optional = true }
 thiserror = "2.0.4"
 tracing = "0.1.41"
+tracing-panic = { version = "0.1.2", optional = true }
 tracing-subscriber = { version = "0.3.19", optional = true }
 tracing-subscriber-multi = { version = "0.1.0", optional = true }
 uuid = { version = "1.8.0", features = ["v4", "fast-rng", "serde"] }
 zip = "2.4.1"
 
+[target.'cfg(windows)'.dependencies]
+winapi = "0.3.9"
+
 [target.'cfg(windows)'.build-dependencies]
 winresource = "0.1"
 ico-builder = "0.1"
+
+[build-dependencies]
+glib-build-tools = { version = "0.20.0", optional = true }
+mdbook = { version = "0.4.48", default-features = false, features = ["search"] }
