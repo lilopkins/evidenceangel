@@ -9,11 +9,11 @@ submissionType = "independent"
 
 [seriesInfo]
 name = "Internet-Draft"
-value = "draft-hopkins-evp-spec-01"
+value = "draft-hopkins-evp-spec-02"
 stream = "independent"
 status = "informational"
 
-date = 2025-05-05T00:00:00Z
+date = 2025-06-05T00:00:00Z
 
 [[author]]
 initials="L."
@@ -65,7 +65,7 @@ The format does not attempt to:
 This specification is intended for those who might wish to write their
 own implementation of the evidence package format.
 
-## Changes from Previous Verisons
+## Changes from Previous Versions
 
 This document forms the original specification.
 
