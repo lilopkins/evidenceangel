@@ -221,7 +221,7 @@ fn create_test_case_sheet(
             worksheet.write(row, 1, s)?;
             row += 1;
         }
-    };
+    }
     if let Some(fields) = test_case.metadata().custom() {
         for (key, value) in fields {
             let field = package

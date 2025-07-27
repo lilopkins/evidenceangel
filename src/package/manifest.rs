@@ -21,6 +21,10 @@ pub struct Metadata {
 
     /// Custom metadata fields for test cases
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[allow(
+        clippy::struct_field_names,
+        reason = "This field refers to the name of it's subtype"
+    )]
     pub(super) custom_test_case_metadata: Option<HashMap<String, CustomMetadataField>>,
 
     /// Extra fields that this implementation doesn't understand.

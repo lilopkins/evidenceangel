@@ -790,7 +790,6 @@ dependencies = [
  "infer",
  "jsonschema",
  "mdbook",
- "once_cell",
  "open",
  "parking_lot",
  "parse_datetime",

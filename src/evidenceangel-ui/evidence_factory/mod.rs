@@ -272,7 +272,7 @@ impl FactoryComponent for EvidenceFactoryModel {
                 widgets.evidence_child.set_child(Some(component.widget()));
                 self.sub_component = Box::new(component);
             }
-        };
+        }
 
         widgets
     }
