@@ -9,11 +9,11 @@ submissionType = "independent"
 
 [seriesInfo]
 name = "Internet-Draft"
-value = "draft-hopkins-evp-spec-02"
+value = "draft-hopkins-evp-spec-04"
 stream = "independent"
 status = "informational"
 
-date = 2025-06-05T00:00:00Z
+date = 2025-07-27T00:00:00Z
 
 [[author]]
 initials="L."
@@ -63,7 +63,21 @@ The format does not attempt to:
 ## Intended Audience
 
 This specification is intended for those who might wish to write their
-own implementation of the evidence package format.
+own implementation of the evidence package format. There are a number of
+situations where writing an implementation may be desirable:
+
+* in an automation tool that runs a number of operations to
+  automatically test something, to produce an evidence package
+  containing the results of the automated testing;
+* in a manual evidence collection tool, where a user might want to
+  collect evidence in a single, easy to manage place for later
+  processing or sharing;
+* in an analysis tool, to view, annotate, share and understand the
+  evidence from previous testing;
+* in a viewer, to view evidence that has been shared, for example from a
+  testing team to a customer, or;
+* any other situation where it may be desirable to collect test evidence
+  and bundle it together for later.
 
 ## Changes from Previous Versions
 
@@ -79,8 +93,22 @@ when, and only when, they appear in all capitals, as shown here.
 
 # Specification
 
-An evidence package is a structured ZIP archive. It **MUST** contain the
-file "manifest.json", and the directories "media" and "testcases".
+An evidence package is a structured ZIP archive [@!zip]. It **MUST**
+contain the file "manifest.json", and the directories "media" and
+"testcases" internally within the ZIP archive. This structure does not
+need to be represented outside of the ZIP archive and as such the
+internal structure does not need to be understood by an end-user of any
+tool that works with evidence packages.
+
+<reference anchor="zip" target="https://pkware.cachefly.net/webdocs/casestudies/APPNOTE.TXT">
+    <front>
+        <title>.ZIP File Format Specification</title>
+        <author>
+            <organization>PKWARE, Inc.</organization>
+        </author>
+        <date year="2022" month="November" day="01"/>
+    </front>
+</reference>
 
 See (#example-archive) for an example of the file's internal structure.
 
@@ -306,7 +334,7 @@ When an implementor loads a file with fields it cannot understand, it
 
 # IANA Considerations
 
-This document acts as the specification for the requested media type
+This document acts as the specification for the media type
 application/vnd.angel.evidence-package.
 
 # Security Considerations
