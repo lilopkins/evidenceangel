@@ -132,6 +132,24 @@ pub struct CustomMetadataField {
     extra_fields: HashMap<String, serde_json::Value>,
 }
 
+impl PartialOrd for CustomMetadataField {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for CustomMetadataField {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        if self.primary && !other.primary {
+            return std::cmp::Ordering::Less;
+        }
+        if !self.primary && other.primary {
+            return std::cmp::Ordering::Greater;
+        }
+        self.name.cmp(&other.name)
+    }
+}
+
 /// The manifest entry for a media file present in the package.
 #[derive(Clone, Debug, Getters, Serialize, Deserialize)]
 #[getset(get = "pub")]
