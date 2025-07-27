@@ -55,6 +55,7 @@ impl Component for ComponentModel {
 
                 gtk::ScrolledWindow {
                     set_hexpand: true,
+                    set_vscrollbar_policy: gtk::PolicyType::Never,
 
                     gtk::TextView {
                         add_css_class: "monospace",
@@ -62,6 +63,7 @@ impl Component for ComponentModel {
                         set_right_margin: 8,
                         set_top_margin: 8,
                         set_bottom_margin: 8,
+                        set_height_request: super::EVIDENCE_INNER_HEIGHT_REQUEST,
                         set_halign: gtk::Align::Fill,
                         set_valign: gtk::Align::Fill,
 
@@ -80,6 +82,7 @@ impl Component for ComponentModel {
 
                 gtk::ScrolledWindow {
                     set_hexpand: true,
+                    set_vscrollbar_policy: gtk::PolicyType::Never,
 
                     gtk::TextView {
                         add_css_class: "monospace",
@@ -87,6 +90,7 @@ impl Component for ComponentModel {
                         set_right_margin: 8,
                         set_top_margin: 8,
                         set_bottom_margin: 8,
+                        set_height_request: super::EVIDENCE_INNER_HEIGHT_REQUEST,
                         set_halign: gtk::Align::Fill,
                         set_valign: gtk::Align::Fill,
 

@@ -117,40 +117,36 @@ impl Component for ComponentModel {
             // Text
             #[name = "frame"]
             gtk::Frame {
-                gtk::ScrolledWindow {
-                    set_height_request: 200,
-                    set_hexpand: true,
+                #[name = "text_view"]
+                gtk::TextView {
+                    set_left_margin: 8,
+                    set_right_margin: 8,
+                    set_top_margin: 8,
+                    set_bottom_margin: 8,
+                    set_height_request: super::EVIDENCE_INNER_HEIGHT_REQUEST,
+                    set_wrap_mode: gtk::WrapMode::Word,
 
-                    #[name = "text_view"]
-                    gtk::TextView {
-                        set_left_margin: 8,
-                        set_right_margin: 8,
-                        set_top_margin: 8,
-                        set_bottom_margin: 8,
-                        set_wrap_mode: gtk::WrapMode::Word,
+                    #[name = "text_buffer"]
+                    #[wrap(Some)]
+                    set_buffer = &gtk::TextBuffer {
+                        set_text: &init.text,
+                        connect_changed => ComponentInput::Internal(ComponentInputInternal::TextChanged) @signal_text_changed,
+                    },
 
-                        #[name = "text_buffer"]
-                        #[wrap(Some)]
-                        set_buffer = &gtk::TextBuffer {
-                            set_text: &init.text,
-                            connect_changed => ComponentInput::Internal(ComponentInputInternal::TextChanged) @signal_text_changed,
+                    add_controller = gtk::ShortcutController {
+                        add_shortcut = gtk::Shortcut {
+                            #[wrap(Some)]
+                            set_trigger = gtk::ShortcutTrigger::parse_string("<primary>B").unwrap(),
+                            #[wrap(Some)]
+                            set_action = gtk::ShortcutAction::parse_string("action(rich-text-editor.bold)").unwrap(),
                         },
-
-                        add_controller = gtk::ShortcutController {
-                            add_shortcut = gtk::Shortcut {
-                                #[wrap(Some)]
-                                set_trigger = gtk::ShortcutTrigger::parse_string("<primary>B").unwrap(),
-                                #[wrap(Some)]
-                                set_action = gtk::ShortcutAction::parse_string("action(rich-text-editor.bold)").unwrap(),
-                            },
-                            add_shortcut = gtk::Shortcut {
-                                #[wrap(Some)]
-                                set_trigger = gtk::ShortcutTrigger::parse_string("<primary>I").unwrap(),
-                                #[wrap(Some)]
-                                set_action = gtk::ShortcutAction::parse_string("action(rich-text-editor.italic)").unwrap(),
-                            },
+                        add_shortcut = gtk::Shortcut {
+                            #[wrap(Some)]
+                            set_trigger = gtk::ShortcutTrigger::parse_string("<primary>I").unwrap(),
+                            #[wrap(Some)]
+                            set_action = gtk::ShortcutAction::parse_string("action(rich-text-editor.italic)").unwrap(),
                         },
-                    }
+                    },
                 }
             },
         }

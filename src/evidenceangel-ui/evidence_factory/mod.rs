@@ -22,6 +22,7 @@ mod rich_text;
 mod text;
 
 const EVIDENCE_HEIGHT_REQUEST: i32 = 300;
+const EVIDENCE_INNER_HEIGHT_REQUEST: i32 = 100;
 const HTTP_SEPARATOR: char = '\x1e';
 
 pub struct EvidenceFactoryModel {
