@@ -144,7 +144,7 @@ impl fmt::Display for CliPackage {
             .custom_test_case_metadata_fields
             .iter()
             .collect::<Vec<_>>();
-        sorted_custom_fields.sort_by(|(a, _), (b, _)| a.cmp(b));
+        sorted_custom_fields.sort_by(|(_, a), (_, b)| a.cmp(b));
         for (idx, (key, field)) in sorted_custom_fields.iter().enumerate() {
             let ch = if idx == sorted_custom_fields.len() - 1 {
                 "╰"
@@ -176,7 +176,7 @@ impl fmt::Display for CliPackage {
 }
 
 /// A custom metadata field within a package
-#[derive(Serialize, JsonSchema)]
+#[derive(Serialize, JsonSchema, PartialEq, Eq)]
 struct CliCustomMetadataField {
     /// The field's ID
     key: String,
@@ -202,6 +202,24 @@ impl fmt::Display for CliCustomMetadataField {
         )?;
 
         Ok(())
+    }
+}
+
+impl PartialOrd for CliCustomMetadataField {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for CliCustomMetadataField {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        if self.primary && !other.primary {
+            return std::cmp::Ordering::Less;
+        }
+        if !self.primary && other.primary {
+            return std::cmp::Ordering::Greater;
+        }
+        self.name.cmp(&other.name)
     }
 }
 

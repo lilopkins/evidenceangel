@@ -21,6 +21,10 @@ pub struct Metadata {
 
     /// Custom metadata fields for test cases
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[allow(
+        clippy::struct_field_names,
+        reason = "This field refers to the name of it's subtype"
+    )]
     pub(super) custom_test_case_metadata: Option<HashMap<String, CustomMetadataField>>,
 
     /// Extra fields that this implementation doesn't understand.
@@ -130,6 +134,24 @@ pub struct CustomMetadataField {
     #[get = "pub"]
     #[serde(flatten)]
     extra_fields: HashMap<String, serde_json::Value>,
+}
+
+impl PartialOrd for CustomMetadataField {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for CustomMetadataField {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        if self.primary && !other.primary {
+            return std::cmp::Ordering::Less;
+        }
+        if !self.primary && other.primary {
+            return std::cmp::Ordering::Greater;
+        }
+        self.name.cmp(&other.name)
+    }
 }
 
 /// The manifest entry for a media file present in the package.

@@ -1,8 +1,6 @@
-use std::{borrow::Cow, collections::HashMap, fmt::Display};
+use std::{borrow::Cow, collections::HashMap, fmt::Display, sync::LazyLock};
 
-use fluent::FluentValue;
-use fluent_templates::{LanguageIdentifier, Loader};
-use once_cell::sync::Lazy;
+use fluent_templates::{LanguageIdentifier, Loader, fluent_bundle::types::FluentValue};
 use parking_lot::Mutex;
 
 fluent_templates::static_loader! {
@@ -11,7 +9,7 @@ fluent_templates::static_loader! {
         fallback_language: "en",
     };
 }
-static USE_LOCALE: Lazy<Mutex<Option<LanguageIdentifier>>> = Lazy::new(|| Mutex::new(None));
+static USE_LOCALE: LazyLock<Mutex<Option<LanguageIdentifier>>> = LazyLock::new(|| Mutex::new(None));
 
 /// Initialises i18n and returned the locale identifier
 pub fn initialise_i18n() -> LanguageIdentifier {

@@ -1229,7 +1229,7 @@ impl Component for AppModel {
                             .expect("Cannot navigate to metadata when no package is open");
                         if let Some(fields) = &pkg_fields {
                             let mut fields: Vec<_> = fields.iter().collect();
-                            fields.sort_by(|(a, _), (b, _)| a.cmp(b));
+                            fields.sort_by(|(_, a), (_, b)| a.cmp(b));
                             for (key, field) in fields {
                                 custom_fields.push_back(CustomMetadataEditorFactoryInit {
                                     root: root.clone(),
@@ -1306,7 +1306,7 @@ impl Component for AppModel {
                                     pkg.read().metadata().custom_test_case_metadata()
                                 {
                                     let mut fields: Vec<_> = fields.iter().collect();
-                                    fields.sort_by(|(a, _), (b, _)| a.cmp(b));
+                                    fields.sort_by(|(_, a), (_, b)| a.cmp(b));
                                     for (key, field) in fields {
                                         custom_metadata.push_back(CustomMetadataFactoryInit {
                                             key: key.clone(),

@@ -38,22 +38,18 @@ impl Component for ComponentModel {
     view! {
         #[root]
         gtk::Frame {
-            gtk::ScrolledWindow {
-                set_height_request: 100,
-                set_hexpand: true,
+            gtk::TextView {
+                set_left_margin: 8,
+                set_right_margin: 8,
+                set_top_margin: 8,
+                set_bottom_margin: 8,
+                set_height_request: super::EVIDENCE_INNER_HEIGHT_REQUEST,
 
-                gtk::TextView {
-                    set_left_margin: 8,
-                    set_right_margin: 8,
-                    set_top_margin: 8,
-                    set_bottom_margin: 8,
-
-                    #[name = "text_buffer"]
-                    #[wrap(Some)]
-                    set_buffer = &gtk::TextBuffer {
-                        set_text: &init.text,
-                        connect_changed => ComponentInput::Internal(ComponentInputInternal::TextChanged),
-                    }
+                #[name = "text_buffer"]
+                #[wrap(Some)]
+                set_buffer = &gtk::TextBuffer {
+                    set_text: &init.text,
+                    connect_changed => ComponentInput::Internal(ComponentInputInternal::TextChanged),
                 }
             }
         }

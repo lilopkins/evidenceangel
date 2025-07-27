@@ -1,3 +1,4 @@
+use std::fmt::Write;
 use std::fs;
 
 use angelmark::{AngelmarkLine, AngelmarkTableAlignment, AngelmarkText, parse_angelmark};
@@ -39,9 +40,11 @@ impl Exporter for HtmlExporter {
         let mut authors = String::new();
         for author in package.metadata().authors() {
             if let Some(email) = author.email() {
-                authors.push_str(&format!("{} <{}>, ", author.name(), email));
+                // SAFETY: This won't fail as there's no I/O
+                write!(authors, "{} <{}>, ", author.name(), email).unwrap();
             } else {
-                authors.push_str(&format!("{}, ", author.name()));
+                // SAFETY: This won't fail as there's no I/O
+                write!(authors, "{}, ", author.name()).unwrap();
             }
         }
         authors.pop();
@@ -170,7 +173,7 @@ fn create_test_case_div(
                     .with_raw(s),
             );
         }
-    };
+    }
     if let Some(fields) = test_case.metadata().custom() {
         let mut dl = HtmlElement::new(HtmlTag::DescriptionList)
             .with_attribute("class", "custom-metadata-fields");

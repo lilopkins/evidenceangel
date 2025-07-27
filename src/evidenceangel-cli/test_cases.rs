@@ -269,9 +269,12 @@ impl fmt::Display for CliTestCase {
                                                     }
                                                 };
 
-                                                rich_text.push_str(&format!(
+                                                // SAFETY: This won't fail as there is no I/O
+                                                write!(
+                                                    rich_text,
                                                     "{padding_left}{formatted}{padding_right} | "
-                                                ));
+                                                )
+                                                .unwrap();
                                             }
                                             rich_text.push('\n');
                                         }
@@ -882,7 +885,7 @@ pub fn process(path: PathBuf, command: &TestCasesSubcommand) -> CliData {
                         new_order.insert(new_pos, case_id);
                     }
                     Err(e) => return CliError::FailedToReadPackage(Rc::new(e)).into(),
-                };
+                }
 
                 // Update order
                 if let Err(e) = package.set_test_case_order(new_order) {

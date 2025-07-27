@@ -131,7 +131,7 @@ fn create_summary_sheet(
     let mut custom_keys = vec![];
     if let Some(fields) = package.metadata().custom_test_case_metadata() {
         let mut fields = fields.iter().collect::<Vec<_>>();
-        fields.sort_by(|(a, _), (b, _)| a.cmp(b));
+        fields.sort_by(|(_, a), (_, b)| a.cmp(b));
         for (idx, (key, field)) in fields.iter().enumerate() {
             let col = u16::try_from(4 + idx)?;
             custom_keys.push((*key).clone());
@@ -221,7 +221,7 @@ fn create_test_case_sheet(
             worksheet.write(row, 1, s)?;
             row += 1;
         }
-    };
+    }
     if let Some(fields) = test_case.metadata().custom() {
         for (key, value) in fields {
             let field = package
