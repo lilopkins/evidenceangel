@@ -33,7 +33,9 @@ window.addEventListener('DOMContentLoaded', () => {
         updateShowAll();
     });
     // And in case the page has some reloaded state
-    updateShowAll()
+    updateShowAll();
+
+    hljs.highlightAll();
 });
 
 window.addEventListener("hashchange", tabAnchorMatch);

@@ -31,7 +31,14 @@ impl Exporter for HtmlExporter {
         let mut page = HtmlPage::new()
             .with_title(html_escape::encode_text(package.metadata().title()))
             .with_style(include_str!("html.css"))
-            .with_script_literal(include_str!("html.js"));
+            .with_script_literal(include_str!("html.js"))
+            .with_stylesheet(
+                "https://unpkg.com/@highlightjs/cdn-assets@11.11.1/styles/default.min.css",
+            )
+            .with_script_link("https://unpkg.com/@highlightjs/cdn-assets@11.11.1/highlight.min.js")
+            .with_script_link(
+                "https://unpkg.com/@highlightjs/cdn-assets@11.11.1/languages/http.min.js",
+            );
 
         let title = HtmlElement::new(HtmlTag::Heading1)
             .with_raw(html_escape::encode_text(package.metadata().title()));
@@ -362,16 +369,22 @@ fn create_test_case_div(
                             HtmlElement::new(HtmlTag::Div)
                                 .with_attribute("class", "http-request")
                                 .with_html(
-                                    HtmlElement::new(HtmlTag::CodeText)
-                                        .with_preformatted(html_escape::encode_text(&request)),
+                                    HtmlElement::new(HtmlTag::PreformattedText).with_html(
+                                        HtmlElement::new(HtmlTag::CodeText)
+                                            .with_attribute("class", "language-http")
+                                            .with_raw(html_escape::encode_text(&request)),
+                                    ),
                                 ),
                         )
                         .with_html(
                             HtmlElement::new(HtmlTag::Div)
                                 .with_attribute("class", "http-response")
                                 .with_html(
-                                    HtmlElement::new(HtmlTag::CodeText)
-                                        .with_preformatted(html_escape::encode_text(&response)),
+                                    HtmlElement::new(HtmlTag::PreformattedText).with_html(
+                                        HtmlElement::new(HtmlTag::CodeText)
+                                            .with_attribute("class", "language-http")
+                                            .with_raw(html_escape::encode_text(&response)),
+                                    ),
                                 ),
                         ),
                 );
