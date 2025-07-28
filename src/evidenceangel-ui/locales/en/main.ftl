@@ -16,6 +16,8 @@ header-paste-evidence = Paste Evidence
 header-export-package = Export Package...
 header-export-test-case = Export Test Case...
 
+delete-lock = Try to delete lock
+
 paste-evidence-failed = Failed to paste.
 paste-evidence-wrong-type = Cannot paste this type of data.
 

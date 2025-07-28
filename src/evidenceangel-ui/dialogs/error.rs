@@ -1,7 +1,8 @@
+use std::{fs, path::PathBuf};
+
 use adw::prelude::*;
 use relm4::{
-    Component, ComponentParts, ComponentSender,
-    adw::{self, ApplicationWindow},
+    adw::{self, ApplicationWindow}, gtk::gio::Cancellable, Component, ComponentParts, ComponentSender
 };
 
 use crate::lang;
@@ -9,6 +10,7 @@ use crate::lang;
 pub struct ErrorDialogModel {
     title: String,
     body: String,
+    lock_file: Option<PathBuf>,
 }
 
 pub struct ErrorDialogInit {
@@ -18,6 +20,9 @@ pub struct ErrorDialogInit {
 
 #[derive(Debug)]
 pub enum ErrorDialogInput {
+    OfferLockRelease {
+        lock_file: PathBuf,
+    },
     Present(ApplicationWindow),
 }
 
@@ -52,6 +57,7 @@ impl Component for ErrorDialogModel {
         let model = ErrorDialogModel {
             title: title.to_string(),
             body: body.to_string(),
+            lock_file: None,
         };
         let widgets = view_output!();
         ComponentParts { model, widgets }
@@ -66,7 +72,19 @@ impl Component for ErrorDialogModel {
     ) {
         match message {
             ErrorDialogInput::Present(window) => {
-                root.present(Some(&window));
+                let lock_file = self.lock_file.clone().unwrap();
+                root.clone().choose(&window, None::<&Cancellable>, move |response| {
+                    if response == "unlock" {
+                        // SAFETY: unlock isn't an option without a lock file
+                        if let Err(e) = fs::remove_file(lock_file) {
+                            tracing::warn!("Failed to remove lock file: {e}");
+                        }
+                    }
+                });
+            }
+            ErrorDialogInput::OfferLockRelease { lock_file } => {
+                root.add_response("unlock", &lang::lookup("delete-lock"));
+                self.lock_file = Some(lock_file);
             }
         }
         self.update_view(widgets, sender);

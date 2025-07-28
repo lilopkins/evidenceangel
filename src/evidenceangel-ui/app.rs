@@ -1090,7 +1090,8 @@ impl Component for AppModel {
                 );
             }
             AppInput::__OpenFile(path) => {
-                if let Err(e) = self.open(path) {
+                if let Err(e) = self.open(path.clone()) {
+                    // Show dialog with button to delete lock
                     let error_dlg = ErrorDialogModel::builder()
                         .launch(ErrorDialogInit {
                             title: Box::new(lang::lookup("error-failed-open-title")),
@@ -1100,6 +1101,15 @@ impl Component for AppModel {
                             )),
                         })
                         .forward(sender.input_sender(), |msg| match msg {});
+                    if matches!(e, evidenceangel::Error::LockNotObtained) {
+                        // also offer to release lock
+                        let lock_file_name = format!(
+                            ".~lock.{}#",
+                            path.file_name().unwrap().to_str().unwrap()
+                        );
+                        let lock_file = path.clone().with_file_name(lock_file_name);
+                        error_dlg.emit(ErrorDialogInput::OfferLockRelease { lock_file })
+                    }
                     error_dlg.emit(ErrorDialogInput::Present(root.clone()));
                     self.latest_error_dlg = Some(error_dlg);
                 }

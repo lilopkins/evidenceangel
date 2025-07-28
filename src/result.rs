@@ -5,7 +5,7 @@ use uuid::Uuid;
 #[derive(Debug, Error)]
 pub enum Error {
     /// You are trying to perform an operation without a lock on the package.
-    #[error("The file you are working with is already open. Please close it and try again.")]
+    #[error("The file you are working with is already open. Please close it and try again. If you are sure no one else if working with it, you can delete the lock file and try again.")]
     LockNotObtained,
 
     /// An I/O error from the system.
