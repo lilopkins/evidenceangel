@@ -1106,7 +1106,7 @@ impl Component for AppModel {
                         let lock_file_name =
                             format!(".~lock.{}#", path.file_name().unwrap().to_str().unwrap());
                         let lock_file = path.clone().with_file_name(lock_file_name);
-                        error_dlg.emit(ErrorDialogInput::OfferLockRelease { lock_file })
+                        error_dlg.emit(ErrorDialogInput::OfferLockRelease { lock_file });
                     }
                     error_dlg.emit(ErrorDialogInput::Present(root.clone()));
                     self.latest_error_dlg = Some(error_dlg);
