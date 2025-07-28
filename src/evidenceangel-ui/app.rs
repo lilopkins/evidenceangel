@@ -1515,6 +1515,9 @@ impl Component for AppModel {
                 }
 
                 if let Some(pkg) = self.get_package() {
+                    let adj = widgets.nav_scrolled_window.vadjustment();
+                    let scroll_position = adj.value();
+
                     let mut new_order = pkg
                         .read()
                         .test_case_iter()
@@ -1578,6 +1581,12 @@ impl Component for AppModel {
                     sender.input(AppInput::NavigateTo(self.open_case));
                     pkg.write().set_test_case_order(new_order).unwrap();
                     self.needs_saving = true;
+
+                    // Restore scroll position
+                    let adj = widgets.nav_scrolled_window.vadjustment();
+                    tracing::debug!("Scrolling to {scroll_position}");
+                    adj.set_value(scroll_position);
+                    widgets.nav_scrolled_window.set_vadjustment(Some(&adj));
                 }
             }
             AppInput::CreateAuthor => {
