@@ -19,5 +19,24 @@ let tabAnchorMatch = () => {
     }
 };
 
+window.addEventListener('DOMContentLoaded', () => {
+    const showAll = document.getElementById('showAll');
+    const body = document.querySelector('body');
+    const updateShowAll = () => {
+        if (showAll.checked) {
+            body.classList.add('show-all');
+        } else {
+            body.classList.remove('show-all');
+        }
+    };
+    showAll.addEventListener('click', () => {
+        updateShowAll();
+    });
+    // And in case the page has some reloaded state
+    updateShowAll();
+
+    hljs.highlightAll();
+});
+
 window.addEventListener("hashchange", tabAnchorMatch);
 window.addEventListener("DOMContentLoaded", tabAnchorMatch);

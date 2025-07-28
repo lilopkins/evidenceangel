@@ -1,5 +1,5 @@
 app-name = EvidenceAngel
-ok = Ok
+ok = Okej
 cancel = Avbryt
 invalid-data = Ogiltiga data
 select = Välj
@@ -15,6 +15,8 @@ header-menu = Meny
 header-paste-evidence = Klistra in bevis
 header-export-package = Exportera Paket...
 header-export-test-case = Exportera Testfall...
+
+delete-lock = Försöka att ta bort låset
 
 paste-evidence-failed = Det gick inte att klistra in.
 paste-evidence-wrong-type = Det går inte att klistra in den här typen av data.

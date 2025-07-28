@@ -56,3 +56,11 @@ way to go.
 
 If you prefer to install manually, you can download a suitable package from the
 [GitHub Releases](https://github.com/lilopkins/angelsuite-installer/releases).
+
+## Branding
+
+If you wish to apply company branding to the program, please set the
+`EA_BRAND_IMAGE` environment variable to an absolute path to a brand
+image. This will apply the brand in the UI and in exported files. An
+image with a ratio of 4:1 (width:height) works best. You can also set
+`EA_BRAND_NAME` to set image alt text to your company name.

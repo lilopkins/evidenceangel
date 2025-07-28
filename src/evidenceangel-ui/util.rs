@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use evidenceangel::Evidence;
 use getset::Getters;
 use relm4::gtk::glib;
@@ -21,18 +23,18 @@ impl BoxedEvidenceJson {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Getters, glib::Boxed)]
-#[boxed_type(name = "BoxedTestCaseById")]
+#[boxed_type(name = "BoxedTestCase")]
 #[getset(get = "pub")]
-pub struct BoxedTestCaseById {
-    data: Uuid,
+pub struct BoxedTestCase {
+    evidence_package_path: PathBuf,
+    test_case_id: Uuid,
 }
 
-impl BoxedTestCaseById {
-    pub fn new(data: Uuid) -> Self {
-        Self { data }
-    }
-
-    pub fn inner(self) -> Uuid {
-        self.data
+impl BoxedTestCase {
+    pub fn new(evidence_package_path: PathBuf, test_case_id: Uuid) -> Self {
+        Self {
+            evidence_package_path,
+            test_case_id,
+        }
     }
 }

@@ -76,7 +76,7 @@ impl ZipReaderWriter {
 
     /// Update the locking file for this [`ZipReaderWriter`]. This will
     /// either obtain it (if a path is set), drop it (if a path isn't
-    /// set), or will return a [`crate::Error::Locking`] error.
+    /// set), or will return a [`crate::Error::LockNotObtained`] error.
     fn update_lock_file(&mut self) -> crate::Result<()> {
         if let Some(path) = &self.path {
             let mut lock_path = path.clone();

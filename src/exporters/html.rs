@@ -31,7 +31,14 @@ impl Exporter for HtmlExporter {
         let mut page = HtmlPage::new()
             .with_title(html_escape::encode_text(package.metadata().title()))
             .with_style(include_str!("html.css"))
-            .with_script_literal(include_str!("html.js"));
+            .with_script_literal(include_str!("html.js"))
+            .with_stylesheet(
+                "https://unpkg.com/@highlightjs/cdn-assets@11.11.1/styles/default.min.css",
+            )
+            .with_script_link("https://unpkg.com/@highlightjs/cdn-assets@11.11.1/highlight.min.js")
+            .with_script_link(
+                "https://unpkg.com/@highlightjs/cdn-assets@11.11.1/languages/http.min.js",
+            );
 
         let title = HtmlElement::new(HtmlTag::Heading1)
             .with_raw(html_escape::encode_text(package.metadata().title()));
@@ -60,6 +67,23 @@ impl Exporter for HtmlExporter {
             page.add_html(
                 HtmlElement::new(HtmlTag::ParagraphText)
                     .with_raw(html_escape::encode_text(description)),
+            );
+        }
+
+        if let Ok(branding_img) = std::env::var("EA_BRAND_IMAGE") {
+            let data = fs::read(branding_img).map_err(|e| {
+                std::io::Error::other(format!("Failed to read company brand image: {e}"))
+            })?;
+            let src = format!(
+                "data:application/octet-stream;base64,{}",
+                base64::prelude::BASE64_STANDARD_NO_PAD.encode(data)
+            );
+            page.add_image(
+                src,
+                format!(
+                    "{} Logo",
+                    std::env::var("EA_BRAND_NAME").unwrap_or("Brand".to_string())
+                ),
             );
         }
 
@@ -105,6 +129,7 @@ impl Exporter for HtmlExporter {
                 );
             test_case_elems.push(elem);
         }
+        page.add_raw(r#"<label class="print-hide"><input type="checkbox" id="showAll" />&nbsp;Show all cases in one page</label>"#);
         page.add_html(tab_container);
         for elem in test_case_elems {
             page.add_html(elem);
@@ -361,16 +386,22 @@ fn create_test_case_div(
                             HtmlElement::new(HtmlTag::Div)
                                 .with_attribute("class", "http-request")
                                 .with_html(
-                                    HtmlElement::new(HtmlTag::CodeText)
-                                        .with_preformatted(html_escape::encode_text(&request)),
+                                    HtmlElement::new(HtmlTag::PreformattedText).with_html(
+                                        HtmlElement::new(HtmlTag::CodeText)
+                                            .with_attribute("class", "language-http")
+                                            .with_raw(html_escape::encode_text(&request)),
+                                    ),
                                 ),
                         )
                         .with_html(
                             HtmlElement::new(HtmlTag::Div)
                                 .with_attribute("class", "http-response")
                                 .with_html(
-                                    HtmlElement::new(HtmlTag::CodeText)
-                                        .with_preformatted(html_escape::encode_text(&response)),
+                                    HtmlElement::new(HtmlTag::PreformattedText).with_html(
+                                        HtmlElement::new(HtmlTag::CodeText)
+                                            .with_attribute("class", "language-http")
+                                            .with_raw(html_escape::encode_text(&response)),
+                                    ),
                                 ),
                         ),
                 );

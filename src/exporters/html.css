@@ -89,6 +89,18 @@ td {
 }
 
 @media screen {
+    .show-all {
+        .tabs {
+            display: none;
+        }
+
+        .tab-content {
+            display: block !important;
+            border-top: 1px solid black;
+            margin-top: 2rem;
+        }
+    }
+
     .tab-content.selected {
         display: block;
     }
@@ -103,12 +115,17 @@ td {
 }
 
 @media print {
+    .print-hide {
+        display: none;
+    }
+
     .tabs {
         display: none;
     }
 
     .tab-content {
         border-top: 1px solid black;
+        margin-top: 2rem;
     }
 }
 

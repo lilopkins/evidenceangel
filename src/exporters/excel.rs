@@ -101,6 +101,12 @@ fn create_metadata_sheet(
         worksheet.write_string(row, 1, description)?;
     }
 
+    if let Ok(branding_img) = std::env::var("EA_BRAND_IMAGE") {
+        row += 2;
+        let image = Image::new(branding_img)?;
+        worksheet.insert_image(row, 1, &image)?;
+    }
+
     Ok(())
 }
 

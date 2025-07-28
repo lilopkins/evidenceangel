@@ -41,7 +41,7 @@ use crate::{
     evidence_factory::{EvidenceFactoryInit, EvidenceFactoryModel, EvidenceFactoryOutput},
     filter, lang, lang_args,
     nav_factory::{NavFactoryInit, NavFactoryInput, NavFactoryModel, NavFactoryOutput},
-    util::{BoxedEvidenceJson, BoxedTestCaseById},
+    util::{BoxedEvidenceJson, BoxedTestCase},
 };
 
 relm4::new_action_group!(MenuActionGroup, "menu");
@@ -151,6 +151,7 @@ impl AppModel {
 
             for case in pkg.test_case_iter()? {
                 test_case_data.push_back(NavFactoryInit {
+                    evp_path: self.open_path.clone().unwrap(),
                     id: *case.id(),
                     name: case.metadata().title().clone(),
                     status: *case.metadata().passed(),
@@ -346,6 +347,11 @@ impl Component for AppModel {
                                 #[watch]
                                 set_visible: model.open_package.is_some(),
 
+                                #[name = "nav_branding"]
+                                adw::Bin {
+                                    set_margin_vertical: 8,
+                                },
+
                                 #[name = "nav_metadata"]
                                 gtk::Button {
                                     add_css_class: "flat",
@@ -368,12 +374,12 @@ impl Component for AppModel {
 
                                     add_controller = gtk::DropTarget {
                                         set_actions: gtk::gdk::DragAction::MOVE,
-                                        set_types: &[BoxedTestCaseById::static_type()],
+                                        set_types: &[BoxedTestCase::static_type()],
 
                                         connect_drop[sender] => move |_slf, val, _x, _y| {
                                             tracing::debug!("Dropped type: {:?}", val.type_());
-                                            if let Ok(data) = val.get::<BoxedTestCaseById>() {
-                                                let dropped_case = data.inner();
+                                            if let Ok(data) = val.get::<BoxedTestCase>() {
+                                                let dropped_case = *data.test_case_id();
                                                 tracing::debug!("Dropped case: {dropped_case:?}");
                                                 sender.input(AppInput::MoveTestCase { case_to_move: dropped_case, before: None, offset: None });
                                                 return true;
@@ -992,6 +998,12 @@ impl Component for AppModel {
             root.set_visible(true);
         }
 
+        if let Ok(branding_img) = std::env::var("EA_BRAND_IMAGE") {
+            widgets
+                .nav_branding
+                .set_child(Some(&gtk::Picture::for_filename(branding_img)));
+        }
+
         ComponentParts { model, widgets }
     }
 
@@ -1078,7 +1090,8 @@ impl Component for AppModel {
                 );
             }
             AppInput::__OpenFile(path) => {
-                if let Err(e) = self.open(path) {
+                if let Err(e) = self.open(path.clone()) {
+                    // Show dialog with button to delete lock
                     let error_dlg = ErrorDialogModel::builder()
                         .launch(ErrorDialogInit {
                             title: Box::new(lang::lookup("error-failed-open-title")),
@@ -1088,6 +1101,13 @@ impl Component for AppModel {
                             )),
                         })
                         .forward(sender.input_sender(), |msg| match msg {});
+                    if matches!(e, evidenceangel::Error::LockNotObtained) {
+                        // also offer to release lock
+                        let lock_file_name =
+                            format!(".~lock.{}#", path.file_name().unwrap().to_str().unwrap());
+                        let lock_file = path.clone().with_file_name(lock_file_name);
+                        error_dlg.emit(ErrorDialogInput::OfferLockRelease { lock_file });
+                    }
                     error_dlg.emit(ErrorDialogInput::Present(root.clone()));
                     self.latest_error_dlg = Some(error_dlg);
                 }
@@ -1365,6 +1385,7 @@ impl Component for AppModel {
                     // Add case to navigation
                     let mut test_case_data = self.test_case_nav_factory.guard();
                     test_case_data.push_back(NavFactoryInit {
+                        evp_path: self.open_path.clone().unwrap(),
                         id: case_id,
                         name: case.metadata().title().clone(),
                         status: *case.metadata().passed(),
@@ -1414,6 +1435,7 @@ impl Component for AppModel {
                         // Add case to navigation
                         let mut test_case_data = self.test_case_nav_factory.guard();
                         test_case_data.push_back(NavFactoryInit {
+                            evp_path: self.open_path.clone().unwrap(),
                             id: new_case_id,
                             name: case.metadata().title().clone(),
                             status: *case.metadata().passed(),
@@ -1504,6 +1526,9 @@ impl Component for AppModel {
                 }
 
                 if let Some(pkg) = self.get_package() {
+                    let adj = widgets.nav_scrolled_window.vadjustment();
+                    let scroll_position = adj.value();
+
                     let mut new_order = pkg
                         .read()
                         .test_case_iter()
@@ -1514,6 +1539,7 @@ impl Component for AppModel {
                     new_order.remove(pos);
                     let mut test_case_guard = self.test_case_nav_factory.guard();
                     let NavFactoryModel {
+                        evp_path,
                         id,
                         name,
                         status,
@@ -1530,6 +1556,7 @@ impl Component for AppModel {
                         test_case_guard.insert(
                             other_pos,
                             NavFactoryInit {
+                                evp_path,
                                 id,
                                 name,
                                 status,
@@ -1546,6 +1573,7 @@ impl Component for AppModel {
                             test_case_guard.insert(
                                 new_pos,
                                 NavFactoryInit {
+                                    evp_path,
                                     id,
                                     name,
                                     status,
@@ -1556,6 +1584,7 @@ impl Component for AppModel {
                             // add to end
                             new_order.push(case_to_move);
                             test_case_guard.push_back(NavFactoryInit {
+                                evp_path,
                                 id,
                                 name,
                                 status,
@@ -1567,6 +1596,12 @@ impl Component for AppModel {
                     sender.input(AppInput::NavigateTo(self.open_case));
                     pkg.write().set_test_case_order(new_order).unwrap();
                     self.needs_saving = true;
+
+                    // Restore scroll position
+                    let adj = widgets.nav_scrolled_window.vadjustment();
+                    tracing::debug!("Scrolling to {scroll_position}");
+                    adj.set_value(scroll_position);
+                    widgets.nav_scrolled_window.set_vadjustment(Some(&adj));
                 }
             }
             AppInput::CreateAuthor => {
