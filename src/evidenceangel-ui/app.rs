@@ -1103,10 +1103,8 @@ impl Component for AppModel {
                         .forward(sender.input_sender(), |msg| match msg {});
                     if matches!(e, evidenceangel::Error::LockNotObtained) {
                         // also offer to release lock
-                        let lock_file_name = format!(
-                            ".~lock.{}#",
-                            path.file_name().unwrap().to_str().unwrap()
-                        );
+                        let lock_file_name =
+                            format!(".~lock.{}#", path.file_name().unwrap().to_str().unwrap());
                         let lock_file = path.clone().with_file_name(lock_file_name);
                         error_dlg.emit(ErrorDialogInput::OfferLockRelease { lock_file })
                     }

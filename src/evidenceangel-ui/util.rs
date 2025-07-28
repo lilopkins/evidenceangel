@@ -32,6 +32,9 @@ pub struct BoxedTestCase {
 
 impl BoxedTestCase {
     pub fn new(evidence_package_path: PathBuf, test_case_id: Uuid) -> Self {
-        Self { evidence_package_path, test_case_id }
+        Self {
+            evidence_package_path,
+            test_case_id,
+        }
     }
 }
