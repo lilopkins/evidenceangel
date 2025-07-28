@@ -346,6 +346,11 @@ impl Component for AppModel {
                                 #[watch]
                                 set_visible: model.open_package.is_some(),
 
+                                #[name = "nav_branding"]
+                                adw::Bin {
+                                    set_margin_vertical: 8,
+                                },
+
                                 #[name = "nav_metadata"]
                                 gtk::Button {
                                     add_css_class: "flat",
@@ -990,6 +995,12 @@ impl Component for AppModel {
         if let Some(file) = init {
             sender.input(AppInput::__OpenFile(file));
             root.set_visible(true);
+        }
+
+        if let Ok(branding_img) = std::env::var("EA_BRAND_IMAGE") {
+            widgets
+                .nav_branding
+                .set_child(Some(&gtk::Picture::for_filename(branding_img)));
         }
 
         ComponentParts { model, widgets }

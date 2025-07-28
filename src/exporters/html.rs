@@ -70,6 +70,23 @@ impl Exporter for HtmlExporter {
             );
         }
 
+        if let Ok(branding_img) = std::env::var("EA_BRAND_IMAGE") {
+            let data = fs::read(branding_img).map_err(|e| {
+                std::io::Error::other(format!("Failed to read company brand image: {e}"))
+            })?;
+            let src = format!(
+                "data:application/octet-stream;base64,{}",
+                base64::prelude::BASE64_STANDARD_NO_PAD.encode(data)
+            );
+            page.add_image(
+                src,
+                format!(
+                    "{} Logo",
+                    std::env::var("EA_BRAND_NAME").unwrap_or("Brand".to_string())
+                ),
+            );
+        }
+
         let test_cases: Vec<&TestCase> = package.test_case_iter()?.collect();
         let mut first = true;
         let mut test_case_elems = vec![];
