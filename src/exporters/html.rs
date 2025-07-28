@@ -105,6 +105,7 @@ impl Exporter for HtmlExporter {
                 );
             test_case_elems.push(elem);
         }
+        page.add_raw(r#"<label class="print-hide"><input type="checkbox" id="showAll" />&nbsp;Show all cases in one page</label>"#);
         page.add_html(tab_container);
         for elem in test_case_elems {
             page.add_html(elem);
