@@ -41,7 +41,7 @@ use crate::{
     evidence_factory::{EvidenceFactoryInit, EvidenceFactoryModel, EvidenceFactoryOutput},
     filter, lang, lang_args,
     nav_factory::{NavFactoryInit, NavFactoryInput, NavFactoryModel, NavFactoryOutput},
-    util::{BoxedEvidenceJson, BoxedTestCaseById},
+    util::{BoxedEvidenceJson, BoxedTestCase},
 };
 
 relm4::new_action_group!(MenuActionGroup, "menu");
@@ -151,6 +151,7 @@ impl AppModel {
 
             for case in pkg.test_case_iter()? {
                 test_case_data.push_back(NavFactoryInit {
+                    evp_path: self.open_path.clone().unwrap(),
                     id: *case.id(),
                     name: case.metadata().title().clone(),
                     status: *case.metadata().passed(),
@@ -373,12 +374,12 @@ impl Component for AppModel {
 
                                     add_controller = gtk::DropTarget {
                                         set_actions: gtk::gdk::DragAction::MOVE,
-                                        set_types: &[BoxedTestCaseById::static_type()],
+                                        set_types: &[BoxedTestCase::static_type()],
 
                                         connect_drop[sender] => move |_slf, val, _x, _y| {
                                             tracing::debug!("Dropped type: {:?}", val.type_());
-                                            if let Ok(data) = val.get::<BoxedTestCaseById>() {
-                                                let dropped_case = data.inner();
+                                            if let Ok(data) = val.get::<BoxedTestCase>() {
+                                                let dropped_case = *data.test_case_id();
                                                 tracing::debug!("Dropped case: {dropped_case:?}");
                                                 sender.input(AppInput::MoveTestCase { case_to_move: dropped_case, before: None, offset: None });
                                                 return true;
@@ -1376,6 +1377,7 @@ impl Component for AppModel {
                     // Add case to navigation
                     let mut test_case_data = self.test_case_nav_factory.guard();
                     test_case_data.push_back(NavFactoryInit {
+                        evp_path: self.open_path.clone().unwrap(),
                         id: case_id,
                         name: case.metadata().title().clone(),
                         status: *case.metadata().passed(),
@@ -1425,6 +1427,7 @@ impl Component for AppModel {
                         // Add case to navigation
                         let mut test_case_data = self.test_case_nav_factory.guard();
                         test_case_data.push_back(NavFactoryInit {
+                            evp_path: self.open_path.clone().unwrap(),
                             id: new_case_id,
                             name: case.metadata().title().clone(),
                             status: *case.metadata().passed(),
@@ -1528,6 +1531,7 @@ impl Component for AppModel {
                     new_order.remove(pos);
                     let mut test_case_guard = self.test_case_nav_factory.guard();
                     let NavFactoryModel {
+                        evp_path,
                         id,
                         name,
                         status,
@@ -1544,6 +1548,7 @@ impl Component for AppModel {
                         test_case_guard.insert(
                             other_pos,
                             NavFactoryInit {
+                                evp_path,
                                 id,
                                 name,
                                 status,
@@ -1560,6 +1565,7 @@ impl Component for AppModel {
                             test_case_guard.insert(
                                 new_pos,
                                 NavFactoryInit {
+                                    evp_path,
                                     id,
                                     name,
                                     status,
@@ -1570,6 +1576,7 @@ impl Component for AppModel {
                             // add to end
                             new_order.push(case_to_move);
                             test_case_guard.push_back(NavFactoryInit {
+                                evp_path,
                                 id,
                                 name,
                                 status,

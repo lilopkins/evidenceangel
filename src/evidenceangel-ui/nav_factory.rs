@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use evidenceangel::TestCasePassStatus;
 use gtk::prelude::*;
 use relm4::{
@@ -8,10 +10,11 @@ use relm4::{
 };
 use uuid::Uuid;
 
-use crate::{lang, util::BoxedTestCaseById};
+use crate::{lang, util::BoxedTestCase};
 
 pub struct NavFactoryModel {
     selected: bool,
+    pub evp_path: PathBuf,
     pub name: String,
     pub status: Option<TestCasePassStatus>,
     pub id: Uuid,
@@ -33,6 +36,7 @@ pub enum NavFactoryOutput {
 }
 
 pub struct NavFactoryInit {
+    pub evp_path: PathBuf,
     pub id: Uuid,
     pub name: String,
     pub status: Option<TestCasePassStatus>,
@@ -59,22 +63,28 @@ impl FactoryComponent for NavFactoryModel {
                 add_controller = gtk::DragSource {
                     set_actions: gtk::gdk::DragAction::MOVE,
 
-                    connect_prepare[id] => move |_slf, _x, _y| {
-                        let dnd_data = BoxedTestCaseById::new(id);
+                    connect_prepare[evp_path, id] => move |_slf, _x, _y| {
+                        let dnd_data = BoxedTestCase::new(evp_path.clone(), id);
                         tracing::debug!("Drag case started: {dnd_data:?}");
                         Some(gtk::gdk::ContentProvider::for_value(&dnd_data.to_value()))
                     }
                 },
                 add_controller = gtk::DropTarget {
                     set_actions: gtk::gdk::DragAction::MOVE,
-                    set_types: &[BoxedTestCaseById::static_type()],
+                    set_types: &[BoxedTestCase::static_type()],
 
-                    connect_drop[sender, id] => move |_slf, val, _x, _y| {
+                    connect_drop[sender, evp_path, id] => move |_slf, val, _x, _y| {
                         tracing::debug!("Dropped type: {:?}", val.type_());
-                        if let Ok(data) = val.get::<BoxedTestCaseById>() {
-                            let dropped_case = data.inner();
-                            tracing::debug!("Dropped case: {dropped_case:?}");
-                            sender.output(NavFactoryOutput::MoveBefore { case_to_move: dropped_case, before: id }).unwrap();
+                        if let Ok(data) = val.get::<BoxedTestCase>() {
+                            if *data.evidence_package_path() == evp_path {
+                                let dropped_case = *data.test_case_id();
+                                tracing::debug!("Dropped case from save EVP: {dropped_case:?}");
+                                sender.output(NavFactoryOutput::MoveBefore { case_to_move: dropped_case, before: id }).unwrap();
+                            } else {
+                                let case_id = *data.test_case_id();
+                                tracing::debug!("Dropped case from another EVP ({}): {case_id:?}", data.evidence_package_path().display());
+                                // TODO Load case from other EVP
+                            }
                             return true;
                         }
                         false
@@ -122,6 +132,7 @@ impl FactoryComponent for NavFactoryModel {
 
     fn init_model(init: Self::Init, _index: &DynamicIndex, _sender: FactorySender<Self>) -> Self {
         let Self::Init {
+            evp_path,
             name,
             id,
             status,
@@ -130,6 +141,7 @@ impl FactoryComponent for NavFactoryModel {
         } = init;
         Self {
             selected: false,
+            evp_path,
             name,
             id,
             status,
@@ -145,6 +157,7 @@ impl FactoryComponent for NavFactoryModel {
         sender: FactorySender<Self>,
     ) -> Self::Widgets {
         let id = self.id;
+        let evp_path = self.evp_path.clone();
         let widgets = view_output!();
         widgets
     }
