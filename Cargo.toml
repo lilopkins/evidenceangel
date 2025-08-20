@@ -1,107 +1,17 @@
-[package]
-name = "evidenceangel"
-description = "Library and executables to work with EvidenceAngel evidence packages (*.evp)."
+[workspace]
+resolver = "3"
+members = [
+    "cli",
+    "ui",
+]
+
+[workspace.package]
 version = "1.6.0-alpha.2"
-edition = "2024"
 license = "GPL-3.0-or-later"
+edition = "2024"
 authors = [
     "Lily Hopkins <lily@hpkns.uk>",
     "Eden Turner <somebirb7190@gmail.com>",
 ]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-[[bin]]
-name = "evidenceangel-cli"
-path = "src/evidenceangel-cli/main.rs"
-required-features = ["cli"]
-
-[[bin]]
-name = "evidenceangel-ui"
-path = "src/evidenceangel-ui/main.rs"
-required-features = ["ui"]
-
-[features]
-default = ["exporter-html", "exporter-zip-of-files"]
-cli = [
-    "exporter-html",
-    "exporter-excel",
-    "exporter-zip-of-files",
-    "dep:clap",
-    "dep:clap_complete",
-    "dep:clap-verbosity-flag",
-    "dep:colored",
-    "dep:parse_datetime",
-    "dep:schemars",
-    "dep:tracing-subscriber",
-]
-exporter-excel = ["dep:rust_xlsxwriter"]
-exporter-html = ["dep:build_html", "dep:html-escape"]
-exporter-zip-of-files = []
-ui = [
-    "dep:clap",
-    "dep:directories",
-    "dep:fluent-templates",
-    "dep:glib-build-tools",
-    "dep:open",
-    "dep:parse_datetime",
-    "dep:parking_lot",
-    "dep:relm4",
-    "dep:relm4-icons",
-    "dep:sys-locale",
-    "dep:tempfile",
-    "dep:tracing-subscriber-multi",
-    "dep:tracing-panic",
-    "exporter-html",
-    "exporter-excel",
-    "exporter-zip-of-files",
-]
-windows-keep-console-window = []
-
-[dependencies]
-angelmark = { path = "angelmark" }
-base64 = "0.22.1"
-build_html = { version = "2.5.0", optional = true }
-chrono = { version = "0.4.38", features = ["serde"] }
-clap = { version = "4.5.4", features = ["derive"], optional = true }
-clap-verbosity-flag = { version = "3.0.2", default-features = false, features = ["tracing"], optional = true }
-clap_complete = { version = "4.5.2", optional = true }
-colored = { version = "3.0.0", optional = true }
-directories = { version = "6.0.0", optional = true }
-fluent-templates = { version = "0.13.0", optional = true }
-getset = "0.1.2"
-html-escape = { version = "0.2.13", optional = true }
-infer = "0.19.0"
-jsonschema = "0.31.0"
-open = { version = "5.3.0", optional = true }
-parking_lot = { version = "0.12.3", optional = true }
-parse_datetime = { version = "0.10.0", optional = true }
-relm4 = { version = "0.9.0", features = [
-    "libadwaita",
-    "gnome_46",
-], optional = true }
-relm4-icons = { version = "0.9.0", optional = true }
-rust_xlsxwriter = { version = "0.89.1", features = ["chrono"], optional = true }
-schemars = { version = "1.0.4", features = ["chrono04"], optional = true }
-serde = { version = "1.0.200", features = ["derive"] }
-serde_json = "1.0.116"
-sha256 = "1.5.0"
-sys-locale = { version = "0.3.1", optional = true }
-tempfile = { version = "3.20.0", optional = true }
-thiserror = "2.0.4"
-tracing = "0.1.41"
-tracing-panic = { version = "0.1.2", optional = true }
-tracing-subscriber = { version = "0.3.19", optional = true }
-tracing-subscriber-multi = { version = "0.1.0", optional = true }
-uuid = { version = "1.8.0", features = ["v4", "fast-rng", "serde"] }
-zip = "4.3.0"
-
-[target.'cfg(windows)'.dependencies]
-winapi = "0.3.9"
-
-[target.'cfg(windows)'.build-dependencies]
-winresource = "0.1"
-ico-builder = "0.1"
-
-[build-dependencies]
-glib-build-tools = { version = "0.21.0", optional = true }
-mdbook = { version = "0.4.48", default-features = false, features = ["search"] }

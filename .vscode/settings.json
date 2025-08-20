@@ -2,7 +2,6 @@
     "rust-analyzer.cargo.features": "all",
     "conventionalCommits.scopes": [
         "cli",
-        "exporters",
-        "ui"
+        "ui",
     ]
 }

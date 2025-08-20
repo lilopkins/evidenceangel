@@ -24,7 +24,7 @@ jobs:
           echo "CARGO_PKG_PRERELEASE=${CARGO_PKG_PRERELEASE}" >> $GITHUB_OUTPUT
       - name: Build book
         run: |
-          cd docs || exit
+          cd ui/docs || exit
           cargo install mdbook
           mdbook build -d ${{ steps.version.outputs.CARGO_PKG_VERSION }}
       - name: Upload documentation
@@ -33,7 +33,7 @@ jobs:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
-          source: docs/${{ steps.version.outputs.CARGO_PKG_VERSION }}
+          source: ui/docs/${{ steps.version.outputs.CARGO_PKG_VERSION }}
           target: ${{ secrets.SSH_DOCS_TARGET_PATH }}
 
 
