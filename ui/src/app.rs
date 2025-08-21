@@ -2359,9 +2359,7 @@ impl Component for AppModel {
                                                 );
                                                 let evidence = Evidence::new(
                                                     EvidenceKind::Image,
-                                                    evp::EvidenceData::Media {
-                                                        hash: media.hash(),
-                                                    },
+                                                    evp::EvidenceData::Media { hash: media.hash() },
                                                 );
                                                 sender_c.input(AppInput::_AddMedia(media));
                                                 sender_c

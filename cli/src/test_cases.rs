@@ -6,13 +6,11 @@ use std::{
     rc::Rc,
 };
 
-use evp::angelmark::{AngelmarkLine, AngelmarkTableAlignment, parse_angelmark};
 use chrono::FixedOffset;
 use clap::{Subcommand, ValueEnum};
 use colored::Colorize;
-use evp::{
-    Evidence, EvidenceData, EvidenceKind, EvidencePackage, MediaFile, TestCasePassStatus,
-};
+use evp::angelmark::{AngelmarkLine, AngelmarkTableAlignment, parse_angelmark};
+use evp::{Evidence, EvidenceData, EvidenceKind, EvidencePackage, MediaFile, TestCasePassStatus};
 use schemars::JsonSchema;
 use serde::Serialize;
 use uuid::Uuid;

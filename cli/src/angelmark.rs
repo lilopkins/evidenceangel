@@ -1,5 +1,5 @@
-use evp::angelmark::AngelmarkText;
 use colored::Colorize;
+use evp::angelmark::AngelmarkText;
 
 /// Convert [`AngelmarkText`] to a string with ANSI symbols for terminal display.
 pub(crate) fn angelmark_to_term(angelmark: &AngelmarkText) -> String {
