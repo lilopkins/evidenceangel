@@ -9,7 +9,8 @@ on:
 env:
   EXECUTABLE_NAME: evidenceangel-ui
   CARGO_KEEP_CONSOLE_ON_WINDOWS_FEATURE: windows-keep-console-window
-  CARGO_EXTRA_BUILD_PARAMS: --features ui --bin evidenceangel-ui
+  # Build params for the UI
+  CARGO_EXTRA_BUILD_PARAMS: -p ui
 
 jobs:
   create-release:
@@ -80,7 +81,7 @@ jobs:
           command: "build"
           target: ${{ matrix.platform.target }}
           toolchain: ${{ matrix.toolchain }}
-          args: "--features cli --bin evidenceangel-cli --locked --release"
+          args: "-p cli --locked --release"
           strip: true
       - name: Rename binary (linux and macos)
         run: mv target/${{ matrix.platform.target }}/release/evidenceangel-cli target/${{ matrix.platform.target }}/release/${{ matrix.platform.bin }}
@@ -88,8 +89,6 @@ jobs:
       - name: Rename binary (windows)
         run: mv target/${{ matrix.platform.target }}/release/evidenceangel-cli.exe target/${{ matrix.platform.target }}/release/${{ matrix.platform.bin }}
         if: matrix.platform.os_name == 'Windows-x86_64'
-      - name: Generate SHA-256
-        run: shasum -a 256 target/${{ matrix.platform.target }}/release/${{ matrix.platform.bin }} | cut -d ' ' -f 1 > target/${{ matrix.platform.target }}/release/${{ matrix.platform.bin }}.sha256
       - name: Release binary and SHA-256 checksum to GitHub
         uses: softprops/action-gh-release@v1
         with:
@@ -97,7 +96,6 @@ jobs:
           prerelease: ${{ needs.create-release.outputs.CARGO_PKG_PRERELEASE }}
           files: |
             target/${{ matrix.platform.target }}/release/${{ matrix.platform.bin }}
-            target/${{ matrix.platform.target }}/release/${{ matrix.platform.bin }}.sha256
 
   build-gtk:
     name: Build and Publish (${{ matrix.platform.os_name }})
@@ -211,12 +209,12 @@ jobs:
           cp bundle/bin/${{ env.EXECUTABLE_NAME }}-${{ matrix.platform.file_suffix }}.exe target/release/evidenceangel-ui.exe
           cp bundle/bin/${{ env.EXECUTABLE_NAME }}-console-${{ matrix.platform.file_suffix }}.exe target/release/evidenceangel-ui-console.exe
           echo Building CLI executable...
-          cargo build --release -F cli --bin evidenceangel-cli
+          cargo build --release -p cli
 
           echo Generating Wix script...
           rm -rf ${{ steps.wingtk-install.outputs.BASE_DIR }}/include
           rm -rf ${{ steps.wingtk-install.outputs.BASE_DIR }}/bin/*.exe
-          pushd wix || exit
+          pushd ui/wix || exit
           GTK4_PATH="${{ steps.wingtk-install.outputs.BASE_DIR }}" ./generate_wix_script.sh
           sed -i 's|/d/|D:/|g' main.wxs
           popd || exit

@@ -1,0 +1,40 @@
+[package]
+name = "evidenceangel-ui"
+version.workspace = true
+license.workspace = true
+edition.workspace = true
+authors.workspace = true
+
+[features]
+windows-keep-console-window = []
+
+[dependencies]
+chrono = "0.4.41"
+clap = { version = "4.5.4", features = ["derive"] }
+directories = "6.0.0"
+evp = { version = "1.0.0-beta.1", features = ["exporter-excel", "exporter-html", "exporter-zip-of-files"] }
+fluent-templates = "0.13.0"
+getset = "0.1.6"
+infer = "0.19.0"
+open = "5.3.0"
+parking_lot = "0.12.3"
+parse_datetime = "0.10.0"
+relm4 = { version = "0.9.0", features = [
+    "libadwaita",
+    "gnome_46",
+] }
+relm4-icons = "0.9.0"
+sys-locale = "0.3.1"
+tempfile = "3.20.0"
+tracing = "0.1.41"
+tracing-panic = "0.1.2"
+tracing-subscriber-multi = "0.1.0"
+uuid = "1.18.0"
+
+[target.'cfg(windows)'.build-dependencies]
+winresource = "0.1"
+ico-builder = "0.1"
+
+[build-dependencies]
+glib-build-tools = { version = "0.21.0" }
+mdbook = { version = "0.4.48", default-features = false, features = ["search"] }
