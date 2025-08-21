@@ -10,7 +10,7 @@ env:
   EXECUTABLE_NAME: evidenceangel-ui
   CARGO_KEEP_CONSOLE_ON_WINDOWS_FEATURE: windows-keep-console-window
   # Build params for the UI
-  CARGO_EXTRA_BUILD_PARAMS: -p ui
+  CARGO_EXTRA_BUILD_PARAMS: -p evidenceangel-ui
 
 jobs:
   create-release:
@@ -81,7 +81,7 @@ jobs:
           command: "build"
           target: ${{ matrix.platform.target }}
           toolchain: ${{ matrix.toolchain }}
-          args: "-p cli --locked --release"
+          args: "-p evidenceangel-cli --locked --release"
           strip: true
       - name: Rename binary (linux and macos)
         run: mv target/${{ matrix.platform.target }}/release/evidenceangel-cli target/${{ matrix.platform.target }}/release/${{ matrix.platform.bin }}
@@ -209,7 +209,7 @@ jobs:
           cp bundle/bin/${{ env.EXECUTABLE_NAME }}-${{ matrix.platform.file_suffix }}.exe target/release/evidenceangel-ui.exe
           cp bundle/bin/${{ env.EXECUTABLE_NAME }}-console-${{ matrix.platform.file_suffix }}.exe target/release/evidenceangel-ui-console.exe
           echo Building CLI executable...
-          cargo build --release -p cli
+          cargo build --release -p evidenceangel-cli
 
           echo Generating Wix script...
           rm -rf ${{ steps.wingtk-install.outputs.BASE_DIR }}/include
