@@ -776,7 +776,7 @@ dependencies = [
 
 [[package]]
 name = "evidenceangel-cli"
-version = "1.6.0-alpha.2"
+version = "1.6.0-alpha.3"
 dependencies = [
  "chrono",
  "clap",
@@ -797,7 +797,7 @@ dependencies = [
 
 [[package]]
 name = "evidenceangel-ui"
-version = "1.6.0-alpha.2"
+version = "1.6.0-alpha.3"
 dependencies = [
  "chrono",
  "clap",
