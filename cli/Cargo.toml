@@ -11,7 +11,7 @@ clap = { version = "4.5.4", features = ["derive"] }
 clap-verbosity-flag = { version = "3.0.2", default-features = false, features = ["tracing"] }
 clap_complete = "4.5.2"
 colored = "3.0.0"
-evp = { version = "1.0.0-beta.1", features = ["exporter-excel", "exporter-html", "exporter-zip-of-files"] }
+evp.workspace = true
 getset = "0.1.6"
 parse_datetime = "0.10.0"
 schemars = { version = "1.0.4", features = ["chrono04"] }

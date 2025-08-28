@@ -6,12 +6,15 @@ members = [
 ]
 
 [workspace.package]
-version = "1.6.0-alpha.3"
+version = "1.6.0-alpha.4"
 license = "GPL-3.0-or-later"
 edition = "2024"
 authors = [
     "Lily Hopkins <lily@hpkns.uk>",
     "Eden Turner <somebirb7190@gmail.com>",
 ]
+
+[workspace.dependencies]
+evp = { version = "1.0.0-beta.2", features = ["exporter-excel", "exporter-html", "exporter-zip-of-files"] }
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
