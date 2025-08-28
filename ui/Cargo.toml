@@ -12,7 +12,7 @@ windows-keep-console-window = []
 chrono = "0.4.41"
 clap = { version = "4.5.4", features = ["derive"] }
 directories = "6.0.0"
-evp = { version = "1.0.0-beta.1", features = ["exporter-excel", "exporter-html", "exporter-zip-of-files"] }
+evp.workspace = true
 fluent-templates = "0.13.0"
 getset = "0.1.6"
 infer = "0.19.0"

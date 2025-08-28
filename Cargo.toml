@@ -14,4 +14,7 @@ authors = [
     "Eden Turner <somebirb7190@gmail.com>",
 ]
 
+[workspace.dependencies]
+evp = { version = "1.0.0-beta.2", features = ["exporter-excel", "exporter-html", "exporter-zip-of-files"] }
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
